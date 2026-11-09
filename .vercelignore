@@ -3,3 +3,9 @@ tools/
 workflows/
 docs/
 .tmp/
+# Never upload local secrets or machine-only folders (CLI deploys; Git deploys never see them anyway)
+.env*
+.venv/
+node_modules/
+.next/
+public/ocr/
