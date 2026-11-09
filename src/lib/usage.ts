@@ -60,6 +60,10 @@ const RESERVE = 0.05;
 export async function quotaBlock(needs: Partial<Record<Provider, number>>): Promise<string | null> {
   const used = await getUsage();
   if (!used) return null;
+  // Demo visitors' live checks this month (~2 MarketCheck + 2 Auto.dev each).
+  const guest = await guestMonthChecks();
+  used.marketcheck += guest * 2;
+  used.autodev += guest * 2;
   for (const [provider, n] of Object.entries(needs) as [Provider, number][]) {
     if (n && used[provider] + n > MONTHLY_LIMIT[provider] * (1 - RESERVE)) {
       const name = provider === "marketcheck" ? "MarketCheck" : "Auto.dev";
@@ -67,4 +71,14 @@ export async function quotaBlock(needs: Partial<Record<Provider, number>>): Prom
     }
   }
   return null;
+}
+
+async function guestMonthChecks(): Promise<number> {
+  const db = await createSupabase();
+  try {
+    const { data, error } = await db.rpc("guest_month_usage");
+    return !error && typeof data === "number" && data >= 0 ? data : 0;
+  } catch {
+    return 0;
+  }
 }

@@ -3,6 +3,8 @@
 import { currentUser } from "@/lib/auth/session";
 import { saveValue } from "@/lib/cars/store";
 import { clientIp } from "@/lib/client-ip";
+import { allowanceMessage, takeGuestAllowance } from "@/lib/guest/allowance";
+import { verifyTurnstile } from "@/lib/guest/turnstile";
 import { fetchVinHistory } from "@/lib/history/client";
 import type { HistoryRecord } from "@/lib/history/parse";
 import { historyRuleHits, recentMiles, savedHistory, summarizeHistory } from "@/lib/history/summary";
@@ -48,7 +50,8 @@ const int = (v: FormDataEntryValue | null, min: number, max: number) => {
  * checks login and validates every field itself. Only runs on a click.
  */
 export async function priceCheckAction(_prev: PriceState, form: FormData): Promise<PriceState> {
-  if (!(await currentUser())) return { status: "error", message: "Your login has expired. Reload the page and log in again." };
+  // Owner (two-step login) or demo visitor. Visitors get a lean, rationed check (below).
+  const owner = await currentUser();
 
   const zip = text(form.get("zip"), 5);
   if (!/^\d{5}$/.test(zip) || !zipToState(zip)) return { status: "error", message: "Enter your 5-digit US ZIP code, so prices are local." };
@@ -67,8 +70,19 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
   const ip = await clientIp();
   if (!rateLimit(`price:${ip}`, PER_IP_PER_MINUTE, 60_000)) return { status: "error", message: "Too many checks in a minute. Wait a moment and try again." };
   if (!rateLimit("price:day", PER_DAY, DAY_MS)) return { status: "error", message: `Daily limit reached (${PER_DAY} price checks), to protect the free API quota. Try again tomorrow.` };
-  const blocked = await quotaBlock({ marketcheck: 4, autodev: 2 });
-  if (blocked) return { status: "error", message: blocked };
+  if (owner) {
+    const blocked = await quotaBlock({ marketcheck: 4, autodev: 2 });
+    if (blocked) return { status: "error", message: blocked };
+  } else {
+    // Demo visitor: prove you're a person, then the shared daily/monthly allowance
+    // (Supabase, also keeps the owner's monthly reserve). Order matters: a bot
+    // without a valid token never touches the counter.
+    if (!(await verifyTurnstile(form.get("cf-turnstile-response"), "price"))) {
+      return { status: "error", message: "Please complete the \"I'm human\" check below the button, then press it again." };
+    }
+    const allowed = await takeGuestAllowance("price");
+    if (allowed !== "ok") return { status: "error", message: allowanceMessage(allowed, "price") };
+  }
 
   const notes: string[] = [];
   try {
@@ -77,7 +91,8 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
     let history: HistoryRecord[] | null = null;
     if (vin) {
       const [r, h] = await Promise.all([
-        lookupLiveListing(vin),
+        // Visitors: Auto.dev only (1,000/month), never the MarketCheck backup.
+        lookupLiveListing(vin, owner ? undefined : { autoDevOnly: true }),
         fetchVinHistory(vin).catch((err) => {
           console.error("vin history failed", err instanceof Error ? err.message : "unknown error");
           notes.push("The listing history didn't answer just now. Try again later.");
@@ -103,19 +118,24 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
       }
     }
     if (!(year && make && model)) {
-      await recordUsage(lookupCalls);
+      if (owner) await recordUsage(lookupCalls);
       return { status: "done", live, history, sources: null, car: null, notes: [...notes, "Couldn't tell the year, make and model, so there's no price check. Paste the listing text too."] };
     }
-    const sources = await fetchPriceSources({ vin, year, make, model, trim: trim ?? live?.trim ?? null, miles, zip });
-    await recordUsage({
-      autodev: lookupCalls.autodev + 1,
-      marketcheck: lookupCalls.marketcheck + (vin && miles !== null ? 1 : 0) + 1,
-    });
+    // Visitors skip MarketCheck's price model (1 call): sold + for-sale comps still price the car.
+    const sources = await fetchPriceSources({ vin, year, make, model, trim: trim ?? live?.trim ?? null, miles, zip }, { skipPriceModel: !owner });
+    // The owner's meter is per login; visitor use is counted by the guest allowance.
+    if (owner) {
+      await recordUsage({
+        autodev: lookupCalls.autodev + 1,
+        marketcheck: lookupCalls.marketcheck + (vin && miles !== null ? 1 : 0) + 1,
+      });
+    }
     if (sources.failed.length) notes.push(`Couldn't reach ${sources.failed.join(", ")} just now; the value uses the other sources.`);
     if (miles === null) notes.push("The miles are unknown, so the value is for an average-mileage car.");
 
     // Remember the result in "My cars" (if this check was saved there).
-    const carId = int(form.get("carId"), 1, Number.MAX_SAFE_INTEGER);
+    // Only the owner has a My cars; a visitor's form can't make the server save anything.
+    const carId = owner ? int(form.get("carId"), 1, Number.MAX_SAFE_INTEGER) : null;
     if (carId) {
       // The page's value wins unless it's "unknown"; then the live listing's (or the default).
       const pick = <T extends string>(v: FormDataEntryValue | null, allowed: readonly T[], dflt: T): T => {

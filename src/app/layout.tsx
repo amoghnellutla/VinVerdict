@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
 import { connection } from "next/server";
+import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
@@ -26,10 +27,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <Nav />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:py-14">{children}</main>
         <footer className="border-t border-border">
-          <p className="mx-auto max-w-3xl px-4 py-8 text-sm text-muted">
-            VinVerdict uses free public data (NHTSA, FuelEconomy.gov) and listing data, and links every result to its source. It
-            doesn&apos;t replace a pre-purchase inspection by a mechanic you trust.
-          </p>
+          <div className="mx-auto max-w-3xl space-y-2 px-4 py-8 text-sm text-muted">
+            <p>
+              Data: NHTSA (VIN decode, recalls, crash tests, complaints), FuelEconomy.gov, and listing data from MarketCheck and Auto.dev.
+              Every result links to its source. VinVerdict doesn&apos;t replace a pre-purchase inspection by a mechanic you trust.
+            </p>
+            <p>
+              Privacy: demo checks aren&apos;t stored, and screenshots are read on your device.{" "}
+              <Link href="/security" className="link">How it&apos;s secured</Link>
+            </p>
+          </div>
         </footer>
       </body>
     </html>

@@ -4,6 +4,7 @@ import { analyzeListing, type Analysis } from "@/lib/analyze";
 import { currentUser } from "@/lib/auth/session";
 import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
 import { clientIp } from "@/lib/client-ip";
+import { allowanceMessage, takeGuestAllowance } from "@/lib/guest/allowance";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import { buildVerdict } from "@/lib/verdict";
@@ -21,21 +22,25 @@ export type AnalyzeState =
       saveNote: string | null;
       /** Other saved cars whose listing had the same phone number. */
       phoneMatches: PhoneMatch[];
+      /** Demo visitor (no login): nothing is saved, live lookups are rationed. */
+      guest: boolean;
     };
 
 const LIMIT_PER_MINUTE = 10;
+const GUEST_PER_MINUTE = 5;
 const cap = (s: string | null | undefined) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : null);
 
 /**
- * Server Action behind the "Analyze" button. Reachable by direct POST, so it
+ * Server Action behind the "Check" button. Reachable by direct POST, so it
  * validates everything itself. Next.js already rejects cross-site requests
  * (Origin check) and bodies over 1 MB.
+ *
+ * Owner (two-step login): the check is saved to My cars. Demo visitor (no
+ * login): the free check only (NHTSA is free, no paid API), within the
+ * per-visitor and daily limits stored in Supabase, and nothing is saved.
  */
 export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Promise<AnalyzeState> {
-  // Login first, before reading anything else.
-  if (!(await currentUser())) {
-    return { status: "error", message: "Your login has expired. Reload the page and log in again." };
-  }
+  const owner = await currentUser();
 
   const raw = formData.get("listing");
   if (typeof raw !== "string") return { status: "error", message: "Paste a listing, link or VIN first." };
@@ -46,8 +51,13 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   }
 
   const ip = await clientIp();
-  if (!rateLimit(`analyze:${ip}`, LIMIT_PER_MINUTE, 60_000)) {
+  if (!rateLimit(`analyze:${ip}`, owner ? LIMIT_PER_MINUTE : GUEST_PER_MINUTE, 60_000)) {
     return { status: "error", message: "Too many checks in a minute. Wait a moment and try again." };
+  }
+  if (!owner) {
+    const allowed = await takeGuestAllowance("check");
+    // If the shared counter can't be reached, the per-minute limit above still applies.
+    if (allowed !== "ok" && allowed !== "unavailable") return { status: "error", message: allowanceMessage(allowed, "check") };
   }
 
   let analysis: Analysis;
@@ -56,6 +66,10 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   } catch (err) {
     console.error("analyzeAction failed", err);
     return { status: "error", message: "Something went wrong while checking that listing. Try again." };
+  }
+
+  if (!owner) {
+    return { status: "done", id: Date.now(), analysis, carId: null, saveNote: "Demo mode: nothing you paste is saved.", phoneMatches: [], guest: true };
   }
 
   // Save it to "My cars" (a link alone has nothing worth saving).
@@ -89,5 +103,5 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
     if (saved.ok) carId = saved.value;
     else if (saved.error === "not-set-up") saveNote = "Saving to My cars needs a one-time database setup (docs/SETUP.md, step 8).";
   }
-  return { status: "done", id: Date.now(), analysis, carId, saveNote, phoneMatches };
+  return { status: "done", id: Date.now(), analysis, carId, saveNote, phoneMatches, guest: false };
 }

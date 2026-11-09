@@ -3,32 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LOGIN_PATH, MFA_PATH } from "@/lib/auth/validate";
-import { NAV_ROUTES } from "@/lib/routes";
+import { GUEST_ROUTES, NAV_ROUTES } from "@/lib/routes";
 
 // Plain text links; the current page is underlined, like most well-made sites.
 const base = "whitespace-nowrap py-1 text-[0.95rem] underline-offset-[6px] decoration-2 transition-colors";
 const idle = "text-muted hover:text-foreground";
 const active = "font-semibold text-foreground underline decoration-accent";
 
-/**
- * Nav links with the current page highlighted. Hidden on the login page:
- * every link needs a login, and prefetching them would just bounce back.
- */
-export function NavLinks() {
+/** Nav links with the current page highlighted. Hidden on the two login pages. */
+export function NavLinks({ owner }: { owner: boolean }) {
   const pathname = usePathname();
   if (pathname === LOGIN_PATH || pathname === MFA_PATH) return null;
-  return <LinkList isActive={(href) => (href === "/" ? pathname === "/" : pathname.startsWith(href))} />;
+  return <LinkList owner={owner} isActive={(href) => (href === "/" ? pathname === "/" : pathname.startsWith(href))} />;
 }
 
-/** Same links with no highlight: the Suspense fallback while the path is unknown. */
-export function NavLinksStatic() {
-  return <LinkList isActive={() => false} />;
+/** Same links with no highlight: the Suspense fallback while the path or login is unknown. */
+export function NavLinksStatic({ owner = false }: { owner?: boolean }) {
+  return <LinkList owner={owner} isActive={() => false} />;
 }
 
-function LinkList({ isActive }: { isActive: (href: string) => boolean }) {
+function LinkList({ owner, isActive }: { owner: boolean; isActive: (href: string) => boolean }) {
   return (
     <ul className="flex gap-5 sm:justify-center">
-      {NAV_ROUTES.map(({ href, label }) => {
+      {(owner ? NAV_ROUTES : GUEST_ROUTES).map(({ href, label }) => {
         const on = isActive(href);
         return (
           <li key={href}>

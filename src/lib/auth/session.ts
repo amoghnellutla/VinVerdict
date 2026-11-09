@@ -1,5 +1,6 @@
 import "server-only";
 
+import { supabaseConfig } from "@/lib/supabase/config";
 import { createSupabase } from "@/lib/supabase/server";
 
 export type User = { id: string; email: string | null };
@@ -28,8 +29,11 @@ export async function currentUser(): Promise<User | null> {
  * currentUser().
  */
 export async function currentLogin(): Promise<Login | null> {
+  if (!supabaseConfig()) return null;
+  // Read the login cookie outside try/catch: while prerendering, Next.js signals
+  // "this part is dynamic" by rejecting cookies(), and that must not be swallowed.
+  const supabase = await createSupabase();
   try {
-    const supabase = await createSupabase();
     const { data, error } = await supabase.auth.getClaims();
     if (error || !data?.claims?.sub) return null;
     const email = typeof data.claims.email === "string" ? data.claims.email : null;

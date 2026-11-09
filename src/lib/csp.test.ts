@@ -6,7 +6,7 @@ describe("page CSP", () => {
     const csp = buildCsp("abc123==", false);
     expect(csp).toContain("script-src 'self' 'nonce-abc123==' 'strict-dynamic'");
     expect(csp).not.toMatch(/script-src[^;]*'unsafe-(inline|eval)'/);
-    for (const d of ["object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'", "form-action 'self'", "connect-src 'self'", "upgrade-insecure-requests"]) {
+    for (const d of ["object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'", "form-action 'self'", "connect-src 'self'", "upgrade-insecure-requests", "frame-src https://challenges.cloudflare.com"]) {
       expect(csp).toContain(d);
     }
   });

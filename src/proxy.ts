@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isPublicPath, LOGIN_PATH, MFA_PATH, safeNext } from "@/lib/auth/validate";
+import { isDemoPath, isPublicPath, LOGIN_PATH, MFA_PATH, safeNext } from "@/lib/auth/validate";
 import { buildCsp, newNonce } from "@/lib/csp";
 import { AUTH_COOKIE_OPTIONS, supabaseConfig } from "@/lib/supabase/config";
 
@@ -10,8 +10,9 @@ import { AUTH_COOKIE_OPTIONS, supabaseConfig } from "@/lib/supabase/config";
  * 1. Refreshes the Supabase login so it doesn't expire mid-visit. Only the
  *    proxy refreshes: refreshing in several places can make Supabase revoke
  *    the session (refresh-token reuse).
- * 2. Sends logged-out visitors to /login?next=<page>, and logged-in visitors
- *    away from /login.
+ * 2. Demo pages (/, /shortlist, /security, /share) are open to everyone.
+ *    Owner pages send logged-out visitors to /login?next=<page>, and
+ *    logged-in owners are sent away from /login.
  * 3. Two-step login: a session that has only passed the password step
  *    ("aal1") can open /mfa and nothing else until the authenticator code is
  *    entered ("aal2").
@@ -71,7 +72,7 @@ export async function proxy(request: NextRequest) {
   const isRead = request.method === "GET" || request.method === "HEAD";
   let result: NextResponse = response;
 
-  if (!loggedIn && !isPublicPath(pathname)) {
+  if (!loggedIn && !isPublicPath(pathname) && !isDemoPath(pathname)) {
     if (isRead) {
       const to = new URL(LOGIN_PATH, request.url);
       const next = safeNext(pathname + search);
@@ -81,8 +82,8 @@ export async function proxy(request: NextRequest) {
       // A POST that isn't a Server Action has no business here.
       result = withCookies(new NextResponse("Log in first.", { status: 401 }), response);
     }
-    // Server Action POSTs pass through: the action itself refuses with a
-    // friendly "log in again" message, which a redirect here would swallow.
+    // Server Action POSTs pass through: owner actions refuse with a friendly
+    // "log in again" message; demo actions apply the visitor limits.
   } else if (loggedIn && !fullLogin && pathname !== MFA_PATH) {
     if (isRead) {
       const to = new URL(MFA_PATH, request.url);

@@ -18,6 +18,9 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     "connect-src 'self'",
     // The on-device screenshot reader runs in a worker from /ocr/ (its own CSP: next.config.ts).
     "worker-src 'self'",
+    // Cloudflare Turnstile ("I'm human" check for demo visitors) runs in its own frame.
+    // Its script is added by the app's own (nonced) code, which 'strict-dynamic' allows.
+    "frame-src https://challenges.cloudflare.com",
     "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",

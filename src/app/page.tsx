@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { Suspense } from "react";
 import { Analyzer } from "@/components/analyzer/Analyzer";
+import { currentUser } from "@/lib/auth/session";
 
 export default function CheckListingPage() {
   return (
@@ -10,7 +13,24 @@ export default function CheckListingPage() {
           you spend a dollar.
         </p>
       </div>
-      <Analyzer />
+      <Suspense fallback={<Analyzer guest />}>
+        <ForViewer />
+      </Suspense>
+    </>
+  );
+}
+
+/** Owner (two-step login) gets the full app; anyone else gets the demo. */
+async function ForViewer() {
+  const owner = await currentUser();
+  if (owner) return <Analyzer />;
+  return (
+    <>
+      <p className="-mt-6 mb-8 max-w-2xl rounded-md border-l-4 border-l-accent bg-accent-soft px-4 py-3">
+        <strong>Demo, no sign-up.</strong> Open an example or check your own listing. Nothing you paste is saved.{" "}
+        <Link href="/security" className="link">How it&apos;s secured</Link>
+      </p>
+      <Analyzer guest />
     </>
   );
 }

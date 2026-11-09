@@ -7,9 +7,21 @@ export const LOGIN_PATH = "/login";
 /** Second login step (authenticator code). Open to a password-only session, nothing else is. */
 export const MFA_PATH = "/mfa";
 
-/** Pages anyone can open without logging in. Everything else needs a login. */
+/** The login page: open to everyone, and a logged-in owner is sent on from it. */
 export function isPublicPath(pathname: string): boolean {
   return pathname === LOGIN_PATH;
+}
+
+/**
+ * The public demo: pages a visitor can use without an account (nothing they
+ * do is saved, paid lookups are rationed in the Server Actions). Everything
+ * else (My cars, Compare, Search, Settings, car pages) needs the owner's
+ * two-step login.
+ */
+export const DEMO_PATHS = ["/", "/shortlist", "/security", "/share"] as const;
+
+export function isDemoPath(pathname: string): boolean {
+  return (DEMO_PATHS as readonly string[]).includes(pathname);
 }
 
 /**

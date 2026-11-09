@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent, type DragEvent } from "react";
 import { analyzeAction, type AnalyzeState } from "@/app/actions/analyze";
 import { readListingHash } from "@/lib/bookmarklet";
+import { EXAMPLES, loadExample, type DemoData, type ExampleId } from "@/lib/demo/examples";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { MAX_SCREENSHOTS, pickImages, readScreenshots, type OcrProgress } from "@/lib/ocr";
 import { Bookmarklet } from "./Bookmarklet";
@@ -19,13 +20,27 @@ const subscribeCoarse = (cb: () => void) => {
 };
 const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => false);
 
-/** Paste box + results for the "Check a listing" page. */
-export function Analyzer() {
+/** Paste box + results for the "Check a listing" page. `guest` = demo visitor (no login). */
+export function Analyzer({ guest = false }: { guest?: boolean }) {
   const [state, formAction, pending] = useActionState(analyzeAction, initial);
   // Controlled so the text survives React's automatic form reset after submit.
   const [text, setText] = useState("");
   const [pasteNote, setPasteNote] = useState<string | null>(null);
   const [ocr, setOcr] = useState<OcrProgress | null>(null);
+  // Demo example being shown (recorded data, no server call), or null.
+  const [example, setExample] = useState<{ id: ExampleId; data: DemoData } | null>(null);
+  const [exampleLoading, setExampleLoading] = useState<ExampleId | null>(null);
+
+  async function openExample(id: ExampleId) {
+    setExampleLoading(id);
+    try {
+      setExample({ id, data: await loadExample(id) });
+      // Bring the result into view on phones.
+      requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    } finally {
+      setExampleLoading(null);
+    }
+  }
 
   /** Fill the box and run the check straight away. */
   function check(listing: string) {
@@ -33,6 +48,7 @@ export function Analyzer() {
     if (!t) return;
     setText(t);
     setPasteNote(null);
+    setExample(null);
     const data = new FormData();
     data.set("listing", t);
     startTransition(() => formAction(data));
@@ -134,8 +150,11 @@ export function Analyzer() {
 
   return (
     <>
+      {guest && <Examples onOpen={openExample} loading={exampleLoading} current={example?.id ?? null} />}
       <form
         action={formAction}
+        // A new check replaces any open example.
+        onSubmit={() => setExample(null)}
         className={`card ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
@@ -220,16 +239,53 @@ export function Analyzer() {
         <Bookmarklet />
       </div>
 
-      <div aria-live="polite" className="mt-12">
-        {state.status === "error" && (
+      <div id="result" aria-live="polite" className="mt-12 scroll-mt-6">
+        {example && (
+          <Result
+            key={`example-${example.id}`}
+            analysis={example.data.analysis}
+            guest
+            recorded={{ price: example.data.price, recordedAt: example.data.recordedAt }}
+            saveNote={`Example: a real check recorded on ${example.data.recordedAt}. Paste your own listing above to check any car.`}
+          />
+        )}
+        {!example && state.status === "error" && (
           <p role="alert" className="rounded-md border border-bad/30 bg-bad-soft px-4 py-3 text-bad">
             {state.message}
           </p>
         )}
         {/* key resets the checklist answers for each new analysis */}
-        {state.status === "done" && <Result key={state.id} analysis={state.analysis} carId={state.carId} saveNote={state.saveNote} phoneMatches={state.phoneMatches} />}
+        {!example && state.status === "done" && (
+          <Result key={state.id} analysis={state.analysis} carId={state.carId} saveNote={state.saveNote} phoneMatches={state.phoneMatches} guest={state.guest} />
+        )}
       </div>
     </>
+  );
+}
+
+/** Demo: five real checks recorded earlier, one click each (no server call, no API quota). */
+function Examples({ onOpen, loading, current }: { onOpen: (id: ExampleId) => void; loading: ExampleId | null; current: ExampleId | null }) {
+  return (
+    <section className="mb-8" aria-labelledby="examples-title">
+      <h2 id="examples-title" className="section-title">Try an example</h2>
+      <p className="-mt-2 mb-4 text-muted">Real listings checked with real data. One click, no sign-up.</p>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {EXAMPLES.map((e) => (
+          <li key={e.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(e.id)}
+              aria-pressed={current === e.id}
+              className={`h-full w-full rounded-md border px-4 py-3 text-left transition-colors hover:border-accent ${current === e.id ? "border-accent bg-accent-soft" : "border-border bg-surface"}`}
+            >
+              <span className="block font-semibold">{loading === e.id ? "Opening…" : e.title}</span>
+              <span className="block text-sm text-muted">{e.site}</span>
+              <span className="mt-1 block text-sm">{e.shows}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

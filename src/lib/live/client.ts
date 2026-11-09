@@ -62,11 +62,11 @@ async function marketCheckByVin(vin: string): Promise<LiveListing | null> {
 }
 
 /** Caller must pass a VIN that passed checkVin(). */
-export async function lookupLiveListing(vin: string): Promise<LiveLookup> {
+export async function lookupLiveListing(vin: string, opts: { autoDevOnly?: boolean } = {}): Promise<LiveLookup> {
   const out: LiveLookup = { listing: null, tried: [], configured: false, failed: [] };
   const steps: [LiveSource, string | undefined, (v: string) => Promise<LiveListing | null>][] = [
     ["Auto.dev", process.env.AUTODEV_API_KEY, autoDevByVin],
-    ["MarketCheck", process.env.MARKETCHECK_API_KEY, marketCheckByVin],
+    ["MarketCheck", opts.autoDevOnly ? undefined : process.env.MARKETCHECK_API_KEY, marketCheckByVin],
   ];
   for (const [source, key, fn] of steps) {
     if (!key) continue;

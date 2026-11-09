@@ -46,14 +46,19 @@ const VIN_ONLY_CLEAR = {
   title: "text-foreground",
 };
 
-export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [] }: {
+export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
   phoneMatches?: { title: string }[];
+  /** Demo visitor: nothing is saved; the live price check is rationed (bot check + daily limit). */
+  guest?: boolean;
+  /** Demo example: a price check recorded earlier, shown instead of the live button. */
+  recorded?: { price: PriceState; recordedAt: string } | null;
 }) {
   const [checklist, setChecklist] = useState<SellerChecklist>({});
-  const [priceState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
+  const [liveState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
+  const priceState = recorded?.price ?? liveState;
   const live = priceState.status === "done" ? priceState.live : null;
   const sources = priceState.status === "done" ? priceState.sources : null;
   const rawHistory = priceState.status === "done" ? priceState.history : null;
@@ -109,7 +114,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         )}
       </div>
 
-      <PriceCheck a={m} carId={carId} state={priceState} action={priceAction} pending={pricePending} valuation={valuation} />
+      <PriceCheck a={m} carId={carId} state={priceState} action={priceAction} pending={pricePending} valuation={valuation} guest={guest} recordedAt={recorded?.recordedAt ?? null} />
       {history && <ListingHistory h={history} />}
       <BuyerProtection a={m} />
       <Facts a={a} live={live} />

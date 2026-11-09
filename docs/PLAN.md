@@ -341,6 +341,15 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 | Scam signals | Rules + live cross-checks (cloned listing, price/miles mismatch) + same phone across saved cars + "unusually cheap" in search | Phone matching gets stronger as more cars are saved; consider matching seller names/emails too |
 | Shortlist | NHTSA complaints per year on the road, within a model; sparse years marked; recall counts and "park it" recalls per year | Add Consumer Reports' published "best used cars" list as a second signal (with links) |
 
+**Public demo (2026-11-11)**
+
+| Visitor can | Cost | Limit |
+| --- | --- | --- |
+| Free checker: parse, scam rules, NHTSA, OCR, costs, inspection, buying day | 0 paid calls | 30/visitor/day, 3,000/day (Supabase) + 5/min per IP |
+| 5 example cars (recorded real checks) | 0 | none |
+| Live price check (lean: Auto.dev live + for-sale comps, MarketCheck sold comps + history) | ≤ 2 MarketCheck + 2 Auto.dev | Turnstile, then 1/visitor/day, 3/day total, 95/month, none past 300 MarketCheck/month |
+| My cars, Compare, Search, Settings | n/a | owner only |
+
 **Later ideas (not in scope yet)**
 
 - Email alerts for saved searches (would use quota automatically).
@@ -361,6 +370,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-11 | Public no-login demo (approved plan): `/`, `/shortlist`, `/security`, `/share` open to visitors; owner pages keep two-step login. Visitors: free checker (no saving), 5 recorded example cars (real data, 0 calls; recorder `src/lib/demo/record.test.ts`, ~11 MarketCheck + 7 Auto.dev once), live price check behind Cloudflare Turnstile + Supabase limits (1/visitor/day, 3/day total, 95/month, stop at 300 MarketCheck/month for the owner's reserve), lean guest check (no MarketCheck price model or backup lookup). Visitor = salted HMAC of IP, deleted after 2 days. No service-role key. New "How it's secured" page, data credits + privacy in footer |
 | 2026-11-10 | Security hardening for going online ("deploy … nobody should be able to breach it"): mandatory two-step login (TOTP via Supabase MFA, `/mfa`), enforced in the proxy, in every Server Action and in the database (restrictive RLS `aal2` policies); strict nonce CSP without `'unsafe-inline'` scripts (root renders per request); separate strict CSP for the OCR worker; links into the app no longer auto-run checks; persistent monthly quota stop in Supabase; atomic usage counter; price_history tied to own cars; anon grants revoked; COOP/CORP/noindex headers + robots.txt; rate-limiter memory cap. Service-role key stays off Vercel. Production deps: 0 known vulnerabilities |
 | 2026-11-09 | Improvement pass 2: unknown miles (bare VIN) filled from the listing history (last 6 months) for the price check; history summary + red flags saved with each car and shown in My cars and Compare ("On sale for", "Listing history"); paste a screenshot (Win+Shift+S) or drop image files to read them; "fresh photos of odometer + VIN sticker" step against stolen-photo scams. **Bug fixed:** Lexus VINs decode as "ES" + trim "350", but NHTSA's recall, crash-rating and complaint APIs need "ES350", so Lexus cars showed no recalls or crash stars; same naming fixed in the Shortlist data (ES 76 → 258 complaints). Shortlist now shows recall counts and "park it" recalls per year |
 | 2026-11-09 | Improvement pass ("think and implement"): 1) VIN listing history (MarketCheck History, works on Free, 1 call, cached a day) inside "Check price & history": timeline of past sellers/prices/miles, new rules (rollback, miles under an earlier reading, private car recently at a dealer, frequent resales), price cut and days on sale feed the offer. 2) Phone input: "Read screenshots" (tesseract.js OCR in the browser, self-hosted under /ocr, CSP adds `'wasm-unsafe-eval'` + `worker-src 'self'`; images never uploaded); phone-specific instructions; bookmark hidden on phones. 3) "Before you pay" → buying-day steps by seller type with NJ MVC private-sale paperwork. 4) Usage meter now counts calls when a check stops early. Price check: up to 3 MarketCheck + 2 Auto.dev calls |

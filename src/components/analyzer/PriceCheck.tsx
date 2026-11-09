@@ -7,6 +7,7 @@ import type { Analysis } from "@/lib/analyze";
 import { readBuyerZip } from "@/lib/buyer-zip";
 import type { Comp } from "@/lib/value/comps";
 import { DEAL_TEXT, fmt, type DealLabel, type Valuation } from "@/lib/value/estimate";
+import { Turnstile } from "@/components/Turnstile";
 import { LiveFacts } from "./LiveListing";
 
 type Props = {
@@ -18,6 +19,10 @@ type Props = {
   action: (formData: FormData) => void;
   pending: boolean;
   valuation: Valuation | null;
+  /** Demo visitor: show the limits and the "I'm human" check. */
+  guest?: boolean;
+  /** Demo example: the date its data was recorded. */
+  recordedAt?: string | null;
 };
 
 const TONE: Record<DealLabel, string> = {
@@ -36,11 +41,12 @@ const CHECK_YOURSELF = [
 ];
 
 /** Features 2 + 2b: "Is the price fair?" plus the live listing, behind one button. */
-export function PriceCheck({ a, carId, state, action, pending, valuation: v }: Props) {
+export function PriceCheck({ a, carId, state, action, pending, valuation: v, guest = false, recordedAt = null }: Props) {
   const l = a.listing;
   const d = a.decoded;
   // Client-only component (rendered after a check), so localStorage is safe here.
   const [zip, setZip] = useState(() => readBuyerZip().zip || l.zip || "");
+  const [humanToken, setHumanToken] = useState<string | null>(null);
   const year = d?.year ?? l.year;
   const make = d?.make ?? l.make;
   const model = d?.model ?? l.model;
@@ -84,17 +90,32 @@ export function PriceCheck({ a, carId, state, action, pending, valuation: v }: P
                 required
               />
             </label>
-            <button type="submit" disabled={pending || zip.length !== 5} className="btn btn-primary">
+            <button type="submit" disabled={pending || zip.length !== 5 || (guest && !humanToken)} className="btn btn-primary">
               {pending ? "Checking prices…" : l.vin ? "Check price & history" : "Check the price"}
             </button>
           </div>
-          <p className="text-sm text-muted">Uses up to 5 free listing-data lookups. Checking the same car again today is free.</p>
+          {guest ? (
+            <>
+              <p className="text-sm text-muted">
+                Demo: one live price check per visitor per day, and a few for everyone each day, because the listing data comes from free plans
+                with small monthly limits. The example cars above include full price checks.
+              </p>
+              <Turnstile action="price" onToken={setHumanToken} />
+            </>
+          ) : (
+            <p className="text-sm text-muted">Uses up to 5 free listing-data lookups. Checking the same car again today is free.</p>
+          )}
           {state.status === "error" && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-bad">{state.message}</p>}
         </form>
       )}
 
       {done && (
         <div className="space-y-8">
+          {recordedAt && (
+            <p className="text-sm text-muted">
+              Example data recorded on {recordedAt} for ZIP {done.sources?.zip ?? "08540"}, from the same sources a live check uses.
+            </p>
+          )}
           {v ? <ValueSummary v={v} price={l.price} /> : done.sources && <p>Not enough similar cars nearby to price this one. Try the links below.</p>}
           {done.live ? <LiveFacts l={done.live} /> : l.vin && <p className="text-muted">This exact car isn&apos;t listed on the sites we can check (common for Facebook and Craigslist cars).</p>}
           {v && <Sources v={v} />}

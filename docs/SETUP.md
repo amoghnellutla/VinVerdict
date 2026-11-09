@@ -104,6 +104,18 @@ From then on every login needs your password **and** the current code from the a
 5. Vercel → **Firewall**: keep the default protections on. If you ever see a flood of requests, turn on **Attack Challenge Mode** there.
 6. On an Android phone, open the site in Chrome → menu → **Add to Home screen** (or **Install app**). VinVerdict then appears in the **Share** menu. On an iPhone, Add to Home Screen works too; use **Read screenshots**.
 
+## 12. Public demo: limits and the "I'm human" check (one time, 5 minutes)
+
+Visitors can use VinVerdict without an account (nothing they paste is saved). Two things make their live price checks safe:
+
+1. **Database limits.** Supabase → SQL Editor → New query → paste all of `supabase/migrations/20261111_guest_demo.sql` → **Run** ("Success. No rows returned"). Until this runs, visitors can't run live price checks at all (they still get the free checker and the examples).
+2. **Cloudflare Turnstile** (free):
+   1. Sign up at https://dash.cloudflare.com/sign-up (free plan; no domain needed).
+   2. In the left menu open **Turnstile** → **Add widget**.
+   3. Widget name: `VinVerdict`. **Hostnames:** add `vinverdict.vercel.app` and `localhost`. **Widget mode: Managed**. Leave pre-clearance off. **Create**.
+
+The limits live in that SQL file and nowhere else: 1 live price check per visitor per day, 3 for all visitors together per day, 95 a month, and none once MarketCheck use this month passes 300 of 500 (your reserve). Free checks: 30 per visitor per day.
+
 ## Done? Checklist
 
 - [ ] GitHub private repo `vinverdict` created
@@ -115,4 +127,5 @@ From then on every login needs your password **and** the current code from the a
 - [ ] Three SQL files run (step 8), sign-ups off and TOTP on (step 9)
 - [ ] Two-step login set up (step 10)
 - [ ] Deployed, env vars set without the service-role key, Site URL updated (step 11)
+- [ ] Demo limits SQL run and Turnstile keys added (step 12)
 

@@ -48,3 +48,4 @@ At most **10 calls per provider** for all of Phase 1. Every probe is a dry run u
 | 2026-11-09 | MarketCheck | `predict/car/us/marketcheck_price` (Camry 4T1C…772, 183,086 mi, independent, 08540) | 200 | $12,024 (MSRP $26,294) |
 | 2026-11-09 | MarketCheck | `search/car/recents?sold=true` (2020–22 Camry, 08540, 100 mi, 50 rows, stats=price) | 200 | 510 sold in 90 days; median $22,475; 46/50 with price; miles on all |
 | 2026-11-09 | MarketCheck | `--mode history --vin 4T1C11AK3MU436772 --confirm` | 200 | 11 records: new at an AL Toyota dealer (Feb 2021), IL + AR dealers at 83,318 mi (2023), two AR dealers now at 183,086 mi, cut $10,900 → $9,900. Fixture in `src/lib/history/fixtures/` |
+| 2026-11-09 | MarketCheck + Auto.dev | `RECORD_DEMO=1 npx vitest run src/lib/demo/record` (5 demo examples, ZIP 08540) | 200 | ~11 MarketCheck (incl. 1 search for a 2016 RX 350 → VIN 2T2BZMCA2GC041915) + ~7 Auto.dev. Data in `src/lib/demo/data/` |

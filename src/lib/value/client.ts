@@ -68,13 +68,13 @@ export type PriceCheck = PriceSources & {
   calls: number;
 };
 
-export async function fetchPriceSources(car: PriceCar): Promise<PriceCheck> {
+export async function fetchPriceSources(car: PriceCar, opts: { skipPriceModel?: boolean } = {}): Promise<PriceCheck> {
   const target: CompTarget = { year: car.year, miles: car.miles, trim: car.trim };
   const failed: string[] = [];
   const make = car.make.toLowerCase();
   const model = car.model.toLowerCase();
   const [p, s, a] = await Promise.allSettled([
-    car.vin && car.miles !== null ? marketCheckPrice(car.vin, Math.round(car.miles / 1000) * 1000, car.zip) : Promise.resolve(null),
+    car.vin && car.miles !== null && !opts.skipPriceModel ? marketCheckPrice(car.vin, Math.round(car.miles / 1000) * 1000, car.zip) : Promise.resolve(null),
     soldNearby(car.year, make, model, car.zip),
     forSaleNearby(car.year, make, model, car.zip),
   ]);
@@ -91,6 +91,6 @@ export async function fetchPriceSources(car: PriceCar): Promise<PriceCheck> {
     active: a.status === "fulfilled" ? estimateFromComps(a.value, target) : null,
     zip: car.zip,
     failed,
-    calls: (car.vin && car.miles !== null ? 1 : 0) + 2,
+    calls: (car.vin && car.miles !== null && !opts.skipPriceModel ? 1 : 0) + 2,
   };
 }
