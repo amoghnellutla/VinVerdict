@@ -5,7 +5,9 @@ import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
 import type { RuleAction, RuleHit, SellerChecklist, Verdict } from "@/lib/scam/rules";
 import { buildVerdict } from "@/lib/verdict";
+import { BuyerProtection } from "./BuyerProtection";
 import { Checklist } from "./Checklist";
+import { InspectionList } from "./InspectionList";
 import { OutTheDoor } from "./OutTheDoor";
 import { RunningCost } from "./RunningCost";
 
@@ -65,10 +67,12 @@ export function Result({ analysis: a }: { analysis: Analysis }) {
         </Panel>
       )}
 
+      <BuyerProtection a={a} />
       <Facts a={a} />
       <OutTheDoor a={a} />
       <RunningCost a={a} />
       <Safety a={a} />
+      <InspectionList a={a} />
       <Checklist value={checklist} onChange={setChecklist} />
       <NextSteps vin={a.listing.vin} />
 

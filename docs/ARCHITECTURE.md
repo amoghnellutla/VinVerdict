@@ -2,7 +2,7 @@
 
 How the app is put together, in plain language. **Built** means it exists now; **planned** means a later phase adds it (phase numbers from [PLAN.md](PLAN.md) §12).
 
-Last updated: 2026-11-08 (Phase 0 + Phase 2a + early Phase 3 logic).
+Last updated: 2026-11-09 (Phase 0 + Phase 2a + Phase 3 analyzer with features A, C, F, O).
 
 ## The big picture
 
@@ -39,7 +39,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 | URL | Page | Filled in by |
 | --- | --- | --- |
-| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, out-the-door cost for any US ZIP, yearly running cost). Deal score still to come | Phase 3–4 |
+| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, out-the-door cost for any US ZIP, yearly running cost, buyer protection, inspection checklist). Deal score still to come | Phase 3–4 |
 | `/shortlist` | Reliable models/years | Phase 6 |
 | `/search` | In-app search + links to 11 outside sites (built) | Phase 7 |
 | `/car/[id]` | Car detail. `[id]` is a placeholder in the URL, e.g. `/car/abc123` | Phase 5 |
@@ -67,6 +67,8 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `costs/outTheDoor.ts` | Adds it all up: price + doc fee + state tax + local tax + fees (itemised for NJ, typed in elsewhere) + inspection | No |
 | `fuel/parse.ts` | Reads FuelEconomy.gov replies and picks the right version of the car: NHTSA says "CR-V", FuelEconomy.gov lists "CR-V AWD" and "CR-V FWD" with several engines, so it narrows by hybrid/EV, drive, cylinders, engine size and transmission (never down to zero) | No |
 | `fuel/client.ts` | Calls FuelEconomy.gov (EPA, free, no key): model list, engine options, MPG, national fuel prices. **Server-only**, cached with `"use cache"` (vehicle data for weeks, prices for days). At most 13 calls for a new car, then none | Yes (free) |
+| `inspection.ts` | Inspection checklist: a small hand-checked list of known problems (each with its official bulletin link, matched by make, model, year and engine size), checks for the car's most common NHTSA complaint areas, and checks for every used car | No |
+| `protection.ts` | Buyer protection: spots CarMax, Carvana, Enterprise or Hertz in the text or link and shows their return window and warranty; otherwise explains dealer rules (FTC Buyers Guide, NJ dealer warranty by miles) or that private sales have none | No |
 | `costs/running.ts` | Yearly running cost: miles ÷ MPG × fuel price (kWh for EVs) + maintenance (AAA 2025 average, 11.04¢/mile) | No |
 | `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
 
@@ -76,7 +78,7 @@ How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actio
 
 Two rules wait for saved data (Phase 8): "same phone on several listings" and "same VIN at different prices". The "30%+ below market" rule is ready but needs the value % from comps (Phase 4).
 
-**Tests:** `npm test` runs 48 offline tests. They include realistic Facebook, Craigslist and dealer listings and the classic "deployed overseas, Zelle deposit, car at a shipping company" scam. `NHTSA_LIVE=1 npx vitest run client.live` also checks the real NHTSA APIs (free).
+**Tests:** `npm test` runs 121 offline tests. They include realistic Facebook, Craigslist and dealer listings and the classic "deployed overseas, Zelle deposit, car at a shipping company" scam. `NHTSA_LIVE=1 npx vitest run client.live` also checks the real NHTSA APIs (free).
 
 ## Security in place now (PLAN.md §9)
 

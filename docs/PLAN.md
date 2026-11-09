@@ -62,14 +62,15 @@ Listings come in through three free layers, with the paste analyzer as the core.
 | 2. One-click searches | Your filters become pre-filled search links that open each site | [AutoTempest](https://www.autotempest.com), [CarGurus](https://www.cargurus.com), [AutoTrader](https://www.autotrader.com), [Cars.com](https://www.cars.com), [Facebook Marketplace](https://www.facebook.com/marketplace), [Craigslist](https://www.craigslist.org), [CarMax](https://www.carmax.com), [Carvana](https://www.carvana.com), [Enterprise Car Sales](https://www.enterprisecarsales.com), [Hertz Car Sales](https://www.hertzcarsales.com), [iSeeCars](https://www.iseecars.com) | 0 calls |
 | 3. In-app search | Licensed APIs return listings with source links | [MarketCheck](https://www.marketcheck.com/apis/pricing) (main), [Auto.dev](https://auto.dev/listings) (backup) — mostly dealer and CPO inventory | API calls (section 10) |
 
-**Trusted sources, by buyer protection (as of 2026-11-08)**
+**Trusted sources, by buyer protection (verified 2026-11-09; feature O shows these in the analyzer)**
 
 | Source | Best for | Buyer protection |
 | --- | --- | --- |
-| CarMax | Low-risk buy, fixed price | 10-day money-back return |
-| Carvana | Buying online | 7-day / 400-mile return, 100-day warranty |
-| Enterprise Car Sales | Ex-rental cars, fixed price; available in NJ | 7-day buyback |
-| Hertz Car Sales | Ex-rental cars | Check current policy (unverified) |
+| CarMax | Low-risk buy, fixed price | 10-day money-back return; 30-day limited warranty since 2026-01-12 (90 days / 4,000 mi in NJ, NY, MA) |
+| Carvana | Buying online | 7-day / 400-mile return, 100-day / 4,189-mile warranty |
+| Enterprise Car Sales | Ex-rental cars, fixed price; available in NJ | 7-day / 1,000-mile buyback, 12-month / 12,000-mile powertrain warranty |
+| Hertz Car Sales | Ex-rental cars | 7-day / 250-mile buy-back, 3-year / 100,000-mile powertrain warranty on eligible cars |
+| Any dealer | — | FTC Buyers Guide on the window ("As Is" or warranty). NJ dealers must add a 30–90 day warranty on cars ≤ 7 model years, ≤ 100k miles, $3,000+ (N.J.S.A. 56:8-69) |
 | CarGurus | Price check on dealer cars | Deal labels + dealer reviews |
 | AutoTrader / Cars.com | Large inventory | KBB price labels (AutoTrader); check dealer reviews |
 | AutoTempest | Searching many sites at once | None — it links out; skip salvage-auction results |
@@ -184,7 +185,7 @@ All 16 features are in scope; each uses free data only.
 | C | Yearly running cost | Fuel at 12k mi/year (EPA combined MPG × this week's US average price, both editable) + maintenance/repairs/tires (AAA 2025: 11.04¢/mile, editable). Variant matched from the VIN's engine size, cylinders, drive, transmission and hybrid/EV; buyer picks if several match | [FuelEconomy.gov](https://www.fueleconomy.gov), [AAA Your Driving Costs 2025](https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf) |
 | D | Crash-test stars | NHTSA overall and per-test ratings | [NHTSA](https://www.nhtsa.gov/ratings) |
 | E | Recalls and complaints | Recalls for the model/year, top complaint areas; link to NHTSA's VIN lookup for open status (the free API has no per-VIN open status) | [NHTSA](https://www.nhtsa.gov/recalls) |
-| F | Known issues to check | Model/year checklist for the inspection | NHTSA complaints + curated list |
+| F | Known issues to check | Inspection checklist for your mechanic, copyable as text: known issues (5 hand-checked manufacturer programs/bulletins: Toyota 2AZ oil use ZE7, Tacoma frame ZH6, Honda 1.5T oil dilution, 2008–09 Accord VTC rattle, 2015–16 Accord/CR-V CVT P1890), checks from the car's top NHTSA complaint areas, and checks for every used car (+ CVT) | NHTSA complaints + curated list (each item links to its official document) |
 | G | Seller question checklist | Title in your name? Lien? Accidents? Records? Why selling? Answers feed the scam rules | Built-in |
 | H | VIN checks + inspection step | NICB VINCheck link, Carfax link if dealer gives one, reminder to book an inspection | [NICB](https://www.nicb.org/vincheck) |
 | I | Scam score | Risk level with plain-English reasons | Section 6 rules |
@@ -193,7 +194,7 @@ All 16 features are in scope; each uses free data only.
 | L | Compare | 2–3 cars side by side | Saved data |
 | M | 👍/👎 learning | After about 100 ratings, score weights adjust to your taste | Your ratings |
 | N | Paste analyzer | Score, label, scam check, comps for any pasted listing or VIN | 0–1 API calls |
-| O | Buyer protection badge | Return window or warranty for the seller type (e.g. CarMax 10 days) | Section 3 table |
+| O | Buyer protection badge | Return window and included warranty for the seller (CarMax, Carvana, Enterprise, Hertz detected from the text/link); dealer = FTC Buyers Guide + NJ dealer-warranty tier for the car's age/miles/price; private = none | Section 3 table (verified 2026-11-09) |
 | P | Reliability shortlist | Recommended models/years for your budget, each with a one-click search | Consumer Reports and iSeeCars picks + NHTSA complaints |
 
 ## 8. Tech stack and architecture
@@ -335,6 +336,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-09 | Features F and O built (approved): inspection checklist with 5 sourced known issues + complaint-area checks; buyer-protection panel. §3 table updated: CarMax warranty cut to 30 days (2026-01-12), Hertz 3-yr/100k powertrain, Enterprise/Carvana details, dealer rules (FTC Buyers Guide, NJ N.J.S.A. 56:8-69) |
 | 2026-11-09 | Feature C built: yearly running cost from FuelEconomy.gov (free, keyless, cached) + AAA 2025 maintenance rate. VIN decode now keeps engine size, cylinders and electrification |
 | 2026-11-08 | Feature A extended to any US ZIP (approved): ZIP → state, car-tax rules for 50 states + DC, local-rate box, seller type (dealer/private), editable fees + DMV link outside NJ. No API or quota; ZIP remembered on the device only |
 | 2026-11-08 | Feature A built: NJ out-the-door cost with verified official rates, editable price/doc fee/inspection/weight/loan; dealer doc fee parsed from listings; curb weight from VIN decode |
