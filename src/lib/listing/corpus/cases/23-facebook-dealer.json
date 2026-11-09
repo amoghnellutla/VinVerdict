@@ -1,0 +1,5 @@
+{
+  "note": "Dealer posting on Facebook Marketplace. Traps: 'Seller's description' (normally private), '$1,500 down', 'drives it home today' (sales talk, not a scam), doc fee.",
+  "expect": { "year": 2019, "make": "Honda", "model": "Civic", "price": 14995, "miles": 61200, "sellerType": "dealer", "docFee": 399, "titleStatus": "clean" },
+  "mustNotHit": ["rushed", "deposit-first"]
+}

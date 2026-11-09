@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyTransmission,
+  nhtsaModelName,
   parseNhtsaDate,
   parseRatingDetail,
   parseRatingVariants,
@@ -128,5 +129,21 @@ describe("summarizeComplaints", () => {
         { component: "ENGINE", count: 1 },
       ],
     });
+  });
+});
+
+describe("nhtsaModelName", () => {
+  it("joins Lexus model and engine the way NHTSA's safety APIs file them", () => {
+    expect(nhtsaModelName("LEXUS", "ES", "350")).toBe("ES350");
+    expect(nhtsaModelName("Lexus", "RX", "350 F Sport")).toBe("RX350");
+    expect(nhtsaModelName("Lexus", "ES", "300h")).toBe("ES300H");
+    expect(nhtsaModelName("Lexus", "ES 350", null)).toBe("ES350");
+    expect(nhtsaModelName("Lexus", "ES", null, "2016 Lexus ES 350 Sedan, 90k miles")).toBe("ES350");
+    expect(nhtsaModelName("Lexus", "ES", null, "2016 Lexus ES, 90k miles")).toBe("ES");
+  });
+
+  it("leaves other makes alone", () => {
+    expect(nhtsaModelName("TOYOTA", "Camry", "LE")).toBe("Camry");
+    expect(nhtsaModelName("Honda", "CR-V", "EX")).toBe("CR-V");
   });
 });

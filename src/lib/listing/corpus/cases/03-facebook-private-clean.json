@@ -1,0 +1,18 @@
+{
+  "note": "Facebook Marketplace private sale. Traps: struck-through old price '$16,000' right after the price, 'new tires at 90k miles', 'every 5,000 miles', 'pre-collision system', 'automatic high beams', 'No dealers please' (means private).",
+  "expect": {
+    "vin": "4T1B11HK4KU765432",
+    "year": 2018,
+    "make": "Toyota",
+    "model": "Camry",
+    "price": 15200,
+    "miles": 98450,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "none",
+    "exteriorColor": "black",
+    "ownerCount": 2,
+    "sellerType": "private"
+  },
+  "mustNotHit": ["accident-reported", "rushed", "vin-mismatch"]
+}

@@ -1,32 +1,16 @@
 import { Analyzer } from "@/components/analyzer/Analyzer";
-import { PageHeader } from "@/components/PageHeader";
-
-const COMING = [
-  { title: "Deal score", text: "Price vs. similar cars at this mileage, price per remaining mile, and a deal label (Phase 4)." },
-  { title: "Saved checks", text: "Every car you check, saved with its source link and price history, once login is on (Phase 2b, 8)." },
-];
 
 export default function CheckListingPage() {
   return (
     <>
-      <PageHeader
-        title="Check a listing"
-        description="Paste a listing's text or VIN from Facebook Marketplace, Craigslist or any dealer site. VinVerdict checks it before any money moves."
-      />
-
+      <div className="mb-10">
+        <h1 className="text-3xl sm:text-[2.5rem]">Is this used car worth it?</h1>
+        <p className="mt-3 max-w-2xl text-lg text-muted">
+          Copy a listing from any site, or just the VIN. VinVerdict checks the car&apos;s history, safety and the seller before
+          you spend a dollar.
+        </p>
+      </div>
       <Analyzer />
-
-      <section className="mt-12">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Coming next</h2>
-        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {COMING.map((c) => (
-            <li key={c.title} className="rounded-2xl border border-dashed border-border bg-surface p-5">
-              <h3 className="font-medium">{c.title}</h3>
-              <p className="mt-1 text-sm text-muted">{c.text}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
     </>
   );
 }

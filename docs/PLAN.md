@@ -78,8 +78,9 @@ Listings come in through three free layers, with the paste analyzer as the core.
 
 **Free-tier facts**
 
-- MarketCheck Free: 500 calls/month, 5 calls/sec, results limited to a 100-mile radius. Which endpoints are free is not stated — verified in Phase 1.
-- Auto.dev Free: 1,000 calls/month, 5 requests/sec, no card. Nationwide search and private-seller coverage not stated — verified in Phase 1.
+- MarketCheck Free: 500 calls/month, 5 calls/sec, results limited to a 100-mile radius. Tested 2026-11-09: dealer search and **private-party search both work**; up to 50 listings per call. Has days-on-market and price-change fields; no accident field (only Carfax clean-title / one-owner flags, usually unconfirmed).
+- MarketCheck History by VIN (`/v2/history/car/{vin}`) works on Free (tested 2026-11-09, 1 call): every past online listing of the car since 2015 with seller, city/state, price, miles and first/last seen dates. No accident or title data.
+- Auto.dev Free: 1,000 calls/month, 5 requests/sec, no card. Tested 2026-11-09: dealer listings only (no private sellers), 20 per call, accident count and owner count on about half. Nationwide search still to test.
 - Free government data: [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) (VIN decode), [NHTSA recalls, complaints and ratings](https://www.nhtsa.gov/recalls), [FuelEconomy.gov](https://www.fueleconomy.gov), [NICB VINCheck](https://www.nicb.org/vincheck) (manual link).
 
 **Never used:** Copart, IAA or any salvage auction, and any listing that fails the scam rules (section 6).
@@ -172,7 +173,19 @@ A price far below market is a warning, not a win, until other checks pass. Rules
 | Same phone number on several listings | Flag |
 | Wants to meet only in a random lot, rushed sale | Flag |
 | Impossible mileage (e.g. < 500 mi/year on an older car) | Flag |
-| Same VIN listed at different prices | Flag |
+| Same VIN listed at different prices | Flag (live-listing lookup) |
+| Private seller offering a dealer-listed VIN 15%+ cheaper (cloned listing) | Hide |
+| Private seller, same VIN also listed by a dealer | Flag |
+| Fewer miles than another listing of the same VIN | Flag |
+| Very high miles for its age (20k+/year, 40k+ total) | Flag |
+| Former rental, fleet or commercial car | Flag |
+| Miles went down between past listings (listing history) | Hide if 2+ readings agree, else Flag |
+| Listing's miles under an earlier reading of the same VIN | Hide if 2+ readings agree, else Flag |
+| Private seller, but a dealer listed the car in the last 6 months | Flag |
+| For sale 3+ separate times in 3 years | Flag |
+| Price already cut; listed by 2+ sellers at once | Info (price cut feeds the offer) |
+| Car 300+ miles away | Info: inspect locally before paying |
+| Dealer shipping, refundable deposits, trade-in payoff wording | Not a flag (normal for dealers); the eBay-Motors / "car is at a shipping company" story is always Hide |
 
 ## 7. Features A–P
 
@@ -187,13 +200,13 @@ All 16 features are in scope; each uses free data only.
 | E | Recalls and complaints | Recalls for the model/year, top complaint areas; link to NHTSA's VIN lookup for open status (the free API has no per-VIN open status) | [NHTSA](https://www.nhtsa.gov/recalls) |
 | F | Known issues to check | Inspection checklist for your mechanic, copyable as text: known issues (5 hand-checked manufacturer programs/bulletins: Toyota 2AZ oil use ZE7, Tacoma frame ZH6, Honda 1.5T oil dilution, 2008–09 Accord VTC rattle, 2015–16 Accord/CR-V CVT P1890), checks from the car's top NHTSA complaint areas, and checks for every used car (+ CVT) | NHTSA complaints + curated list (each item links to its official document) |
 | G | Seller question checklist | Title in your name? Lien? Accidents? Records? Why selling? Answers feed the scam rules | Built-in |
-| H | VIN checks + inspection step | NICB VINCheck link, Carfax link if dealer gives one, reminder to book an inspection | [NICB](https://www.nicb.org/vincheck) |
+| H | VIN checks + buying day | NICB VINCheck and NHTSA recall links, inspection and test-drive steps; for private sellers, title/lien/payment checks and the NJ MVC private-sale paperwork (bill of sale, plates stay with the seller, transfer in person within 10 working days or $25 penalty) | [NICB](https://www.nicb.org/vincheck), [NJ MVC](https://www.nj.gov/mvc/vehicles/transowner.htm) (checked 2026-11-09) |
 | I | Scam score | Risk level with plain-English reasons | Section 6 rules |
 | J | Extra filters | Drivetrain, fuel, seller type, single owner, black-only | Listing data |
 | K | Checked cars / watchlist | Every analyzed or saved car, with price-drop history | Supabase |
 | L | Compare | 2–3 cars side by side | Saved data |
 | M | 👍/👎 learning | After about 100 ratings, score weights adjust to your taste | Your ratings |
-| N | Paste analyzer | Score, label, scam check, comps for any pasted listing or VIN | 0–1 API calls |
+| N | Paste analyzer | Score, label, scam check, comps for any pasted listing, whole copied page, dealer link with a VIN, or VIN. "Read screenshots" reads listing screenshots on the phone (OCR in the browser, nothing uploaded). Optional bookmark on a computer. "Check price & history": VIN → live listing (Auto.dev, then MarketCheck) + listing history (MarketCheck History: past sellers, prices, miles) | 0 calls; up to 5 on the price button |
 | O | Buyer protection badge | Return window and included warranty for the seller (CarMax, Carvana, Enterprise, Hertz detected from the text/link); dealer = FTC Buyers Guide + NJ dealer-warranty tier for the car's age/miles/price; private = none | Section 3 table (verified 2026-11-09) |
 | P | Reliability shortlist | Recommended models/years for your budget, each with a one-click search | Consumer Reports and iSeeCars picks + NHTSA complaints |
 
@@ -237,8 +250,8 @@ API keys never reach the browser, and only logged-in users can trigger a search.
 - Supabase handles passwords (hashed, never stored in plain text).
 - Row-level security: each user sees only their own watchlist, ratings and searches.
 - Every server route checks login and validates input (ZIP format, number ranges, allowed values).
-- Rate limit: max 5 searches per minute per user.
-- HTTPS only; secure session cookies.
+- Rate limit: max 5 searches per minute per user; login max 5 tries per minute per IP and per email.
+- HTTPS only; secure session cookies (httpOnly, SameSite=Lax). No public sign-up: the one account is made in the Supabase dashboard.
 - Outbound links open with `rel="noopener noreferrer"`.
 - Pasted listings are treated as plain text, never run or rendered as HTML.
 - Dependencies kept minimal and checked with `npm audit` each phase.
@@ -276,26 +289,27 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 - [ ] **Phase 0 — Setup:** accounts (GitHub, Vercel, Supabase, MarketCheck, Auto.dev) with a step-by-step guide; try the free Spottable extension to see what already exists.
 - [ ] **Phase 1 — API test:** confirm free-tier endpoints, radius, private-party access, accident/title fields, results per call. Adjust this plan from findings.
-- [ ] **Phase 2 — Skeleton:** 2a: Next.js + empty pages (built alongside Phase 0). 2b: Supabase + login (after accounts exist).
+- [ ] **Phase 2 — Skeleton:** 2a: Next.js + empty pages (built alongside Phase 0). 2b: Supabase + login (after accounts exist). *2b built 2026-11-09; tables move to the phase that first saves data (usage meter Phase 4, checked cars Phase 8), each with row-level security.*
 - [ ] **Phase 3 — Analyzer v1:** paste → parse, VIN decode, recalls, crash stars, scam rules, seller checklist, out-the-door cost. *Logic built early (tested, no UI): VIN check, NHTSA client, listing parser, scam rules.*
-- [ ] **Phase 4 — Value:** comps, value %, price per remaining mile, deal label, suggested offer, manual market value fallback.
-- [ ] **Phase 5 — Car detail:** known issues, VIN check links, inspection step, buyer protection badge, fuel cost.
-- [ ] **Phase 6 — Shortlist:** reliable models/years page with one-click searches.
-- [ ] **Phase 7 — Search:** in-app search, all filters, 24h cache, usage meter, outside search links.
-- [ ] **Phase 8 — Your tools:** Checked cars, compare, 👍/👎 learning, Settings.
-- [ ] **Phase 9 — Final review:** security and code review, deploy, you test.
+- [x] **Phase 4 — Value:** *(built 2026-11-09: 3-source fair range, deal label, offer, confidence; backtest 6.6% median error)* comps, value %, price per remaining mile, deal label, suggested offer, manual market value fallback.
+- [x] **Phase 5 — Car detail:** *(built: known issues, VIN links, buyer protection, fuel cost, saved-car page)* known issues, VIN check links, inspection step, buyer protection badge, fuel cost.
+- [x] **Phase 6 — Shortlist:** *(built from NHTSA complaints per year on the road + known issues; AutoTempest/Facebook searches)* reliable models/years page with one-click searches.
+- [x] **Phase 7 — Search:** *(built: MarketCheck dealer + private, ranked by value, 24h cache, usage meter; outside links)* in-app search, all filters, 24h cache, usage meter, outside search links.
+- [x] **Phase 8 — Your tools:** *(built: My cars, compare, price drops, settings. 👍/👎 learning not built yet)* Checked cars, compare, 👍/👎 learning, Settings.
+- [ ] **Phase 9 — Final review:** security and code review, deploy, you test. *Security review + hardening done 2026-11-10 (see change log); deploy needs Amogh's Vercel login and the SQL files run.*
 - [ ] **Phase 10 (later) — Public:** open to other users; solve the shared API quota first.
 
 ## 13. Open questions, risks and working rules
 
 **To verify in Phase 1**
 
-- [ ] Does MarketCheck Free include private-party search?
-- [ ] Does Auto.dev Free allow nationwide search, and with which filters?
-- [ ] Do listings include accident, title, owner-count and color fields?
-- [ ] How many results does one call return (sets calls per search)?
-- [ ] Exact pre-filled search URL formats for each outside site.
-- [ ] Which listing links can be read by the server vs. need pasted text?
+- [x] Does MarketCheck Free include private-party search? **Yes** (2026-11-09): 5 private 2017 Accords within 100 mi of 08540, from KBB, Cars.com and Craigslist.
+- [ ] Does Auto.dev Free allow nationwide search, and with which filters? (radius param is `distance`; 1 test call left to do)
+- [ ] Does MarketCheck Free reject or cap a radius over 100 mi? (1 test call left to do)
+- [x] Do listings include accident, title, owner-count and color fields? Color: both. Accident and owner count: Auto.dev only, on about half. Title: MarketCheck's Carfax clean-title flag, usually unconfirmed. So accident status stays "unknown" unless the listing says so.
+- [x] How many results does one call return? MarketCheck up to 50, Auto.dev Free 20. A 2017 Accord near Princeton had 186 dealer listings, so ranking reads 1–2 pages, not all.
+- [x] Exact pre-filled search URL formats for each outside site. AutoTempest checked 2026-11-09 (`make, model, zip, radius, minyear, maxyear, maxprice`); it links on to AutoTrader (`makeCodeList, modelCodeList, startYear, endYear, maxPrice, zip, searchRadius`), Craigslist and Facebook. Facebook takes `query` + `maxPrice` only.
+- [x] Which listing links can be read by the server vs. need pasted text? **None are fetched** (2026-11-09): sites block bots and forbid scraping, and fetching pasted URLs is an SSRF risk. Instead: the bookmark (reads the page in the browser), copy-the-whole-page, VINs inside dealer links, and the VIN → live-listing lookup.
 - [ ] Does Spottable already cover enough to skip any feature?
 - [x] Current NJ sales tax and MVC fee amounts from official NJ sites (2026-11-08: [Taxation](https://www.nj.gov/treasury/taxation/moveqa.shtml), [MVC fees](https://www.nj.gov/mvc/vehicles/regfees.htm), [doc-fee notice](https://nj.gov/njbonds/treasury/taxation/pdf/Noticemotorvehicledealerships.pdf)). Weight class comes from NHTSA curb weight when available.
 - [ ] Hertz Car Sales return policy.
@@ -315,6 +329,17 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 | Accident data often missing | "Unknown" label + VIN check links + inspection reminder |
 | Free Supabase project pauses when idle | One-click resume in Supabase dashboard |
 | Too few comps for rare trims | Widen comps; show confidence label |
+
+**Accuracy: where it stands (2026-11-09) and what would improve it most**
+
+| Area | Measured now | Next step (most useful first) |
+| --- | --- | --- |
+| Listing parser | 26 real-format cases (AutoTrader, Cars.com, CarGurus, CarMax, Carvana, Enterprise, Facebook private + dealer, Craigslist owner + dealer, dealer sites, short texts): 100% of checked fields | Add every real listing Amogh checks to `src/lib/listing/corpus/` (one paste + expected answers). Real pages beat reconstructions; 50+ cases would show weak spots by site |
+| Fair value (comps only) | Leave-one-out on real data: Camry sold listings median error 6.6% (63% within 10%); Accord asking prices 4.6% (82% within 10%) | Save each price check's comps to `.tmp/` and keep backtesting; tried a trim adjustment (worse: 7.7%), so trim only weights comps for now. A bigger sample per trim could change that |
+| Fair value (combined) | 3 sources, ±5–15% range, confidence label. Camry case: $9,600–$10,900, asking $9,900 = Fair price | Check against real outcomes: when a saved car's listing ends, note the last price (it likely sold near it) and compare with the range |
+| Accident history | From listing text, dealer history boxes, Auto.dev history (about half of listings) and the seller checklist. Listing history (MarketCheck) adds odometer readings, past sellers and prices: catches rollbacks, flipped dealer/auction cars and repeated resales, but not accidents | Free sources are limited; NICB VINCheck (theft/total loss) stays a manual link. A paid history report is the only full answer |
+| Scam signals | Rules + live cross-checks (cloned listing, price/miles mismatch) + same phone across saved cars + "unusually cheap" in search | Phone matching gets stronger as more cars are saved; consider matching seller names/emails too |
+| Shortlist | NHTSA complaints per year on the road, within a model; sparse years marked; recall counts and "park it" recalls per year | Add Consumer Reports' published "best used cars" list as a second signal (with links) |
 
 **Later ideas (not in scope yet)**
 
@@ -336,6 +361,15 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-10 | Security hardening for going online ("deploy … nobody should be able to breach it"): mandatory two-step login (TOTP via Supabase MFA, `/mfa`), enforced in the proxy, in every Server Action and in the database (restrictive RLS `aal2` policies); strict nonce CSP without `'unsafe-inline'` scripts (root renders per request); separate strict CSP for the OCR worker; links into the app no longer auto-run checks; persistent monthly quota stop in Supabase; atomic usage counter; price_history tied to own cars; anon grants revoked; COOP/CORP/noindex headers + robots.txt; rate-limiter memory cap. Service-role key stays off Vercel. Production deps: 0 known vulnerabilities |
+| 2026-11-09 | Improvement pass 2: unknown miles (bare VIN) filled from the listing history (last 6 months) for the price check; history summary + red flags saved with each car and shown in My cars and Compare ("On sale for", "Listing history"); paste a screenshot (Win+Shift+S) or drop image files to read them; "fresh photos of odometer + VIN sticker" step against stolen-photo scams. **Bug fixed:** Lexus VINs decode as "ES" + trim "350", but NHTSA's recall, crash-rating and complaint APIs need "ES350", so Lexus cars showed no recalls or crash stars; same naming fixed in the Shortlist data (ES 76 → 258 complaints). Shortlist now shows recall counts and "park it" recalls per year |
+| 2026-11-09 | Improvement pass ("think and implement"): 1) VIN listing history (MarketCheck History, works on Free, 1 call, cached a day) inside "Check price & history": timeline of past sellers/prices/miles, new rules (rollback, miles under an earlier reading, private car recently at a dealer, frequent resales), price cut and days on sale feed the offer. 2) Phone input: "Read screenshots" (tesseract.js OCR in the browser, self-hosted under /ocr, CSP adds `'wasm-unsafe-eval'` + `worker-src 'self'`; images never uploaded); phone-specific instructions; bookmark hidden on phones. 3) "Before you pay" → buying-day steps by seller type with NJ MVC private-sale paperwork. 4) Usage meter now counts calls when a check stops early. Price check: up to 3 MarketCheck + 2 Auto.dev calls |
+| 2026-11-09 | Accuracy pass: 6 more corpus cases (Carvana, Enterprise, Facebook dealer, Craigslist dealer, short text, Prius) and parser fixes (two-digit years, bare "4500 cash" prices, "165k" miles, Enterprise/CarMax-type dealers, "selling because"); "same phone on other cars" rule (PLAN §6) using saved cars; days-to-sell from sold comps feeds the offer; price action seller/usage fallback fix. Backtests: Camry sold 6.6%, Accord asking 4.6% median error |
+| 2026-11-09 | Built overnight (approved: "complete all phases"): price check (Phase 4) with local comps fit, MarketCheck Price, sold + for-sale comps, accident/seller adjustments, deal label, offer, confidence; top-3 summary; true cost per year; My cars/compare/price drops in Supabase with RLS (`supabase/migrations/`, run once); usage meter; Android share target + installable app; Shortlist from NHTSA complaints; in-app Search ranked by value with "unusually cheap" flag; Settings. Live-tested with 4 calls (price check) + 1 (search) |
+| 2026-11-09 | Approved next steps: A) market value from 3 sources (MarketCheck Price sold-price model, local comps worked out at this car's miles, recently sold listings) + accident/seller adjustments → fair range, deal label, suggested offer; B) top-3 summary + true cost per year; C) saved cars/compare/price drops; D) deploy + phone share. Tested on Free (2 calls): MarketCheck Price and `recents?sold=true` both work. Design refresh: Source Serif 4 / Source Sans 3, warm paper palette with one green accent, plain sections instead of stacked cards, 17px text, plain-language copy, no build-phase notes on screen. Paste & check (clipboard) is the main input; bookmark optional |
+| 2026-11-09 | Analyzer accuracy pass (approved): real-case suite (`src/lib/listing/corpus/`, 20 cases, per-field scorecard). Fixed labelled VIN ("VIN: …") being read as a listing with no price; mileage from distance/service history; safety features ("Pre-Collision") read as accidents; dealer history boxes; "no dealers" read as a dealer; dealer shipping/deposits flagged as scams; "1-owner: No". New rules: high miles/year, fleet/rental, far away. Added the "Check with VinVerdict" bookmark (2a) and VIN → live listing lookup (2b: Auto.dev then MarketCheck, button only, cached, 3/min + 40/day caps) with cloned-listing, price and mileage cross-checks |
+| 2026-11-09 | Phase 2b login built (approved): Supabase email/password via Server Actions, `src/proxy.ts` gate on every page, `getClaims()` check inside every Server Action, httpOnly cookies, safe `next` redirect, login rate limit, no sign-up page. Browser never talks to Supabase (CSP unchanged). Env name now `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase's current name). Tables deferred to the phases that use them |
+| 2026-11-09 | Phase 1 API test, 3 calls (approved): MarketCheck dealer + private-party both work on Free (50/call); Auto.dev Free dealer-only, 20/call, partial accident/owner history. Probe fixed to `api.marketcheck.com` + `car_type=used`. Auto.dev replies carry account details, so adapters copy listing fields only |
 | 2026-11-09 | Features F and O built (approved): inspection checklist with 5 sourced known issues + complaint-area checks; buyer-protection panel. §3 table updated: CarMax warranty cut to 30 days (2026-01-12), Hertz 3-yr/100k powertrain, Enterprise/Carvana details, dealer rules (FTC Buyers Guide, NJ N.J.S.A. 56:8-69) |
 | 2026-11-09 | Feature C built: yearly running cost from FuelEconomy.gov (free, keyless, cached) + AAA 2025 maintenance rate. VIN decode now keeps engine size, cylinders and electrification |
 | 2026-11-08 | Feature A extended to any US ZIP (approved): ZIP → state, car-tax rules for 50 states + DC, local-rate box, seller type (dealer/private), editable fees + DMV link outside NJ. No API or quota; ZIP remembered on the device only |

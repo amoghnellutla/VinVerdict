@@ -37,3 +37,14 @@ describe("rateLimit", () => {
     expect(rateLimit(key, 3, 60_000, t0 + 60_001)).toBe(true);
   });
 });
+
+describe("same phone on several listings", () => {
+  it("flags a private seller whose number is on other saved cars, not a dealer", () => {
+    const priv = "2016 Honda Civic $9,000 90,000 miles selling my car text 732-555-0100 VIN 19XFC2F52GE012345";
+    const r = buildVerdict({ text: priv, listing: parseListing(priv), decoded: null, phoneMatches: [{ title: "2015 Toyota Corolla" }] }, {}, NOW);
+    expect(r.hits.find((h) => h.id === "same-phone")?.reason).toMatch(/2015 Toyota Corolla/);
+    const dealer = "2016 Honda Civic $9,000 90,000 miles. Stock # A12. Dealer. 732-555-0100 VIN 19XFC2F52GE012345";
+    const d = buildVerdict({ text: dealer, listing: parseListing(dealer), decoded: null, phoneMatches: [{ title: "x" }] }, {}, NOW);
+    expect(d.hits.map((h) => h.id)).not.toContain("same-phone");
+  });
+});

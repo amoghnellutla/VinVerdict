@@ -190,3 +190,19 @@ export function summarizeComplaints(body: unknown, top = 5): ComplaintSummary {
     .map(([component, count]) => ({ component, count }));
   return { total: rows.length, crashes, fires, injuries, deaths, topComponents };
 }
+
+/**
+ * The model name NHTSA's recalls, crash-rating and complaints APIs use. The
+ * VIN decoder says Lexus "ES" with trim "350", but those APIs file it as
+ * "ES350" and return nothing for "ES" or "ES 350" (checked 2026-11-09). Other
+ * makes pass through unchanged.
+ */
+export function nhtsaModelName(make: string, model: string, trim: string | null, text = ""): string {
+  if (make.toLowerCase() !== "lexus") return model;
+  const glued = model.match(/^([A-Z]{2,3}) ?(\d{3}[A-Z]?)$/i);
+  if (glued) return (glued[1] + glued[2]).toUpperCase();
+  if (!/^[A-Z]{2,3}$/i.test(model)) return model;
+  // model is 2–3 letters here (checked above), so it's safe inside a RegExp.
+  const num = trim?.match(/\b(\d{3}[A-Z]?)\b/i)?.[1] ?? text.match(new RegExp(String.raw`\b${model} ?(\d{3}[a-z]?)\b`, "i"))?.[1];
+  return num ? (model + num).toUpperCase() : model;
+}

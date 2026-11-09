@@ -32,18 +32,18 @@ export function InspectionList({ a }: { a: Analysis }) {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <section className="border-t border-border pt-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Inspection checklist for your mechanic</h2>
+        <h2 className="section-title">Inspection checklist for your mechanic</h2>
         <button
           type="button"
           onClick={copy}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-accent/30"
+          className="btn btn-secondary"
         >
           {copied === "done" ? "Copied" : "Copy as text"}
         </button>
       </div>
-      {copied === "failed" && <p className="mt-2 text-xs text-bad">Couldn&apos;t copy. Select the list and copy it instead.</p>}
+      {copied === "failed" && <p className="mt-2 text-sm text-bad">Couldn&apos;t copy. Select the list and copy it instead.</p>}
 
       <div className="mt-4 grid gap-6 lg:grid-cols-3">
         <Group title="Known issues for this model" items={list.known} empty="None on our list for this model and year. The complaint areas still apply." />
@@ -57,7 +57,7 @@ export function InspectionList({ a }: { a: Analysis }) {
 function Group({ title, items, empty }: { title: string; items: ChecklistItem[]; empty?: string }) {
   return (
     <div>
-      <h3 className="text-sm font-medium">{title}</h3>
+      <h3 className="font-semibold">{title}</h3>
       {items.length === 0 ? (
         <p className="mt-1 text-sm text-muted">{empty}</p>
       ) : (
@@ -66,7 +66,7 @@ function Group({ title, items, empty }: { title: string; items: ChecklistItem[];
             <li key={i.title} className="text-sm">
               <span className="font-medium">{i.title}.</span> <span className="text-muted">{i.check}</span>
               {i.source && (
-                <span className="block text-xs">
+                <span className="block text-sm">
                   <ExternalLink href={i.source.url}>{i.source.label}</ExternalLink>
                 </span>
               )}

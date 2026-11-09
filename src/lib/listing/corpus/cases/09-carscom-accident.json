@@ -1,0 +1,6 @@
+{
+  "note": "Cars.com history box with an accident. Trap: '1-owner vehicle: No' must not count as one owner.",
+  "expect": { "price": 19995, "miles": 58904, "accident": "reported", "ownerCount": null, "titleStatus": "clean", "sellerType": "dealer", "exteriorColor": "gray" },
+  "verdict": "hide",
+  "mustHit": ["accident-reported"]
+}

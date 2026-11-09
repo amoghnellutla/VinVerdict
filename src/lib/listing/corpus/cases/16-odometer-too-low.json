@@ -1,0 +1,6 @@
+{
+  "note": "Miles too low for the age: possible odometer rollback.",
+  "expect": { "year": 2012, "price": 8900, "miles": 4100, "titleStatus": "clean", "accident": "none" },
+  "verdict": "caution",
+  "mustHit": ["mileage-low"]
+}

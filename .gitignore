@@ -50,3 +50,6 @@ token.json
 __pycache__/
 *.pyc
 .venv/
+
+# on-device OCR files, copied from node_modules by scripts/copy-ocr-assets.mjs
+/public/ocr/

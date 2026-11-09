@@ -1,0 +1,3947 @@
+{
+ "generated": "2026-11-09",
+ "source": "https://www.nhtsa.gov/recalls (NHTSA complaints and recalls APIs)",
+ "models": [
+  {
+   "make": "Toyota",
+   "model": "Camry",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 646,
+     "crashes": 95,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 146
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 88
+      },
+      {
+       "component": "Air Bags",
+       "count": 83
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 301,
+     "crashes": 46,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 67
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 48
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 38
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 14,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 6
+      },
+      {
+       "component": "Power Train",
+       "count": 6
+      },
+      {
+       "component": "Air Bags",
+       "count": 2
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 271,
+     "crashes": 33,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 105
+      },
+      {
+       "component": "Service Brakes",
+       "count": 39
+      },
+      {
+       "component": "Power Train",
+       "count": 36
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 189,
+     "crashes": 41,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 36
+      },
+      {
+       "component": "Air Bags",
+       "count": 31
+      },
+      {
+       "component": "Steering",
+       "count": 25
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 148,
+     "crashes": 28,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 31
+      },
+      {
+       "component": "Air Bags",
+       "count": 24
+      },
+      {
+       "component": "Electrical System",
+       "count": 23
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 755,
+     "crashes": 46,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 200
+      },
+      {
+       "component": "Service Brakes",
+       "count": 169
+      },
+      {
+       "component": "Engine",
+       "count": 137
+      }
+     ],
+     "recalls": 8,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 403,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 116
+      },
+      {
+       "component": "Engine",
+       "count": 81
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 66
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 276,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 68
+      },
+      {
+       "component": "Engine",
+       "count": 60
+      },
+      {
+       "component": "Air Bags",
+       "count": 49
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 158,
+     "crashes": 21,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 78
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 22
+      },
+      {
+       "component": "Service Brakes",
+       "count": 16
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 66,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 11
+      },
+      {
+       "component": "Electrical System",
+       "count": 10
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 8
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 66,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 18
+      },
+      {
+       "component": "Electrical System",
+       "count": 9
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 7
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 1
+    },
+    {
+     "year": 2024,
+     "complaints": 53,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Structure",
+       "count": 11
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 9
+      },
+      {
+       "component": "Air Bags",
+       "count": 6
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Toyota",
+   "model": "Corolla",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 446,
+     "crashes": 41,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 370
+      },
+      {
+       "component": "Steering",
+       "count": 18
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 16
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 201,
+     "crashes": 46,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 72
+      },
+      {
+       "component": "Steering",
+       "count": 39
+      },
+      {
+       "component": "Service Brakes",
+       "count": 24
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 271,
+     "crashes": 64,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 69
+      },
+      {
+       "component": "Electrical System",
+       "count": 52
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 38
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 220,
+     "crashes": 60,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 56
+      },
+      {
+       "component": "Structure",
+       "count": 33
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 33
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 215,
+     "crashes": 66,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 65
+      },
+      {
+       "component": "Service Brakes",
+       "count": 30
+      },
+      {
+       "component": "Seat Belts",
+       "count": 26
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 189,
+     "crashes": 47,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 57
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 33
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 30
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 136,
+     "crashes": 26,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 36
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 23
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 18
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 206,
+     "crashes": 24,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 56
+      },
+      {
+       "component": "Engine",
+       "count": 39
+      },
+      {
+       "component": "Air Bags",
+       "count": 33
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 315,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 111
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 80
+      },
+      {
+       "component": "Power Train",
+       "count": 41
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 188,
+     "crashes": 18,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 53
+      },
+      {
+       "component": "Engine",
+       "count": 41
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 33
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 103,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 21
+      },
+      {
+       "component": "Power Train",
+       "count": 17
+      },
+      {
+       "component": "Service Brakes",
+       "count": 16
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 74,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 18
+      },
+      {
+       "component": "Steering",
+       "count": 16
+      },
+      {
+       "component": "Electrical System",
+       "count": 14
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 66,
+     "crashes": 11,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 15
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 13
+      },
+      {
+       "component": "Steering",
+       "count": 12
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Toyota",
+   "model": "Prius",
+   "body": "Hatchback",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 688,
+     "crashes": 71,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 344
+      },
+      {
+       "component": "Electrical System",
+       "count": 89
+      },
+      {
+       "component": "Engine",
+       "count": 71
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 414,
+     "crashes": 40,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 242
+      },
+      {
+       "component": "Electrical System",
+       "count": 52
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 50
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 241,
+     "crashes": 31,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 111
+      },
+      {
+       "component": "Electrical System",
+       "count": 39
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 34
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 166,
+     "crashes": 29,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 93
+      },
+      {
+       "component": "Electrical System",
+       "count": 27
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 15
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 181,
+     "crashes": 13,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 42
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 37
+      },
+      {
+       "component": "Electrical System",
+       "count": 26
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 91,
+     "crashes": 12,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 17
+      },
+      {
+       "component": "Service Brakes",
+       "count": 14
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 13
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 37,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 6
+      },
+      {
+       "component": "Exterior Lighting",
+       "count": 5
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 5
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 30,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 11
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 8
+      },
+      {
+       "component": "Engine",
+       "count": 6
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 14,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 5
+      },
+      {
+       "component": "Service Brakes",
+       "count": 4
+      },
+      {
+       "component": "Electrical System",
+       "count": 2
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 6,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 2
+      },
+      {
+       "component": "Engine",
+       "count": 2
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 1
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 24,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 6
+      },
+      {
+       "component": "Service Brakes",
+       "count": 5
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 5
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 21,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 5
+      },
+      {
+       "component": "Tires",
+       "count": 3
+      },
+      {
+       "component": "Power Train",
+       "count": 3
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 27,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 9
+      },
+      {
+       "component": "Exterior Lighting",
+       "count": 4
+      },
+      {
+       "component": "Electrical System",
+       "count": 4
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Toyota",
+   "model": "RAV4",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 266,
+     "crashes": 39,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 54
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 50
+      },
+      {
+       "component": "Service Brakes",
+       "count": 39
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 256,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 74
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 40
+      },
+      {
+       "component": "Engine",
+       "count": 29
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 197,
+     "crashes": 20,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 69
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 45
+      },
+      {
+       "component": "Engine",
+       "count": 31
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 305,
+     "crashes": 37,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 85
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 60
+      },
+      {
+       "component": "Steering",
+       "count": 47
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 239,
+     "crashes": 33,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 58
+      },
+      {
+       "component": "Service Brakes",
+       "count": 46
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 33
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 308,
+     "crashes": 33,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 108
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 62
+      },
+      {
+       "component": "Service Brakes",
+       "count": 38
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 333,
+     "crashes": 31,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 130
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 69
+      },
+      {
+       "component": "Engine",
+       "count": 33
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 887,
+     "crashes": 25,
+     "top": [
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 255
+      },
+      {
+       "component": "Engine",
+       "count": 208
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 169
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 640,
+     "crashes": 17,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 180
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 121
+      },
+      {
+       "component": "Electrical System",
+       "count": 120
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 389,
+     "crashes": 47,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 125
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 75
+      },
+      {
+       "component": "Electrical System",
+       "count": 47
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 150,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 41
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 37
+      },
+      {
+       "component": "Engine",
+       "count": 28
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 164,
+     "crashes": 19,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 44
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 42
+      },
+      {
+       "component": "Steering",
+       "count": 27
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 177,
+     "crashes": 28,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 49
+      },
+      {
+       "component": "Engine",
+       "count": 39
+      },
+      {
+       "component": "Electrical System",
+       "count": 33
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Toyota",
+   "model": "Highlander",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 191,
+     "crashes": 16,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 47
+      },
+      {
+       "component": "Electrical System",
+       "count": 30
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 24
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 212,
+     "crashes": 26,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 46
+      },
+      {
+       "component": "Engine",
+       "count": 32
+      },
+      {
+       "component": "Vehicle Speed Control",
+       "count": 31
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 136,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 35
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 33
+      },
+      {
+       "component": "Structure",
+       "count": 32
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 193,
+     "crashes": 17,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 52
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 43
+      },
+      {
+       "component": "Structure",
+       "count": 32
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 111,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 21
+      },
+      {
+       "component": "Service Brakes",
+       "count": 19
+      },
+      {
+       "component": "Electrical System",
+       "count": 14
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 272,
+     "crashes": 18,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 78
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 53
+      },
+      {
+       "component": "Engine",
+       "count": 47
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 275,
+     "crashes": 23,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 74
+      },
+      {
+       "component": "Service Brakes",
+       "count": 58
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 46
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 510,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 216
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 89
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 83
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 323,
+     "crashes": 16,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 127
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 46
+      },
+      {
+       "component": "Service Brakes",
+       "count": 41
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 538,
+     "crashes": 17,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 232
+      },
+      {
+       "component": "Service Brakes",
+       "count": 68
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 67
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 267,
+     "crashes": 20,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 55
+      },
+      {
+       "component": "Structure",
+       "count": 43
+      },
+      {
+       "component": "Service Brakes",
+       "count": 40
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 190,
+     "crashes": 12,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 39
+      },
+      {
+       "component": "Structure",
+       "count": 32
+      },
+      {
+       "component": "Engine",
+       "count": 28
+      }
+     ],
+     "recalls": 9,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 43,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 13
+      },
+      {
+       "component": "Service Brakes",
+       "count": 8
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 7
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Honda",
+   "model": "Accord",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 381,
+     "crashes": 47,
+     "top": [
+      {
+       "component": "Seats",
+       "count": 64
+      },
+      {
+       "component": "Air Bags",
+       "count": 59
+      },
+      {
+       "component": "Steering",
+       "count": 51
+      }
+     ],
+     "recalls": 8,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 1427,
+     "crashes": 67,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 499
+      },
+      {
+       "component": "Electrical System",
+       "count": 417
+      },
+      {
+       "component": "Engine",
+       "count": 179
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 982,
+     "crashes": 52,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 378
+      },
+      {
+       "component": "Engine",
+       "count": 179
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 147
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 602,
+     "crashes": 37,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 237
+      },
+      {
+       "component": "Engine",
+       "count": 106
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 94
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 613,
+     "crashes": 32,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 202
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 131
+      },
+      {
+       "component": "Exterior Lighting",
+       "count": 128
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 540,
+     "crashes": 38,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 155
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 131
+      },
+      {
+       "component": "Engine",
+       "count": 62
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 1900,
+     "crashes": 35,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 560
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 343
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 309
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 699,
+     "crashes": 26,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 185
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 154
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 115
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 369,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 104
+      },
+      {
+       "component": "Engine",
+       "count": 74
+      },
+      {
+       "component": "Service Brakes",
+       "count": 57
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 246,
+     "crashes": 15,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 68
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 62
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 57
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 264,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 109
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 76
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 62
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 3,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Honda",
+   "model": "Civic",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 456,
+     "crashes": 55,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 149
+      },
+      {
+       "component": "Steering",
+       "count": 74
+      },
+      {
+       "component": "Electrical System",
+       "count": 60
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 319,
+     "crashes": 29,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 114
+      },
+      {
+       "component": "Service Brakes",
+       "count": 39
+      },
+      {
+       "component": "Electrical System",
+       "count": 39
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 293,
+     "crashes": 30,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 98
+      },
+      {
+       "component": "Air Bags",
+       "count": 57
+      },
+      {
+       "component": "Electrical System",
+       "count": 39
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 381,
+     "crashes": 37,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 177
+      },
+      {
+       "component": "Air Bags",
+       "count": 58
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 58
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 1082,
+     "crashes": 36,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 446
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 253
+      },
+      {
+       "component": "Electrical System",
+       "count": 119
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 606,
+     "crashes": 23,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 174
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 166
+      },
+      {
+       "component": "Electrical System",
+       "count": 104
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 596,
+     "crashes": 25,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 224
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 105
+      },
+      {
+       "component": "Fuel System",
+       "count": 89
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 345,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 80
+      },
+      {
+       "component": "Fuel System",
+       "count": 63
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 62
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 237,
+     "crashes": 16,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 39
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 38
+      },
+      {
+       "component": "Power Train",
+       "count": 33
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 148,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 67
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 33
+      },
+      {
+       "component": "Electrical System",
+       "count": 18
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 886,
+     "crashes": 34,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 734
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 71
+      },
+      {
+       "component": "Lane Departure",
+       "count": 66
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 3,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Honda",
+   "model": "CR-V",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 403,
+     "crashes": 27,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 89
+      },
+      {
+       "component": "Electrical System",
+       "count": 68
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 52
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 382,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 97
+      },
+      {
+       "component": "Power Train",
+       "count": 95
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 48
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 588,
+     "crashes": 36,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 191
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 108
+      },
+      {
+       "component": "Electrical System",
+       "count": 77
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 674,
+     "crashes": 38,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 243
+      },
+      {
+       "component": "Power Train",
+       "count": 150
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 144
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 395,
+     "crashes": 40,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 102
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 86
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 65
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 1781,
+     "crashes": 42,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 533
+      },
+      {
+       "component": "Electrical System",
+       "count": 403
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 349
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 2166,
+     "crashes": 46,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 530
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 396
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 376
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 1108,
+     "crashes": 31,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 299
+      },
+      {
+       "component": "Steering",
+       "count": 198
+      },
+      {
+       "component": "Electrical System",
+       "count": 164
+      }
+     ],
+     "recalls": 8,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 361,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 74
+      },
+      {
+       "component": "Air Bags",
+       "count": 47
+      },
+      {
+       "component": "Electrical System",
+       "count": 44
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 342,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 116
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 89
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 38
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 270,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 144
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 44
+      },
+      {
+       "component": "Engine",
+       "count": 19
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 518,
+     "crashes": 21,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 325
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 38
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 34
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 396,
+     "crashes": 29,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 127
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 67
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 51
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Honda",
+   "model": "HR-V",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 243,
+     "crashes": 13,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 76
+      },
+      {
+       "component": "Electrical System",
+       "count": 57
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 45
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 124,
+     "crashes": 13,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 33
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 28
+      },
+      {
+       "component": "Electrical System",
+       "count": 28
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 160,
+     "crashes": 11,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 50
+      },
+      {
+       "component": "Fuel System",
+       "count": 27
+      },
+      {
+       "component": "Gasoline",
+       "count": 27
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 242,
+     "crashes": 19,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 67
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 40
+      },
+      {
+       "component": "Fuel System",
+       "count": 35
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 86,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 21
+      },
+      {
+       "component": "Power Train",
+       "count": 14
+      },
+      {
+       "component": "Fuel System",
+       "count": 14
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 66,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 21
+      },
+      {
+       "component": "Electrical System",
+       "count": 16
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 9
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 89,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 26
+      },
+      {
+       "component": "Power Train",
+       "count": 19
+      },
+      {
+       "component": "Engine",
+       "count": 18
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 688,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 319
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 215
+      },
+      {
+       "component": "Steering",
+       "count": 78
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 110,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Steering",
+       "count": 51
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 21
+      },
+      {
+       "component": "Electrical System",
+       "count": 13
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Honda",
+   "model": "Pilot",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 173,
+     "crashes": 18,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 35
+      },
+      {
+       "component": "Service Brakes",
+       "count": 28
+      },
+      {
+       "component": "Electrical System",
+       "count": 22
+      }
+     ],
+     "recalls": 9,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 273,
+     "crashes": 12,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 80
+      },
+      {
+       "component": "Power Train",
+       "count": 54
+      },
+      {
+       "component": "Structure",
+       "count": 47
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 116,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 31
+      },
+      {
+       "component": "Structure",
+       "count": 20
+      },
+      {
+       "component": "Wheels",
+       "count": 16
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 109,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 22
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 19
+      },
+      {
+       "component": "Electrical System",
+       "count": 13
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 1728,
+     "crashes": 23,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 783
+      },
+      {
+       "component": "Electrical System",
+       "count": 583
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 292
+      }
+     ],
+     "recalls": 8,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 941,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 477
+      },
+      {
+       "component": "Electrical System",
+       "count": 266
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 137
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 442,
+     "crashes": 9,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 158
+      },
+      {
+       "component": "Electrical System",
+       "count": 85
+      },
+      {
+       "component": "Power Train",
+       "count": 78
+      }
+     ],
+     "recalls": 7,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 929,
+     "crashes": 13,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 267
+      },
+      {
+       "component": "Engine",
+       "count": 243
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 171
+      }
+     ],
+     "recalls": 13,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 494,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 215
+      },
+      {
+       "component": "Engine",
+       "count": 101
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 96
+      }
+     ],
+     "recalls": 11,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 455,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 138
+      },
+      {
+       "component": "Engine",
+       "count": 114
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 99
+      }
+     ],
+     "recalls": 10,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 175,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 46
+      },
+      {
+       "component": "Electrical System",
+       "count": 42
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 37
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 149,
+     "crashes": 3,
+     "top": [
+      {
+       "component": "Seat Belts",
+       "count": 37
+      },
+      {
+       "component": "Electrical System",
+       "count": 28
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 23
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 118,
+     "crashes": 2,
+     "top": [
+      {
+       "component": "Seat Belts",
+       "count": 26
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 23
+      },
+      {
+       "component": "Steering",
+       "count": 20
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Mazda",
+   "model": "Mazda3",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 226,
+     "crashes": 9,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 40
+      },
+      {
+       "component": "Engine",
+       "count": 32
+      },
+      {
+       "component": "Exterior Lighting",
+       "count": 31
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 117,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Exterior Lighting",
+       "count": 36
+      },
+      {
+       "component": "Electrical System",
+       "count": 32
+      },
+      {
+       "component": "Power Train",
+       "count": 18
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 138,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 27
+      },
+      {
+       "component": "Electrical System",
+       "count": 27
+      },
+      {
+       "component": "Service Brakes",
+       "count": 22
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 129,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 26
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 26
+      },
+      {
+       "component": "Electrical System",
+       "count": 24
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 1
+    },
+    {
+     "year": 2016,
+     "complaints": 103,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 22
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 20
+      },
+      {
+       "component": "Service Brakes",
+       "count": 14
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 1
+    },
+    {
+     "year": 2017,
+     "complaints": 84,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 28
+      },
+      {
+       "component": "Electrical System",
+       "count": 20
+      },
+      {
+       "component": "Back Over Prevention",
+       "count": 11
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 110,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 30
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 26
+      },
+      {
+       "component": "Back Over Prevention",
+       "count": 16
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 74,
+     "crashes": 3,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 15
+      },
+      {
+       "component": "Service Brakes",
+       "count": 15
+      },
+      {
+       "component": "Engine",
+       "count": 11
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 32,
+     "crashes": 0,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 15
+      },
+      {
+       "component": "Steering",
+       "count": 3
+      },
+      {
+       "component": "Electrical System",
+       "count": 3
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 55,
+     "crashes": 2,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 19
+      },
+      {
+       "component": "Electrical System",
+       "count": 7
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 7
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 24,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 12
+      },
+      {
+       "component": "Electrical System",
+       "count": 5
+      },
+      {
+       "component": "Structure",
+       "count": 2
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 12,
+     "crashes": 3,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 3
+      },
+      {
+       "component": "Electrical System",
+       "count": 3
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 3
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 12,
+     "crashes": 2,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 5
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 4
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 2
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Mazda",
+   "model": "CX-5",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 1,
+     "crashes": 0,
+     "top": [
+      {
+       "component": "Vehicle Speed Control",
+       "count": 1
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 194,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 58
+      },
+      {
+       "component": "Engine",
+       "count": 42
+      },
+      {
+       "component": "Power Train",
+       "count": 38
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 377,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 132
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 61
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 58
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 133,
+     "crashes": 11,
+     "top": [
+      {
+       "component": "Structure",
+       "count": 27
+      },
+      {
+       "component": "Power Train",
+       "count": 19
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 16
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 512,
+     "crashes": 31,
+     "top": [
+      {
+       "component": "Exterior Lighting",
+       "count": 161
+      },
+      {
+       "component": "Electrical System",
+       "count": 72
+      },
+      {
+       "component": "Service Brakes",
+       "count": 69
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 150,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 44
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 35
+      },
+      {
+       "component": "Engine",
+       "count": 16
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 124,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 100
+      },
+      {
+       "component": "Power Train",
+       "count": 18
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 9
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 273,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 132
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 50
+      },
+      {
+       "component": "Electrical System",
+       "count": 47
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 110,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 31
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 25
+      },
+      {
+       "component": "Engine",
+       "count": 18
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 150,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 81
+      },
+      {
+       "component": "Power Train",
+       "count": 17
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 17
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 65,
+     "crashes": 5,
+     "top": [
+      {
+       "component": "Exterior Lighting",
+       "count": 23
+      },
+      {
+       "component": "Engine",
+       "count": 13
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 9
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 67,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 12
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 11
+      },
+      {
+       "component": "Exterior Lighting",
+       "count": 11
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 47,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 11
+      },
+      {
+       "component": "Service Brakes",
+       "count": 8
+      },
+      {
+       "component": "Engine",
+       "count": 7
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Lexus",
+   "model": "ES350",
+   "body": "Sedan",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 116,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 95
+      },
+      {
+       "component": "Electrical System",
+       "count": 7
+      },
+      {
+       "component": "Structure",
+       "count": 5
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 50,
+     "crashes": 7,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 10
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 8
+      },
+      {
+       "component": "Electrical System",
+       "count": 8
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 28,
+     "crashes": 4,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 8
+      },
+      {
+       "component": "Service Brakes",
+       "count": 5
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 4
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 16,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 7
+      },
+      {
+       "component": "Electrical System",
+       "count": 4
+      },
+      {
+       "component": "Service Brakes",
+       "count": 4
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 21,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 8
+      },
+      {
+       "component": "Service Brakes",
+       "count": 3
+      },
+      {
+       "component": "Engine",
+       "count": 2
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 22,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Service Brakes",
+       "count": 3
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 3
+      },
+      {
+       "component": "Structure",
+       "count": 3
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 5,
+     "crashes": 1,
+     "top": [
+      {
+       "component": "Vehicle Speed Control",
+       "count": 2
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 2
+      },
+      {
+       "component": "Structure",
+       "count": 1
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Lexus",
+   "model": "RX350",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 45,
+     "crashes": 11,
+     "top": [
+      {
+       "component": "Vehicle Speed Control",
+       "count": 11
+      },
+      {
+       "component": "Service Brakes",
+       "count": 8
+      },
+      {
+       "component": "Engine",
+       "count": 7
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 78,
+     "crashes": 13,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 16
+      },
+      {
+       "component": "Service Brakes",
+       "count": 15
+      },
+      {
+       "component": "Electrical System",
+       "count": 14
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 27,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 6
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 5
+      },
+      {
+       "component": "Service Brakes",
+       "count": 5
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 62,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 15
+      },
+      {
+       "component": "Engine",
+       "count": 14
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 8
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2016,
+     "complaints": 86,
+     "crashes": 12,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 22
+      },
+      {
+       "component": "Service Brakes",
+       "count": 12
+      },
+      {
+       "component": "Power Train",
+       "count": 11
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2017,
+     "complaints": 94,
+     "crashes": 20,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 22
+      },
+      {
+       "component": "Service Brakes",
+       "count": 20
+      },
+      {
+       "component": "Engine",
+       "count": 16
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2018,
+     "complaints": 44,
+     "crashes": 6,
+     "top": [
+      {
+       "component": "Unknown Or Other",
+       "count": 10
+      },
+      {
+       "component": "Service Brakes",
+       "count": 9
+      },
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 8
+      }
+     ],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 65,
+     "crashes": 11,
+     "top": [
+      {
+       "component": "Fuel/Propulsion System",
+       "count": 24
+      },
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 13
+      },
+      {
+       "component": "Service Brakes",
+       "count": 12
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 1,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 0,
+     "crashes": 0,
+     "top": [],
+     "recalls": 0,
+     "parkIt": 0
+    }
+   ]
+  },
+  {
+   "make": "Subaru",
+   "model": "Outback",
+   "body": "SUV",
+   "years": [
+    {
+     "year": 2012,
+     "complaints": 295,
+     "crashes": 15,
+     "top": [
+      {
+       "component": "Power Train",
+       "count": 108
+      },
+      {
+       "component": "Engine",
+       "count": 50
+      },
+      {
+       "component": "Service Brakes",
+       "count": 39
+      }
+     ],
+     "recalls": 16,
+     "parkIt": 0
+    },
+    {
+     "year": 2013,
+     "complaints": 297,
+     "crashes": 18,
+     "top": [
+      {
+       "component": "Engine",
+       "count": 67
+      },
+      {
+       "component": "Power Train",
+       "count": 60
+      },
+      {
+       "component": "Air Bags",
+       "count": 42
+      }
+     ],
+     "recalls": 12,
+     "parkIt": 0
+    },
+    {
+     "year": 2014,
+     "complaints": 208,
+     "crashes": 14,
+     "top": [
+      {
+       "component": "Air Bags",
+       "count": 38
+      },
+      {
+       "component": "Engine",
+       "count": 35
+      },
+      {
+       "component": "Electrical System",
+       "count": 32
+      }
+     ],
+     "recalls": 10,
+     "parkIt": 0
+    },
+    {
+     "year": 2015,
+     "complaints": 509,
+     "crashes": 19,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 130
+      },
+      {
+       "component": "Electrical System",
+       "count": 127
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 108
+      }
+     ],
+     "recalls": 5,
+     "parkIt": 1
+    },
+    {
+     "year": 2016,
+     "complaints": 643,
+     "crashes": 22,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 309
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 124
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 83
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 1
+    },
+    {
+     "year": 2017,
+     "complaints": 921,
+     "crashes": 33,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 392
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 205
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 178
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 1
+    },
+    {
+     "year": 2018,
+     "complaints": 816,
+     "crashes": 27,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 267
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 234
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 162
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2019,
+     "complaints": 1036,
+     "crashes": 24,
+     "top": [
+      {
+       "component": "Electrical System",
+       "count": 364
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 326
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 204
+      }
+     ],
+     "recalls": 3,
+     "parkIt": 0
+    },
+    {
+     "year": 2020,
+     "complaints": 906,
+     "crashes": 19,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 313
+      },
+      {
+       "component": "Electrical System",
+       "count": 259
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 153
+      }
+     ],
+     "recalls": 6,
+     "parkIt": 0
+    },
+    {
+     "year": 2021,
+     "complaints": 300,
+     "crashes": 9,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 98
+      },
+      {
+       "component": "Electrical System",
+       "count": 76
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 67
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2022,
+     "complaints": 466,
+     "crashes": 10,
+     "top": [
+      {
+       "component": "Visibility/Wiper",
+       "count": 255
+      },
+      {
+       "component": "Unknown Or Other",
+       "count": 88
+      },
+      {
+       "component": "Electrical System",
+       "count": 53
+      }
+     ],
+     "recalls": 4,
+     "parkIt": 0
+    },
+    {
+     "year": 2023,
+     "complaints": 89,
+     "crashes": 8,
+     "top": [
+      {
+       "component": "Forward Collision Avoidance",
+       "count": 22
+      },
+      {
+       "component": "Electrical System",
+       "count": 17
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 16
+      }
+     ],
+     "recalls": 2,
+     "parkIt": 0
+    },
+    {
+     "year": 2024,
+     "complaints": 2,
+     "crashes": 0,
+     "top": [
+      {
+       "component": "Equipment",
+       "count": 1
+      },
+      {
+       "component": "Visibility/Wiper",
+       "count": 1
+      }
+     ],
+     "recalls": 0,
+     "parkIt": 0
+    }
+   ]
+  }
+ ]
+}

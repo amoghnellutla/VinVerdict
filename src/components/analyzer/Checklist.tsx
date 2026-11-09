@@ -24,8 +24,8 @@ type Props = { value: SellerChecklist; onChange: (next: SellerChecklist) => void
 
 export function Checklist({ value, onChange }: Props) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-      <h2 className="font-semibold">Ask the seller</h2>
+    <section className="border-t border-border pt-8">
+      <h2 className="section-title">Ask the seller</h2>
       <p className="mt-1 text-sm text-muted">Record their answers. The verdict above updates as you go.</p>
       <ul className="mt-4 divide-y divide-border">
         {QUESTIONS.map(({ key, q, good }) => {
@@ -34,13 +34,13 @@ export function Checklist({ value, onChange }: Props) {
           const bad = answer != null && answer !== good;
           return (
             <li key={key} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className={`text-sm ${bad ? "text-bad" : ""}`}>{q}</span>
+              <span className={bad ? "font-semibold text-bad" : ""}>{q}</span>
               <fieldset className="flex shrink-0 gap-1" aria-label={q}>
                 {([["Yes", true], ["No", false], ["Not asked", null]] as const).map(([label, v]) => (
                   <label
                     key={label}
-                    className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40 ${
-                      (answer ?? null) === v ? "border-accent bg-accent-soft font-medium text-accent" : "border-border text-muted hover:text-foreground"
+                    className={`cursor-pointer rounded-md border px-3 py-1 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40 ${
+                      (answer ?? null) === v ? "border-foreground bg-foreground font-semibold text-background" : "border-border-strong text-muted hover:border-foreground hover:text-foreground"
                     }`}
                   >
                     <input type="radio" name={key} className="sr-only" checked={(answer ?? null) === v} onChange={() => set(v)} />

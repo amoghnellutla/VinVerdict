@@ -105,4 +105,65 @@ describe("hasUnnegated", () => {
     expect(hasUnnegated("never been in an accident", /accident/)).toBe(false);
     expect(hasUnnegated("no rust, minor accident", /accident/)).toBe(true);
   });
+
+  it("stops a finished negation from reaching the next line of a pasted page", () => {
+    expect(hasUnnegated("no title issues reported 1 accident reported", /accident/)).toBe(true);
+    expect(hasUnnegated("no accident or damage reported", /accident/)).toBe(false);
+  });
+});
+
+describe("parseListing edge cases from real pages", () => {
+  it("reads labelled VINs and VINs inside dealer links as VIN lookups", () => {
+    expect(parseListing("VIN: 4T1C11AK3MU436772").kind).toBe("vin");
+    expect(parseListing("vin # 4T1C11AK3MU436772").kind).toBe("vin");
+    expect(parseListing("https://dealer.example/used-2021-camry-4t1c11ak3mu436772").kind).toBe("vin");
+    expect(parseListing("VIN: 4T1C11AK3MU436772 $9,900").kind).toBe("text");
+  });
+
+  it("ignores safety-feature names when looking for accidents", () => {
+    expect(parseListing("Toyota Safety Sense with Pre-Collision System").accident).toBe("unknown");
+    expect(parseListing("Honda Sensing: Collision Mitigation Braking System").accident).toBe("unknown");
+    expect(parseListing("Forward collision warning. Was rear-ended last year").accident).toBe("reported");
+  });
+
+  it("reads history boxes", () => {
+    expect(parseListing("Accidents or damage: None reported").accident).toBe("none");
+    expect(parseListing("Accidents or damage\nNone reported").accident).toBe("none");
+    expect(parseListing("At least 1 accident or damage reported").accident).toBe("reported");
+    expect(parseListing("Clean title: No").titleStatus).toBe("branded");
+    expect(parseListing("clean title no accidents").titleStatus).toBe("clean");
+    expect(parseListing("1-owner vehicle: No").ownerCount).toBeNull();
+  });
+
+  it("skips service-history and distance mileage", () => {
+    expect(parseListing("new tires at 90k miles, about 150k miles total").miles).toBe(150000);
+    expect(parseListing("Sherwood, AR (969 mi away) 183,086 mi").miles).toBe(183086);
+    expect(parseListing("3-year/36,000 miles warranty. Mileage: 31,200").miles).toBe(31200);
+  });
+
+  it("skips reference prices", () => {
+    expect(parseListing("MSRP $31,450 Internet Price $25,495").price).toBe(25495);
+    expect(parseListing("$1,431 under market $21,488").price).toBe(21488);
+  });
+
+  it("tells private sellers from dealers", () => {
+    expect(parseListing("Serviced at the dealer. No dealers please.").sellerType).toBe("private");
+    expect(parseListing("Selling my car, all maintenance done at the Toyota dealer").sellerType).toBe("private");
+    expect(parseListing("Autotrader Private Seller Cars ... Contact Dealer").sellerType).toBe("dealer");
+  });
+});
+
+describe("phone numbers", () => {
+  it("finds US phone numbers in common formats, not VINs or post ids", () => {
+    expect(parseListing("Call (732) 555-0100 or text 908.555.0142, +1 609-555-0199").phones).toEqual(["7325550100", "9085550142", "6095550199"]);
+    expect(parseListing("VIN 1HGCR2F8XHA000123 post id: 7790123456, 0000000000").phones).toEqual([]);
+  });
+});
+
+describe("short texts", () => {
+  it("reads two-digit years, bare prices and 'k' miles", () => {
+    expect(parseListing("selling my 08 accord 4cyl 165k, 4500 cash")).toMatchObject({ year: 2008, model: "Accord", price: 4500, miles: 165000, sellerType: "private" });
+    expect(parseListing("'15 camry le 98k miles 9k obo")).toMatchObject({ year: 2015, price: 9000, miles: 98000 });
+    expect(parseListing("2014 civic, new tires at 140k, asking 6500").miles).toBeNull();
+  });
 });

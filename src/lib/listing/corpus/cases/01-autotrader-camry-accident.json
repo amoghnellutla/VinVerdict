@@ -1,0 +1,19 @@
+{
+  "note": "Real listing Amogh checked (2026-11-09), rebuilt as a full-page Ctrl+A copy with nav, reviews and similar cars. Traps: '969 mi away' before the odometer, '$460 below market', '$150/mo', 'Pre-Collision System', 'We ship nationwide' from a dealer.",
+  "expect": {
+    "kind": "text",
+    "vin": "4T1C11AK3MU436772",
+    "year": 2021,
+    "make": "Toyota",
+    "model": "Camry",
+    "price": 9900,
+    "miles": 183086,
+    "transmission": "automatic",
+    "accident": "reported",
+    "sellerType": "dealer",
+    "distanceMiles": 969
+  },
+  "verdict": "hide",
+  "mustHit": ["accident-reported", "high-miles"],
+  "mustNotHit": ["no-price", "shipping-only", "no-vin"]
+}

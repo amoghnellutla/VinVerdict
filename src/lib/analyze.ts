@@ -1,7 +1,7 @@
 import "server-only";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { decodeVin, getComplaintSummary, getRecalls, getSafetyRatings, type VehicleKey } from "@/lib/nhtsa/client";
-import type { ComplaintSummary, DecodedVin, Recall, SafetyRating } from "@/lib/nhtsa/parse";
+import { nhtsaModelName, type ComplaintSummary, type DecodedVin, type Recall, type SafetyRating } from "@/lib/nhtsa/parse";
 import { findFuelEconomy, type FuelMatch } from "@/lib/fuel/client";
 import { driveOf, type FuelTarget } from "@/lib/fuel/parse";
 import { checkVin, type VinCheck } from "@/lib/vin";
@@ -71,10 +71,12 @@ export async function analyzeListing(text: string): Promise<Analysis> {
       hybrid: /hybrid|hev/i.test(decoded?.electrification ?? "") || /\bhybrid\b/i.test(text),
       electric: /\bBEV\b|battery electric/i.test(decoded?.electrification ?? ""),
     };
+    // NHTSA's safety APIs spell some models differently from the VIN decoder (Lexus "ES" → "ES350").
+    const nhtsa = { ...vehicle, model: nhtsaModelName(vehicle.make, vehicle.model, decoded?.trim ?? null, text) };
     const [r, s, c, f] = await Promise.allSettled([
-      getRecalls(vehicle),
-      getSafetyRatings(vehicle),
-      getComplaintSummary(vehicle),
+      getRecalls(nhtsa),
+      getSafetyRatings(nhtsa),
+      getComplaintSummary(nhtsa),
       findFuelEconomy(vehicle.year, vehicle.make, target),
     ]);
     if (r.status === "fulfilled") recalls = r.value;

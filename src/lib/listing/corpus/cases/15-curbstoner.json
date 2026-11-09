@@ -1,0 +1,6 @@
+{
+  "note": "Curbstoning (unlicensed dealer posing as private) with a rushed sale.",
+  "expect": { "year": 2017, "make": "Honda", "model": "Civic", "price": 9500, "miles": 86000 },
+  "verdict": "caution",
+  "mustHit": ["curbstoning", "rushed"]
+}

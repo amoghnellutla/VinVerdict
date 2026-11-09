@@ -22,5 +22,13 @@ export function rateLimit(key: string, limit: number, windowMs: number, now = Da
   if (buckets.size > 5_000) {
     for (const [k, times] of buckets) if (times.every((t) => now - t >= windowMs)) buckets.delete(k);
   }
+  // Hard cap, so a flood of made-up keys (e.g. random emails on /login) can't
+  // grow memory without limit: drop the oldest keys first (Map keeps insertion order).
+  if (buckets.size > 20_000) {
+    for (const k of buckets.keys()) {
+      if (buckets.size <= 15_000) break;
+      buckets.delete(k);
+    }
+  }
   return true;
 }

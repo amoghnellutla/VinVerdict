@@ -5,12 +5,12 @@ type Props = {
   children: ReactNode;
 };
 
-/** Placeholder panel for a page section that a later phase fills in. */
+/** Placeholder for a section that isn't built yet. */
 export function EmptyState({ title, children }: Props) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-surface p-6 sm:p-8">
-      <h2 className="font-medium">{title}</h2>
-      <div className="mt-2 text-sm leading-relaxed text-muted">{children}</div>
+    <div className="rounded-lg border border-dashed border-border-strong p-6">
+      <h2 className="text-lg">{title}</h2>
+      <div className="mt-2 text-muted">{children}</div>
     </div>
   );
 }

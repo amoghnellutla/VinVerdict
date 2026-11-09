@@ -16,6 +16,8 @@ export const MAX_LISTING_CHARS = 20_000;
 export type TitleStatus = "clean" | "salvage" | "rebuilt" | "flood" | "lemon" | "branded" | "unknown";
 export type AccidentStatus = "none" | "reported" | "unknown";
 export type SellerType = "private" | "dealer" | "unknown";
+/** How the car was used before, from history boxes ("Personal use only: Yes", "previous rental"). */
+export type Usage = "personal" | "fleet" | "rental" | "unknown";
 
 export type ParsedListing = {
   /** What the paste mostly was. */
@@ -36,7 +38,12 @@ export type ParsedListing = {
   exteriorColor: string | null;
   ownerCount: number | null;
   sellerType: SellerType;
+  usage: Usage;
   zip: string | null;
+  /** "969 mi away" on sites that show distance from the buyer. */
+  distanceMiles: number | null;
+  /** US phone numbers in the text, as 10 digits (for the "same phone on several listings" check). */
+  phones: string[];
 };
 
 // Brands in scope first (PLAN.md §1), then common others so text still parses.
@@ -120,7 +127,16 @@ function findYear(text: string, makeAt: number): number | null {
   const years = [...text.matchAll(/(?<![$\d,.])\b(19[89]\d|20[0-4]\d)\b(?!\s*(?:k\b|,\d{3}|miles|mi\b))/g)]
     .map((m) => ({ y: Number(m[1]), at: m.index }))
     .filter(({ y }) => y >= 1981 && y <= max);
-  if (years.length === 0) return null;
+  if (years.length === 0) {
+    // Short texts: "08 accord", "'15 camry" (two digits right before the make or model).
+    const two = makeAt > 0 ? text.slice(Math.max(0, makeAt - 12), makeAt).match(/(?:^|[\s(])'?(\d{2})\s+(?:[a-z]+\s+)?$/) : null;
+    if (two) {
+      const yy = Number(two[1]);
+      const y = yy <= max % 100 ? 2000 + yy : 1900 + yy;
+      if (y >= 1981 && y <= max) return y;
+    }
+    return null;
+  }
   if (makeAt >= 0) {
     // The year usually sits right before the make: "2017 Honda Accord".
     const near = years.filter(({ at }) => at < makeAt && makeAt - at <= 8);
@@ -138,40 +154,84 @@ function findDocFee(text: string): number | null {
   return n > 0 && n <= 2_000 ? n : null;
 }
 
+// Amounts that are about the price but aren't the asking price:
+// "MSRP $31,450", "IMV of $20,009", "was $16,000", "save $1,500".
+// A minus glued to the dollar sign ("-$1,500") is a discount; "EX-L - $11,900" is not.
+const NOT_ASKING_BEFORE = /(?:\b(?:msrp|retail|original|list|market (?:value|price|average|avg)|kbb(?: value)?|book value|trade-in value|imv of|imv|was|reduced from|originally|save|savings|discount|rebate|owe|owe about|payoff)\s*:?\s*|-)$/;
+// "$460 below market", "$1,200 price drop", "$150/mo", "$500 deposit", "$199 processing fee".
+const NOT_ASKING_AFTER = /^\s*\*?\s*(?:\/|per\b|a month|monthly|down|deposit|fee|doc|processing|below|under|above|over|off|less|price drop|drop|savings|to the bank|in (?:repairs|work)|refundable)/;
+
 function findPrice(text: string): number | null {
   const ok = (n: number) => n >= 500 && n <= 250_000;
-  // 1) Labelled: "asking $9,000", "price: 9500", "$9k obo"
-  const labelled = text.match(/\b(?:asking|price|priced at|selling for|for sale for|sale price)\b[:\s]*\$?\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b/);
-  if (labelled) {
-    const n = parseNumber(labelled[1], labelled[2]);
+  const num = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b`;
+  // 1) Labelled: "asking $9,000", "price: 9500", "internet price $25,495", "$9k obo"
+  const labelRe = new RegExp(String.raw`\b(asking|price|priced at|selling for|for sale for)\b[:\s]*\$?\s*${num}`, "g");
+  for (const m of text.matchAll(labelRe)) {
+    const before = text.slice(Math.max(0, m.index - 20), m.index);
+    if (/\b(msrp|retail|original|list|market|was)\s*$/.test(before)) continue;
+    const n = parseNumber(m[2], m[3]);
     if (ok(n)) return n;
   }
-  // 2) First dollar amount that isn't a payment, deposit or fee.
-  for (const m of text.matchAll(/\$\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b(?!\s*(?:\/|per\b|a month|monthly|down|deposit|fee|doc))/g)) {
+  // 2) A bare number with a price word after it: "4500 cash", "7,800 obo", "9k firm".
+  const bare = text.match(/(?<![\d,.$])(\d{1,3}(?:,\d{3})+|\d{3,6}|\d{1,3}(?:\.\d)?(?=\s*k\b))\s*(k)?\s*(?:cash|obo|or best offer|firm|negotiable|or trade)\b/);
+  if (bare) {
+    const n = parseNumber(bare[1], bare[2]);
+    if (ok(n)) return n;
+  }
+  // 3) First dollar amount that isn't a payment, deposit, fee, saving or reference price.
+  for (const m of text.matchAll(new RegExp(String.raw`\$\s?${num}`, "g"))) {
+    const before = text.slice(Math.max(0, m.index - 20), m.index);
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 25);
+    if (NOT_ASKING_BEFORE.test(before) || NOT_ASKING_AFTER.test(after)) continue;
     const n = parseNumber(m[1], m[2]);
     if (ok(n)) return n;
   }
   return null;
 }
 
+// Mileage that isn't the odometer: service history ("new tires at 140k miles",
+// "oil every 5,000 miles", "brakes 2k miles ago"), distance ("969 mi away"),
+// warranties ("100,000 miles powertrain").
+const MILES_NOT_ODO_BEFORE = /\b(?:at|every|each|by|until|before|after|within|up to|over|for|next|last|from|in)\s*$|[-/]$/;
+const MILES_NOT_ODO_AFTER = /^\.?\s*(?:away|from|radius|range|per\b|\/|ago|of (?:warranty|coverage|range)|warranty|powertrain|limited|bumper|return|buy-?back|guarantee|coverage|on (?:the )?(?:new |current )?(?:tires|brakes|battery|engine|motor|transmission|trans|rebuild|pads)|later|left|interval|service)/;
+
 function findMiles(text: string): number | null {
   const ok = (n: number) => n >= 0 && n <= 600_000;
-  const patterns = [
-    /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\s*(?:miles|mi\b|mileage)/,
-    /\b(?:mileage|odometer|miles)\b[:\s]*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b/,
-    /(\d{1,3}(?:\.\d)?)\s*(k)\s*(?:on (?:it|the clock|the odometer)|original)/,
-  ];
-  for (const re of patterns) {
-    const m = text.match(re);
-    if (m) {
-      const n = parseNumber(m[1], m[2]);
-      if (ok(n)) return n;
-    }
+  const num = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?`;
+  // 1) Labelled: "mileage: 31,200", "odometer: 112000", "Mileage 183,086", "miles: 40000", "driven 98,450 miles".
+  const labelled = new RegExp(String.raw`\b(?:mileage|odometer|odo|miles:|driven)\s*:?\s*${num}\b`, "g");
+  for (const m of text.matchAll(labelled)) {
+    const n = parseNumber(m[1], m[2]);
+    if (ok(n) && n > 0) return n;
+  }
+  // 2) "183,086 mi", "150k miles", "4,100 original miles", "42k on it" - first one that isn't service history.
+  const free = new RegExp(String.raw`(?<![\d,.$])${num}\s*(?:(?:original|actual|true|highway|hwy|total)\s+)?(?:miles\b|mi\b|mileage\b|on (?:it|the clock|the odometer)\b)`, "g");
+  for (const m of text.matchAll(free)) {
+    const before = text.slice(Math.max(0, m.index - 25), m.index);
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
+    if (MILES_NOT_ODO_BEFORE.test(before) || MILES_NOT_ODO_AFTER.test(after)) continue;
+    const n = parseNumber(m[1], m[2]);
+    if (ok(n)) return n;
+  }
+  // 3) Short texts: a bare "165k" that isn't money ("$9k", "9k cash/obo/firm/down") or service history.
+  for (const m of text.matchAll(/(?<![\d,.$])(\d{2,3}(?:\.\d)?)\s*k\b(?!\s*(?:cash|obo|firm|down|or best|negotiable|\$))/g)) {
+    const before = text.slice(Math.max(0, m.index - 25), m.index);
+    if (/\b(?:asking|price|for|at|every|by|after|before)\s*$|\$\s*$/.test(before)) continue;
+    const n = parseNumber(m[1], "k");
+    if (n >= 10_000 && n <= 400_000) return n;
   }
   return null;
 }
 
+function findDistance(text: string): number | null {
+  const m = text.match(/(\d{1,3}(?:,\d{3})+|\d+)\s*(?:mi|miles)\.? away\b/);
+  return m ? parseNumber(m[1]) : null;
+}
+
 function findTitle(text: string): TitleStatus {
+  // Cars.com: "Clean title: No" means the title is branded.
+  // Needs the colon (or the box's next label / end of text) so "clean title no accidents" stays clean.
+  if (/\bclean title:\s*no\b|\bclean title no(?= open recall| personal use| 1-owner|$)/.test(text)) return "branded";
   if (hasUnnegated(text, /\bsalvage\b/)) return "salvage";
   if (hasUnnegated(text, /\b(rebuilt|rebuild|reconstructed|restored) title\b|\brebuilt\b(?! (engine|transmission|motor|trans))/)) return "rebuilt";
   if (hasUnnegated(text, /\bflood(ed)?\b|water damage/)) return "flood";
@@ -182,21 +242,38 @@ function findTitle(text: string): TitleStatus {
   return "unknown";
 }
 
+// Safety features whose names contain crash words but say nothing about the
+// car's history: Toyota "Pre-Collision System", Honda "Collision Mitigation
+// Braking", "Forward Collision Warning", a dealer's "collision center".
+const SAFETY_FEATURE = /\bpre-?collision\b|\b(?:forward|front|rear|cross[- ]traffic) collision\b|\bcollision (?:mitigation|warning|avoidance|alert|detection|braking|prevention|center|centre|repair shop)\b|\baccident avoidance\b/g;
+
+// History boxes on dealer sites. These are the strongest signals, so they win
+// over anything else in the text (reviews, ads, feature lists).
+//   Cars.com  "Accidents or damage: None reported" / "At least 1 accident or damage reported"
+//   AutoTrader (AutoCheck)  "Accident or Damage Reported"
+//   CarGurus / CarMax / Carvana  "No accidents reported" / "1 accident reported"
+const HISTORY_ACCIDENT = /\bat least (?:1|one) accident\b|\b[1-9] (?:accidents?|damage events?)(?: or damage)? reported\b|\baccidents? or damage:? (?:at least )?[1-9]\b|\baccidents? (?:or damage )?reported\b|\bdamage reported\b/;
+const HISTORY_NONE = /\baccidents? or damage:? none reported\b|\bno accidents? (?:or damage )?reported\b|\bno accidents? or damage\b|\b0 accidents\b|\bno reported accidents\b|\bclean carfax\b/;
+const SAID_NONE = /\bno accidents?\b|\baccident[- ]free\b|never (?:been )?in an accident|\bzero accidents\b|\bno damage\b|\bno significant damage\b/;
+const SAID_ACCIDENT = /\baccidents?\b|\bcollision\b|fender[- ]bender|\b(?:frame|structural|front[- ]end|rear[- ]end|body|hail) damage\b|airbags? (?:deployed|popped)|\bwas hit\b|got hit|been hit|rear[- ]ended|\btotaled\b/;
+
 function findAccident(text: string): AccidentStatus {
-  if (hasUnnegated(text, /\baccidents?\b|\bcollision\b|fender[- ]bender|frame damage|airbags? (deployed|popped)|\bwas hit\b|got hit|been hit|rear[- ]ended/)) {
-    return "reported";
-  }
-  if (/\bno (reported )?accidents?\b|accident[- ]free|never (been )?in an accident|zero accidents|clean carfax|no damage|no significant damage/.test(text)) {
-    return "none";
-  }
+  const t = text.replace(SAFETY_FEATURE, " ");
+  if (hasUnnegated(t, HISTORY_ACCIDENT)) return "reported";
+  if (HISTORY_NONE.test(t)) return "none";
+  // Free text: remove "no accidents"-style phrases first so their words don't count as a report.
+  const rest = t.replace(new RegExp(HISTORY_NONE.source, "g"), " ").replace(new RegExp(SAID_NONE.source, "g"), " ");
+  if (hasUnnegated(rest, SAID_ACCIDENT)) return "reported";
+  if (SAID_NONE.test(t)) return "none";
   return "unknown";
 }
 
 function findColor(text: string): string | null {
   const list = COLORS.join("|");
   const labelled =
-    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(${list})\\b`)) ??
-    text.match(new RegExp(`\\bcolou?r[:\\s-]*(${list})\\b`)) ??
+    // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
+    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b`)) ??
+    text.match(new RegExp(`(?<!interior )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));
   if (!labelled) return null;
@@ -204,23 +281,69 @@ function findColor(text: string): string | null {
   return c === "grey" ? "gray" : c;
 }
 
+const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, first: 1, second: 2, third: 3, fourth: 4, "2nd": 2, "3rd": 3, "4th": 4 };
+
 function findOwners(text: string): number | null {
-  if (/\b(one|single|1)[- ]owner\b|\bfirst owner\b/.test(text)) return 1;
-  const words: Record<string, number> = { two: 2, three: 3, four: 4, five: 5 };
-  const m = text.match(/\b(\d|two|three|four|five)[- ]owners?\b/);
+  // Cars.com "1-owner vehicle: No" says it had more than one, but not how many.
+  if (/\b(?:one|single|1)[- ]owner(?: vehicle)?:? no\b/.test(text)) return null;
+  if (/\b(?:one|single|1)[- ]owner\b|\bfirst owner\b|\bcarfax 1-owner\b/.test(text)) return 1;
+  // "1 previous owner", "2 owners", "I'm the second owner"
+  const m =
+    text.match(/\b(\d|one|two|three|four|five) (?:previous |prior )?owners?\b/) ??
+    text.match(/\b(\d)[- ]owners?\b/) ??
+    text.match(/\b(second|third|fourth|2nd|3rd|4th) owner\b/);
   if (!m) return null;
-  return words[m[1]] ?? Number(m[1]);
+  const n = NUMBER_WORDS[m[1]] ?? Number(m[1]);
+  return n >= 1 && n <= 9 ? n : null;
 }
 
+// Sites that only sell their own stock. Marketplaces (AutoTrader, Cars.com,
+// CarGurus, Facebook, Craigslist) carry both dealers and private sellers, so
+// for them the text decides.
+const DEALER_ONLY_HOSTS = /(^|\.)(carmax|carvana|enterprisecarsales|hertzcarsales|vroom|echopark|autonation)\.com$/;
+
 function findSellerType(text: string, host: string | null): SellerType {
-  if (/\b(dealer(ship)?|we finance|financing available|doc(umentation)? fee|stock ?#|certified pre-?owned|\bcpo\b|our inventory|warranty available)\b/.test(text)) {
+  // Private sellers often say "no dealers", which contains the word "dealer".
+  // AutoTrader's menu says "Private Seller Cars" on every page, so skip that.
+  if (/\bno dealers\b|\bdealers,? (?:please )?(?:don'?t|do not|need not)\b|\bnot a dealer(?:ship)?\b|\b(?:for sale )?by owner\b|\bprivate (?:seller|party|sale)\b(?! cars)|\bfsbo\b/.test(text)) {
+    return "private";
+  }
+  // "serviced at the dealer" or "bought it from the dealer" is a private seller talking.
+  const t = text.replace(/\b(?:at|from|by|through) (?:the|a|my) (?:honda |toyota |local )?dealer(?:ship)?\b|\bdealer[- ](?:maintained|serviced|service records?|records)\b/g, " ");
+  if (/\b(dealer(?:ship)?|we finance|financing available|doc(?:umentation)? fee|stock ?(?:#|number|no\b)|certified pre-?owned|cpo|our inventory|warranty available|carmax|carvana|enterprise car sales|hertz car sales|echopark|autonation|processing fee|no-haggle price)\b/.test(t)) {
     return "dealer";
   }
-  if (host && /carmax|carvana|enterprisecarsales|hertzcarsales|cars\.com|autotrader|cargurus/.test(host)) return "dealer";
-  if (/\b(private (seller|party|sale)|by owner|i('m| am) selling|selling my|my car|i bought it|i've owned)\b/.test(text)) {
+  if (host && DEALER_ONLY_HOSTS.test(host)) return "dealer";
+  if (/\b(i'?m selling|i am selling|selling my|selling (?:it )?because|my car|my daily|i bought (?:it|a|an|my)|i'?ve owned|i'?m the (?:first|second|original|only) owner|seller'?s description)\b/.test(text)) {
     return "private";
   }
   return "unknown";
+}
+
+function findUsage(text: string): Usage {
+  if (/\bfleet vehicle:? yes\b.{0,20}\brental\b/.test(text) ||
+      hasUnnegated(text, /\b(?:previous|former|prior|ex-?) ?rental\b|\brental (?:car|vehicle|use|history|unit)\b/)) return "rental";
+  if (/\bfleet (?:vehicle|use|car)?:? ?yes\b/.test(text) ||
+      hasUnnegated(text, /\b(?:ex-?|former |previous )fleet\b|\bfleet (?:vehicle|car|use)\b(?!:? ?no)|\bcommercial use\b|\b(?:uber|lyft|rideshare|taxi|police)\b/)) {
+    return "fleet";
+  }
+  if (/\bpersonal use(?: only)?(?::? yes)?\b(?!:? ?no)|\bnot a fleet or rental\b/.test(text)) return "personal";
+  return "unknown";
+}
+
+function findTransmission(text: string): TransmissionKind {
+  // 1) "Transmission: 8-Speed Automatic", "Transmission CVT". Stop at punctuation
+  //    so "owner's manual" later in the text can't leak in.
+  for (const m of text.matchAll(/\btransmission\b[:\s-]+([^.;·|,]{2,40})/g)) {
+    const k = classifyTransmission(m[1].split(/\b(?:engine|fuel|drive|mpg|exterior|interior|vin|highlights)\b/)[0]);
+    if (k !== "unknown") return k;
+  }
+  // 2) "6-speed manual transmission", "Automatic Transmission"
+  const before = text.match(/\b((?:\d{1,2}[- ]speed )?(?:manual|automatic|auto|cvt|stick ?shift|dual[- ]clutch)) (?:transmission|trans\b|gearbox)/);
+  if (before) return classifyTransmission(before[1]);
+  // 3) Loose mentions, skipping feature names like "automatic climate control".
+  const loose = text.match(/\b(cvt|stick ?shift|\d-speed (?:manual|automatic)|automatic(?! (?:emergency|climate|temperature|headlights?|high[- ]?beams?|braking|wipers?|lights?|locks?|door|on\/off|start|dimming|leveling|parking|rain))|manual(?= (?:only|car)\b))\b/);
+  return classifyTransmission(loose?.[1] ?? null);
 }
 
 function findZip(raw: string): string | null {
@@ -228,18 +351,43 @@ function findZip(raw: string): string | null {
   return m ? m[1] : null;
 }
 
+const URL_RE = /https?:\/\/[^\s<>"')]+/gi;
+
+function findPhones(raw: string): string[] {
+  const out = new Set<string>();
+  for (const m of raw.matchAll(/(?<![\dA-Za-z])(?:\+?1[\s.-]?)?\(?([2-9]\d{2})\)?[\s.-]?([2-9]\d{2})[\s.-]?(\d{4})(?![\dA-Za-z])/g)) {
+    const digits = m[1] + m[2] + m[3];
+    if (!/^(\d)\1{9}$/.test(digits)) out.add(digits); // skip 0000000000-style filler
+    if (out.size >= 5) break;
+  }
+  return [...out];
+}
+
+/** True when the paste is just a VIN, maybe labelled: "VIN: 4T1C…", "vin# 4T1C…". */
+function isOnlyVin(raw: string, vin: string): boolean {
+  const rest = raw
+    .toUpperCase()
+    .replace(/[\s-]/g, "")
+    .replace(vin, "")
+    .replace(/VIN(NUMBER|NO\.?|#)?|NUMBER|[#:.\-()]/g, "");
+  return rest.length === 0;
+}
+
 export function parseListing(input: string): ParsedListing {
   const raw = input.slice(0, MAX_LISTING_CHARS);
-  const text = normalizeText(raw);
   const { url, host } = findUrl(raw);
   const vin = findVin(raw);
+  // Facts come from the text without its links: a search link's
+  // "makeCode=TOYOTA&startYear=2018" are filters, not this car.
+  const text = normalizeText(raw.replace(URL_RE, " "));
 
-  const onlyVin = vin !== null && normalizeVin(raw.trim()) === vin;
   const onlyUrl = url !== null && raw.trim().split(/\s+/).length === 1;
+  // A dealer link with the VIN in it ("…-1hgcv1f35la054321.htm") is a VIN lookup.
+  const kind = vin && (isOnlyVin(raw, vin) || onlyUrl) ? "vin" : onlyUrl ? "url" : "text";
 
   const { make, model, at } = findMakeModel(text);
   return {
-    kind: onlyVin ? "vin" : onlyUrl ? "url" : "text",
+    kind,
     url,
     sourceHost: host,
     vin,
@@ -249,12 +397,15 @@ export function parseListing(input: string): ParsedListing {
     price: findPrice(text),
     docFee: findDocFee(text),
     miles: findMiles(text),
-    transmission: classifyTransmission(text.match(/[^.;\n·|]{0,40}\btransmission\b[^.;\n·|]{0,20}/)?.[0] ?? (/\b(cvt|automatic|stick ?shift|manual transmission|\d-speed manual)\b/.exec(text)?.[0] ?? null)),
+    transmission: findTransmission(text),
     titleStatus: findTitle(text),
     accident: findAccident(text),
     exteriorColor: findColor(text),
     ownerCount: findOwners(text),
     sellerType: findSellerType(text, host),
-    zip: findZip(raw),
+    usage: findUsage(text),
+    zip: findZip(raw.replace(URL_RE, " ")),
+    distanceMiles: findDistance(text),
+    phones: findPhones(raw.replace(URL_RE, " ")),
   };
 }

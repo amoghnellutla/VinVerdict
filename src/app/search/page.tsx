@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { EmptyState } from "@/components/EmptyState";
+import { Suspense } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { PageHeader } from "@/components/PageHeader";
+import { SearchForm } from "@/components/search/SearchForm";
+import { getUsage, MONTHLY_LIMIT } from "@/lib/usage";
 
 export const metadata: Metadata = { title: "Search" };
 
-// PLAN.md §3 layer 2. Phase 7 turns these into pre-filled searches from your filters.
+// PLAN.md §3 layer 2: sites to search by hand, with what each is best for.
 const SITES = [
   { name: "AutoTempest", href: "https://www.autotempest.com", note: "Many sites at once" },
   { name: "CarGurus", href: "https://www.cargurus.com", note: "Dealer deal labels" },
-  { name: "AutoTrader", href: "https://www.autotrader.com", note: "KBB price labels" },
   { name: "Cars.com", href: "https://www.cars.com", note: "Large inventory" },
   { name: "Facebook Marketplace", href: "https://www.facebook.com/marketplace", note: "Private sellers: highest scam risk" },
   { name: "Craigslist", href: "https://www.craigslist.org", note: "Private sellers: highest scam risk" },
@@ -17,34 +18,42 @@ const SITES = [
   { name: "Carvana", href: "https://www.carvana.com", note: "7-day / 400-mile return" },
   { name: "Enterprise Car Sales", href: "https://www.enterprisecarsales.com", note: "7-day buyback" },
   { name: "Hertz Car Sales", href: "https://www.hertzcarsales.com", note: "Ex-rental cars" },
-  { name: "iSeeCars", href: "https://www.iseecars.com", note: "Price and history stats" },
 ];
 
 export default function SearchPage() {
   return (
     <>
-      <PageHeader
-        title="Search"
-        phase="Phase 7"
-        description="Filter by brand, model, year, price, miles and distance. Results are ranked by bang for buck, and every one links to its source."
-      />
-      <EmptyState title="In-app search">
-        Filters, a usage meter for the free API quota, and ranked results from MarketCheck and Auto.dev, cached for 24 hours.
-      </EmptyState>
+      <PageHeader title="Search" description="Dealer and private listings near you, ranked by how far under fair value they are." />
+      <SearchForm />
+      <Suspense fallback={null}>
+        <Usage />
+      </Suspense>
 
-      <section className="mt-10">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted">Search other sites</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mt-14">
+        <h2 className="section-title">Search other sites</h2>
+        <ul className="divide-y divide-border border-y border-border">
           {SITES.map((s) => (
-            <li key={s.name} className="rounded-xl border border-border bg-surface p-4">
-              <ExternalLink href={s.href} className="font-medium text-accent underline-offset-2 hover:underline">
-                {s.name} ↗
+            <li key={s.name} className="flex flex-wrap items-baseline justify-between gap-x-4 py-3">
+              <ExternalLink href={s.href} className="link font-semibold">
+                {s.name}
               </ExternalLink>
-              <p className="mt-1 text-xs text-muted">{s.note}</p>
+              <span className="text-muted">{s.note}</span>
             </li>
           ))}
         </ul>
       </section>
     </>
+  );
+}
+
+/** Monthly API usage (upper bound; see lib/usage.ts). Hidden until the database table exists. */
+async function Usage() {
+  const u = await getUsage();
+  if (!u) return null;
+  return (
+    <p className="nums mt-6 text-sm text-muted">
+      This month: about {u.marketcheck} of {MONTHLY_LIMIT.marketcheck} MarketCheck and {u.autodev} of {MONTHLY_LIMIT.autodev} Auto.dev lookups
+      used (counted generously, including repeats served from cache).
+    </p>
   );
 }

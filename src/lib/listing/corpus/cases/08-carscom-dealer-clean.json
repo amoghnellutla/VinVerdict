@@ -1,0 +1,20 @@
+{
+  "note": "Cars.com dealer listing. Traps: 'Accidents or damage: None reported' (the word 'accidents' isn't negated just before), '$1,200 price drop', '$1,431 under market', 'Collision Mitigation Braking'.",
+  "expect": {
+    "vin": "1HGCV1F10KA012345",
+    "year": 2019,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 21488,
+    "miles": 41230,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "none",
+    "ownerCount": 1,
+    "sellerType": "dealer",
+    "usage": "personal",
+    "zip": "08540"
+  },
+  "verdict": "clear",
+  "mustNotHit": ["accident-reported", "accident-unknown"]
+}

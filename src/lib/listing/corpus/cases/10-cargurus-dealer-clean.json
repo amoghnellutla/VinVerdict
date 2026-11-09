@@ -1,0 +1,18 @@
+{
+  "note": "CarGurus dealer listing. Traps: 'IMV of $20,009', 'No title issues reported' (not 'no title'), 'Not a fleet or rental vehicle', dealer shipping and dealer deposit (normal for dealers, not scams).",
+  "expect": {
+    "year": 2018,
+    "make": "Toyota",
+    "model": "Camry",
+    "price": 18499,
+    "miles": 62118,
+    "transmission": "automatic",
+    "accident": "none",
+    "ownerCount": 1,
+    "sellerType": "dealer",
+    "exteriorColor": "silver",
+    "usage": "personal"
+  },
+  "verdict": "clear",
+  "mustNotHit": ["shipping-only", "deposit-first", "curbstoning", "accident-reported", "fleet"]
+}

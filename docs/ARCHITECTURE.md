@@ -2,7 +2,7 @@
 
 How the app is put together, in plain language. **Built** means it exists now; **planned** means a later phase adds it (phase numbers from [PLAN.md](PLAN.md) §12).
 
-Last updated: 2026-11-09 (Phase 0 + Phase 2a + Phase 3 analyzer with features A, C, F, O).
+Last updated: 2026-11-09 (Phase 0, Phase 2a + 2b login, Phase 3 analyzer with features A, C, F, O, bookmark, VIN live-listing lookup, accuracy suite).
 
 ## The big picture
 
@@ -37,16 +37,17 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 ## Pages
 
-| URL | Page | Filled in by |
+| URL | Page | Status |
 | --- | --- | --- |
-| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, out-the-door cost for any US ZIP, yearly running cost, buyer protection, inspection checklist). Deal score still to come | Phase 3–4 |
-| `/shortlist` | Reliable models/years | Phase 6 |
-| `/search` | In-app search + links to 11 outside sites (built) | Phase 7 |
-| `/car/[id]` | Car detail. `[id]` is a placeholder in the URL, e.g. `/car/abc123` | Phase 5 |
-| `/checked` | Checked cars / watchlist | Phase 8 |
-| `/compare` | 2–3 cars side by side | Phase 8 |
-| `/settings` | Score weights and defaults | Phase 8 |
-| `/login` | Email + password (UI only for now) | Phase 2b |
+| `/` | Check a car: verdict with a top-3 summary, price check (fair range, deal label, suggested offer), live listing by VIN, car facts, buyer protection, out-the-door cost, true cost per year, running cost, recalls/crash stars/complaints, inspection checklist, seller checklist. Each check is saved to My cars | Built |
+| `/shortlist` | Toyota/Honda/Mazda/Lexus/Subaru models with the model years owners complained about most (NHTSA, per year on the road) and pre-filled searches for a budget + ZIP | Built |
+| `/search` | In-app search (MarketCheck dealer + optional private sellers), ranked by how far under fair value; links to outside sites; monthly usage meter | Built |
+| `/checked` | My cars: every checked car with verdict, deal label and price drops; tick 2–3 to compare | Built (needs the SQL setup) |
+| `/compare` | 2–4 saved cars side by side, best value per row in green | Built (needs the SQL setup) |
+| `/car/[id]` | One saved car: findings, price history, "check for a price drop", "check it again", remove | Built (needs the SQL setup) |
+| `/settings` | Home ZIP (this device) and setup status (tables, keys, usage) | Built |
+| `/share` | Android Share target: hands shared text to the checker | Built |
+| `/login` | Email + password login. The only page open without a login (plus the app manifest and icons) | Built |
 
 **How pages are served:** the app uses Next.js 16 with *Cache Components*. Pages that don't depend on the request are pre-built once and served instantly (shown as `○` in `npm run build`). `/car/[id]` is *partially* pre-built (`◐`): the frame is ready in advance, and the part that needs the car's id streams in. That's why the id is read inside a `<Suspense>` block, and why the nav's "current page" highlight is wrapped in one too.
 
@@ -56,10 +57,19 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 
 | File | Job | Network? |
 | --- | --- | --- |
-| `listing/parse.ts` | Reads pasted text and pulls out year, make, model, price, miles, VIN, title status, accidents, color, owners, seller type, ZIP | No |
-| `listing/text.ts` | Helpers: tidy the text; "is this word negated?" (so "no accidents" isn't read as an accident) | No |
+| `listing/parse.ts` | Reads pasted text (a few lines or a whole copied page) and pulls out year, make, model, price, miles, VIN, title status, accidents, color, owners, seller type, prior use (personal/fleet/rental), ZIP and distance. Built to ignore page noise: reference prices (MSRP, "$460 below market", "$150/mo"), service-history miles ("new tires at 90k miles", "969 mi away"), safety-feature names ("Pre-Collision System"), and reads dealer history boxes ("Accidents or damage: None reported") first. A labelled VIN ("VIN: …") or a dealer link with a VIN in it counts as a VIN lookup | No |
+| `listing/text.ts` | Helpers: tidy the text; "is this word negated?" (so "no accidents" isn't read as an accident, but "No title issues reported / 1 accident reported" still is) | No |
+| `listing/corpus/` | The accuracy suite: real listings (`cases/*.txt`) with the answers they must produce (`*.json`). `npm test` prints a per-field scorecard. Add a case for every listing the analyzer gets wrong (see its README) | No |
+| `bookmarklet.ts` | The "Check with VinVerdict" bookmark's code (feature 2a). Runs in your browser on the listing page, collects the page's built-in car data (schema.org JSON-LD) and visible text, and opens VinVerdict with it in the URL fragment (`#listing=…`), which is never sent to a server | No |
+| `live/parse.ts` | Turns Auto.dev and MarketCheck "listing by VIN" replies into one small `LiveListing` (price, miles, seller, accident and owner history). Copies listing facts only (Auto.dev replies also describe our account) and keeps only https links | No |
+| `live/client.ts` | VIN → live listing (feature 2b): Auto.dev first (1,000/month, has accident history), MarketCheck only if Auto.dev doesn't have it. **Server-only**; each provider cached per VIN for about an hour | Yes (quota) |
+| `live/merge.ts` | Fills gaps in the pasted listing from the live one (pasted facts win, except a history-reported accident) and adds cross-checks: same VIN at a different price, private copy of a dealer's car (cloned listing), fewer miles than another listing, listing ended | No |
+| `history/parse.ts`, `history/summary.ts` | VIN listing history (MarketCheck History, every past online listing since 2015). `summary.ts` groups listings by seller, finds what's on sale now and since when, price cuts, the odometer readings, and adds rules: miles went down between listings (rollback), pasted miles under an earlier reading, a "private" car a dealer was selling in the last 6 months, for sale 3+ times in 3 years, price already cut, listed by 2 sellers at once | No |
+| `history/client.ts` | Fetches the history (1 MarketCheck call, works on Free). **Server-only**, cached a day per VIN | Yes (quota) |
+| `listing/ocr-text.ts` | Fixes OCR misreads that change the facts: "S9,000" → "$9,000", "100.000 miles", a VIN split by a line break | No |
+| `ocr.ts` | **Browser-only** screenshot reader: tesseract.js in a Web Worker, loaded from this site's `/ocr/` (copied from `node_modules` by `scripts/copy-ocr-assets.mjs` before dev/build; gitignored). Scales, greys and un-inverts dark-mode shots; images never leave the device. About 7 MB on first use, then cached | No (same-site files only) |
 | `vin.ts` | VIN format and check-digit test (catches typos and made-up VINs for free) | No |
-| `nhtsa/parse.ts` | Turns raw NHTSA replies into small typed objects; decides automatic vs. manual | No |
+| `nhtsa/parse.ts` | Turns raw NHTSA replies into small typed objects; decides automatic vs. manual. `nhtsaModelName` turns the VIN decoder's Lexus "ES" + trim "350" into "ES350", the name NHTSA's recall, crash-rating and complaint APIs use | No |
 | `nhtsa/client.ts` | Calls NHTSA: VIN decode, recalls, crash stars, complaints. **Server-only** (`import "server-only"` makes the build fail if browser code imports it). Results are cached with `"use cache"`: VIN decodes and crash stars for weeks, recalls and complaints for days | Yes (free) |
 | `geo/zip.ts` | ZIP code → state with a built-in table of 3-digit ZIP prefixes (no API). Territories and military ZIPs return nothing | No |
 | `costs/stateTax.ts` | Car tax for each of the 50 states + DC: the state rate plus special rules (private-sale exemptions, caps, flat amounts, tiers). Each state has an official source link and a DMV link. City/county tax uses the rate the buyer types in | No |
@@ -70,31 +80,80 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `inspection.ts` | Inspection checklist: a small hand-checked list of known problems (each with its official bulletin link, matched by make, model, year and engine size), checks for the car's most common NHTSA complaint areas, and checks for every used car | No |
 | `protection.ts` | Buyer protection: spots CarMax, Carvana, Enterprise or Hertz in the text or link and shows their return window and warranty; otherwise explains dealer rules (FTC Buyers Guide, NJ dealer warranty by miles) or that private sales have none | No |
 | `costs/running.ts` | Yearly running cost: miles ÷ MPG × fuel price (kWh for EVs) + maintenance (AAA 2025 average, 11.04¢/mile) | No |
+| `value/comps.ts` | Value from comparable cars: a *local* weighted fit of log price on miles and model year (comps with miles near this car count most), read at this car's miles. Falls back to a median with few comps. Backtests (leave-one-out, `value.test.ts` when `.tmp/` has the data): 46 sold Camrys 6.6% median error (63% within 10%); 50 Accord listings 4.6% (82%) | No |
+| `value/estimate.ts` | "Is the price fair?": combines MarketCheck's sold-price model, recently sold comps and for-sale comps (minus the asking-to-selling gap), then adjusts for accident (−15%), branded title (−35%), fleet/rental (−5%) and private seller (−12%). Gives a fair range, a deal label (Great → Overpriced), a confidence level and a suggested offer with reasons | No |
+| `value/parse.ts`, `value/client.ts` | Parse comps from MarketCheck/Auto.dev; fetch the three price sources (**server-only**, cached a day, up to 3 calls) | client: Yes (quota) |
+| `costs/ownership.ts` | True cost per year: (price + tax/fees − resale) ÷ years + fuel and maintenance. Value lost per year comes from the comps (one model year older + the miles you drive); 12%/year without comps | No |
+| `cars/store.ts` | Saved cars (with a short listing-history summary from the last price check), price history and "same phone on other cars" lookups in Supabase with the user's session (row-level security). Reports "not-set-up" instead of failing when the tables don't exist | Yes (Supabase) |
+| `usage.ts` | Monthly MarketCheck/Auto.dev request counter per user (Supabase), an upper bound shown on Search and Settings | Yes (Supabase) |
+| `search/rank.ts`, `search/client.ts` | In-app search: parse MarketCheck listings, drop manuals and duplicate VINs, value each car against the other results, flag 30%+ under as "unusually cheap", rank by value | client: Yes (quota) |
+| `shortlist/shortlist.ts` + `data.json` | Model years rated by NHTSA complaints per year on the road vs the model's typical year; recall counts and "park it" recalls per year; known-issue years from `inspection.ts`. Data built by `tools/build_shortlist.py` | No |
+| `search-links.ts` | Pre-filled AutoTempest and Facebook Marketplace searches | No |
 | `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
 
-How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actions/analyze.ts`). That's a function that runs on the server, which Next.js exposes as a POST request. It validates the text (1–20,000 characters), applies a rate limit (`lib/rate-limit.ts`: 10 per minute per IP, in memory) and calls `lib/analyze.ts`, which parses the text, checks and decodes the VIN, and fetches NHTSA data in parallel. The page (`components/analyzer/`) then runs the scam rules in the browser through `lib/verdict.ts`, so answering a seller-checklist question updates the verdict instantly.
+How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actions/analyze.ts`). That's a function that runs on the server, which Next.js exposes as a POST request. It checks the login first (`lib/auth/session.ts`), then validates the text (1–20,000 characters), applies a rate limit (`lib/rate-limit.ts`: 10 per minute per IP, in memory) and calls `lib/analyze.ts`, which parses the text, checks and decodes the VIN, and fetches NHTSA data in parallel. The page (`components/analyzer/`) then runs the scam rules in the browser through `lib/verdict.ts`, so answering a seller-checklist question updates the verdict instantly.
 
-**Not yet protected by login** (Phase 2b adds it). Don't deploy publicly until then.
+Ways in besides typing:
+- **Paste & check** (the main way): the button reads the clipboard (the browser asks permission once) and checks it, so the flow is Ctrl+A, Ctrl+C on the listing, then one click. Pasting into the empty box checks straight away too.
+- **Read screenshots** (the main way on a phone, where apps have no "select all"): pick 1–6 screenshots of the listing; `lib/ocr.ts` reads them on the device, `cleanOcrText` fixes misreads, and the text goes into the box and is checked like a paste. On touch screens it's the first button and the instructions change (`pointer: coarse`).
+- **The bookmark** (optional, computer only; some sites and browsers block bookmark scripts) (`components/analyzer/Bookmarklet.tsx`, `lib/bookmarklet.ts`): clicked on a listing page, it opens VinVerdict with `#listing=<text>`. `Analyzer.tsx` reads the fragment, clears it from the address bar and submits it like a paste.
+- **The live listing and its history** come from the "Check price & history" button (below): no separate button.
+
+## Login (Phase 2b)
+
+| File | Job |
+| --- | --- |
+| `src/proxy.ts` | Runs before every page (Next.js 16 renamed Middleware to *Proxy*). Refreshes the Supabase login so it doesn't expire mid-visit, sends logged-out visitors to `/login?next=<page>`, and refuses plain POSTs. If Supabase settings are missing it lets nobody in |
+| `lib/auth/session.ts` | `currentUser()`: **the** login check. Every Server Action calls it first, because the proxy is only the first gate. Uses Supabase's `getClaims()`, which verifies the token's signature instead of trusting the cookie. Returns only id and email |
+| `lib/auth/validate.ts` | Pure checks: login form fields, which pages are public (only `/login`), and `safeNext()`, which only lets the after-login redirect go to a page on VinVerdict |
+| `lib/supabase/config.ts`, `server.ts` | The Supabase settings and a per-request server client. Cookies are httpOnly, Secure (in production) and SameSite=Lax |
+| `app/actions/auth.ts` | Sign-in and sign-out Server Actions. 5 tries per minute per IP and per email; one "email or password is wrong" message for every bad login, so it doesn't reveal which emails have accounts |
+| `app/login/LoginForm.tsx`, `components/SignOutButton.tsx` | The form, and the Sign out button in the nav (hidden on `/login`, as are the nav links) |
+
+How a login works: the form posts to the sign-in Server Action, which checks the fields and the rate limit, then asks Supabase to check the password. Supabase sets the login cookies, and the action sends you to the page you wanted. The browser never talks to Supabase itself, so the Content-Security-Policy stays at `connect-src 'self'`.
+
+There is **no sign-up page**, and sign-ups are turned off in Supabase: the one account is created in the Supabase dashboard (docs/SETUP.md). No database tables yet: each phase that saves data adds its own, with row-level security.
 
 Two rules wait for saved data (Phase 8): "same phone on several listings" and "same VIN at different prices". The "30%+ below market" rule is ready but needs the value % from comps (Phase 4).
 
-**Tests:** `npm test` runs 121 offline tests. They include realistic Facebook, Craigslist and dealer listings and the classic "deployed overseas, Zelle deposit, car at a shipping company" scam. `NHTSA_LIVE=1 npx vitest run client.live` also checks the real NHTSA APIs (free).
+**Tests:** `npm test` runs 127 offline tests. They include realistic Facebook, Craigslist and dealer listings and the classic "deployed overseas, Zelle deposit, car at a shipping company" scam. `NHTSA_LIVE=1 npx vitest run client.live` also checks the real NHTSA APIs (free).
+
+**Price check flow:** the "Check price & history" button calls `app/actions/price.ts` (login, ZIP/VIN/year validation, 3/min per IP, 40/day). With a VIN it looks up the live listing (`live/client.ts`) and the listing history (`history/client.ts`) in parallel, then fetches the three price sources (`value/client.ts`), records usage, and stores the fair range on the saved car. The page then runs `valueCar()` in the browser with the car's facts and the seller-checklist answers, and passes the result to `buildVerdict` as `valuePct`, so the "far below market" scam rules use a real market value. The history is summarized in the browser too (`summarizeHistory`): its rules join the verdict, its price cut and days on sale feed the suggested offer, and `ListingHistory.tsx` shows the timeline. "Before you pay" (`BuyingDay.tsx`) shows buying-day steps by seller type, with NJ MVC's private-sale paperwork when the buyer's ZIP is in NJ. Quota: up to 3 MarketCheck + 2 Auto.dev calls per check, each cached a day.
+
+**Saved cars:** `app/actions/analyze.ts` saves every check (same VIN = same row) through `cars/store.ts`. Tables and policies are in `supabase/migrations/` (run once in the Supabase SQL editor, docs/SETUP.md step 8).
 
 ## Security in place now (PLAN.md §9)
 
+**Layers, outside in** (an attacker has to beat every one):
+
+| Layer | What stops what |
+| --- | --- |
+| Vercel edge | HTTPS only (HSTS), default firewall/DDoS protection; previews behind Vercel Authentication |
+| `src/proxy.ts` | Logged-out → `/login`; password-only session → `/mfa` and nothing else; non-action POSTs refused; a fresh CSP nonce per request |
+| Page CSP (`lib/csp.ts`) | Only scripts carrying this request's nonce run (`'strict-dynamic'`, no `'unsafe-inline'`/`'unsafe-eval'` in production); no plugins, no `<base>` tricks, no framing, forms post only here, connections only to this site. The root layout renders per request (`instant = false` + `connection()`) because a prebuilt shell can't carry a nonce |
+| Server Actions | Each calls `currentUser()` (password **and** authenticator code, verified token) before anything else, validates every field, is rate-limited, and checks the monthly API quota stored in Supabase before any paid call (`quotaBlock`) |
+| Two-step login (`app/mfa`, `actions/mfa.ts`) | TOTP authenticator via Supabase MFA, required for everyone. A password-only session can't add a second authenticator once one exists |
+| Database (Supabase RLS) | Own rows only, **and** a restrictive policy requiring `aal = 'aal2'` on every table, so calling Supabase directly with a stolen password gets nothing; price history only on your own cars; no anon grants (`20261110_security_hardening.sql`) |
+| Links into the app | `#listing=` and `/share` only fill the box; nothing runs or is saved until you press Check (stops other sites from planting cars or fake phone matches) |
+
 - **Security headers** on every response (`next.config.ts`):
-  - *Content-Security-Policy*: the page may only load scripts, styles, fonts and connections from VinVerdict itself. This blocks most injected-script attacks.
+  - *Content-Security-Policy*: per-request nonce policy on pages (above). The `/ocr/` worker files get their own policy (`default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'`): they can load only this site's files and compile WebAssembly, never JavaScript `eval`.
   - *X-Frame-Options: DENY* + `frame-ancestors 'none'`: other sites can't embed VinVerdict in a hidden frame (clickjacking).
-  - *X-Content-Type-Options: nosniff*, *Referrer-Policy*, *Permissions-Policy* (camera, mic, location and payment off), *Strict-Transport-Security* (HTTPS only, in production).
+  - *X-Content-Type-Options: nosniff*, *Referrer-Policy*, *Permissions-Policy* (camera, mic, location, payment, USB, Bluetooth off), *Cross-Origin-Opener-Policy* and *Cross-Origin-Resource-Policy: same-origin*, *X-Robots-Tag: noindex* (+ `robots.txt`), *Strict-Transport-Security* (HTTPS only, in production).
   - `X-Powered-By` removed, so the server doesn't advertise its framework.
+- **Login** on every page and inside every Server Action (see "Login" above). Login cookies can't be read by page scripts (httpOnly).
 - **Outside links** go through `ExternalLink`: new tab, `rel="noopener noreferrer"`, and only `http(s)` URLs, so a pasted `javascript:` link can't run.
 - **Secrets**: `.gitignore` blocks `.env*` (except `.env.example`), `.tmp/` and OAuth files. `.vercelignore` keeps `tools/`, `workflows/` and `docs/` off the server.
-- **Quota safety**: the paid-API probe scripts are dry runs unless `--confirm` is passed.
+- **Quota safety**: the paid-API probe scripts are dry runs unless `--confirm` is passed. The live-listing lookup runs only on a button click, is cached per VIN, and has a per-IP and a daily cap (in memory per server instance until the Phase 7 usage meter).
+- **Links are never fetched by the server** (no SSRF). The bookmark reads the page in the user's own browser instead, and hands the text over in the URL fragment, which isn't sent to any server or logged. The text is still plain text: only read by regexes, never rendered as HTML.
+- **Database:** Supabase tables have row-level security (each row is one login's, `user_id = auth.uid()`), column checks (VIN format, lengths, ranges) and are read with the user's session only; the service-role key isn't used by the website.
+- **Quota:** every paid lookup is behind a button, cached for a day, rate-limited per IP and per day, and counted in the usage meter.
+- **API data is untrusted too**: live-listing links are kept only if they're https, and only listing facts are copied from API replies.
 
 ## Planned request flows
 
 **Paste a listing (Phase 3–4, the core flow)**
-1. You paste text or a VIN. The Server Action checks input size and the rate limit (built). A pasted link is **never fetched** by the server, because fetching user-supplied URLs would let someone make the server request internal addresses (SSRF), so you're asked to paste the text. Login check: Phase 2b.
+1. You paste text or a VIN, or click the bookmark on the listing page (built). The Server Action checks input size and the rate limit (built). A pasted link is **never fetched** by the server, because fetching user-supplied URLs would let someone make the server request internal addresses (SSRF): a link with a VIN in it becomes a VIN lookup, and any other link shows the bookmark and copy-the-page options. Login check (built). Optional: "Find the live listing" by VIN (built, 1–2 API calls).
 2. Server pulls out year, make, model, trim, miles, price, VIN, location and seller type from the text.
 3. NHTSA vPIC decodes the VIN and checks it against the listing. A non-zero `ErrorCode` (e.g. a bad check digit) is a flag.
 4. Market value from cached comps, 1 API call, or a value you type in.

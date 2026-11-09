@@ -1,0 +1,6 @@
+{
+  "note": "Private text with service-history mileage. Traps: 'at 140k miles', '2k miles ago', 'every 5k miles', 'first come first served' (normal wording, not pressure).",
+  "expect": { "year": 2014, "make": "Toyota", "model": "Camry", "price": 7800, "miles": 150000, "titleStatus": "clean", "accident": "none", "sellerType": "private", "transmission": "automatic" },
+  "verdict": "clear",
+  "mustNotHit": ["rushed", "curbstoning"]
+}

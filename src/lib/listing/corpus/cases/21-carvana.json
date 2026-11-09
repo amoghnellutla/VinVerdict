@@ -1,0 +1,6 @@
+{
+  "note": "Carvana page. Traps: '100-day / 4,189-mile limited warranty' (not the odometer), 'Free delivery' (dealer, not a scam), '$412/mo'.",
+  "expect": { "year": 2020, "make": "Honda", "model": "CR-V", "price": 22590, "miles": 38512, "accident": "none", "titleStatus": "clean", "ownerCount": 1, "sellerType": "dealer", "transmission": "automatic" },
+  "verdict": "clear",
+  "mustNotHit": ["shipping-only", "accident-reported"]
+}

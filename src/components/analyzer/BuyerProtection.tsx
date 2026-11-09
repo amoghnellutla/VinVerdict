@@ -3,9 +3,9 @@ import type { Analysis } from "@/lib/analyze";
 import { buyerProtection, PROTECTION_AS_OF, type Protection } from "@/lib/protection";
 
 const TONE: Record<Protection["level"], { badge: string; label: string }> = {
-  strong: { badge: "bg-good/15 text-good", label: "Return window + warranty" },
-  some: { badge: "bg-warn/15 text-warn", label: "Limited protection" },
-  none: { badge: "bg-bad/15 text-bad", label: "No protection" },
+  strong: { badge: "bg-good-soft text-good", label: "Return window + warranty" },
+  some: { badge: "bg-warn-soft text-warn", label: "Limited protection" },
+  none: { badge: "bg-bad-soft text-bad", label: "No protection" },
   unknown: { badge: "bg-surface-muted text-muted", label: "Depends on the seller" },
 };
 
@@ -22,22 +22,22 @@ export function BuyerProtection({ a }: { a: Analysis }) {
   const t = TONE[p.level];
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <section className="border-t border-border pt-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Buyer protection: {p.name}</h2>
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${t.badge}`}>{t.label}</span>
+        <h2 className="section-title">Buyer protection: {p.name}</h2>
+        <span className={`tag ${t.badge}`}>{t.label}</span>
       </div>
       {(p.returns || p.warranty) && (
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           {p.returns && (
             <div>
-              <dt className="text-xs text-muted">Returns</dt>
+              <dt className="text-sm text-muted">Returns</dt>
               <dd>{p.returns}</dd>
             </div>
           )}
           {p.warranty && (
             <div>
-              <dt className="text-xs text-muted">Included warranty</dt>
+              <dt className="text-sm text-muted">Included warranty</dt>
               <dd>{p.warranty}</dd>
             </div>
           )}
@@ -48,7 +48,7 @@ export function BuyerProtection({ a }: { a: Analysis }) {
           <li key={n}>{n}</li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted">
+      <p className="mt-3 text-sm text-muted">
         Policies as of {PROTECTION_AS_OF}; get the terms in writing.{" "}
         {p.links.map((l, i) => (
           <span key={l.url}>

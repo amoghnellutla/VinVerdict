@@ -1,0 +1,22 @@
+{
+  "note": "Craigslist by-owner post. Traps: 'bought it at 40k miles', 'every 5k miles', 'replaced at 100k miles' (service history, not the odometer), 'collision mitigation braking', 'no liens'.",
+  "expect": {
+    "vin": "1HGCR2F8XHA000123",
+    "year": 2017,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 11900,
+    "miles": 112000,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "none",
+    "exteriorColor": "white",
+    "ownerCount": 2,
+    "sellerType": "private"
+  },
+  "mustNotHit": [
+    "lien",
+    "accident-reported",
+    "no-inspection"
+  ]
+}

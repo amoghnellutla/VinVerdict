@@ -7,8 +7,7 @@ import { AAA_MAINTENANCE, DEFAULT_MILES_PER_YEAR, defaultMaintenance, FUEL_SOURC
 
 const usd = (n: number, cents = false) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: cents ? 2 : 0 });
-const input =
-  "w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
+const input = "field mt-1";
 const money = (v: string) => v.replace(/[^\d.]/g, "");
 const num = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -34,8 +33,8 @@ export function RunningCost({ a }: { a: Analysis }) {
   if (!a.vehicle) return null;
   if (!match || !v) {
     return (
-      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-        <h2 className="font-semibold">Yearly running cost</h2>
+      <section className="border-t border-border pt-8">
+        <h2 className="section-title">Yearly running cost</h2>
         <p className="mt-2 text-sm text-muted">
           No EPA fuel-economy match for this {a.vehicle.year} {a.vehicle.make} {a.vehicle.model}. Look it up on{" "}
           <ExternalLink href={FUEL_SOURCE}>FuelEconomy.gov</ExternalLink>.
@@ -48,9 +47,9 @@ export function RunningCost({ a }: { a: Analysis }) {
   const unit = FUEL_UNIT[v.fuel];
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <section className="border-t border-border pt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-semibold">Yearly running cost</h2>
+        <h2 className="section-title">Yearly running cost</h2>
         {cost && (
           <p className="text-xl font-semibold">
             {usd(cost.total)}
@@ -58,13 +57,13 @@ export function RunningCost({ a }: { a: Analysis }) {
           </p>
         )}
       </div>
-      <p className="mt-1 text-xs text-muted">Fuel and upkeep only. Insurance depends on you, not the car, so it isn&apos;t included.</p>
+      <p className="mt-1 text-sm text-muted">Fuel and upkeep only. Insurance depends on you, not the car, so it isn&apos;t included.</p>
 
       <div className="mt-4 grid gap-6 md:grid-cols-[1fr_1.2fr]">
         <div className="grid grid-cols-2 gap-3 text-sm">
           {match.vehicles.length > 1 && (
             <label className="col-span-2">
-              <span className="text-xs text-muted">Version ({match.vehicles.length} possible matches)</span>
+              <span className="text-sm text-muted">Version ({match.vehicles.length} possible matches)</span>
               <select className={input} value={pick} onChange={(e) => setPick(Number(e.target.value))}>
                 {match.vehicles.map((x, i) => (
                   <option key={x.id} value={i}>
@@ -74,7 +73,7 @@ export function RunningCost({ a }: { a: Analysis }) {
               </select>
             </label>
           )}
-          <p className="col-span-2 rounded-lg bg-surface-muted px-3 py-2">
+          <p className="col-span-2 rounded-md bg-surface-muted px-3 py-2">
             <span className="font-medium">
               {v.comb} {ev ? "MPGe" : "MPG"} combined
             </span>
@@ -85,11 +84,11 @@ export function RunningCost({ a }: { a: Analysis }) {
             </span>
           </p>
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Miles per year</span>
+            <span className="text-sm text-muted">Miles per year</span>
             <input className={input} inputMode="numeric" value={miles} onChange={(e) => setMiles(e.target.value.replace(/\D/g, ""))} />
           </label>
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Price per {unit} ($)</span>
+            <span className="text-sm text-muted">Price per {unit} ($)</span>
             <input
               className={input}
               inputMode="decimal"
@@ -102,7 +101,7 @@ export function RunningCost({ a }: { a: Analysis }) {
             </span>
           </label>
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Maintenance, repairs, tires ($/year)</span>
+            <span className="text-sm text-muted">Maintenance, repairs, tires ($/year)</span>
             <input
               className={input}
               inputMode="decimal"
@@ -121,7 +120,7 @@ export function RunningCost({ a }: { a: Analysis }) {
               <tr>
                 <td className="py-1.5 pr-3">
                   {ev ? "Electricity" : "Fuel"}
-                  <span className="block text-xs text-muted">
+                  <span className="block text-sm text-muted">
                     {milesNum.toLocaleString("en-US")} mi at {usd(priceNum, true)} per {unit}
                   </span>
                 </td>
@@ -146,7 +145,7 @@ export function RunningCost({ a }: { a: Analysis }) {
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted">
+      <p className="mt-4 text-sm text-muted">
         <ExternalLink href={`https://www.fueleconomy.gov/feg/Find.do?action=sbs&id=${v.id}`}>EPA rating on FuelEconomy.gov</ExternalLink>
         {" "}(fuel prices from FuelEconomy.gov) ·{" "}
         <ExternalLink href={AAA_MAINTENANCE.source}>AAA Your Driving Costs {AAA_MAINTENANCE.year}</ExternalLink>

@@ -1,0 +1,7 @@
+{
+  "note": "Enterprise Car Sales ex-rental. Traps: 'No-Haggle Price' label, '12,000-Mile' warranty, rental history (flag, not a deal-breaker).",
+  "expect": { "year": 2021, "make": "Toyota", "model": "Corolla", "price": 17499, "miles": 41880, "accident": "none", "usage": "rental", "sellerType": "dealer", "exteriorColor": "silver", "transmission": "automatic" },
+  "verdict": "caution",
+  "mustHit": ["fleet"],
+  "mustNotHit": ["accident-reported"]
+}

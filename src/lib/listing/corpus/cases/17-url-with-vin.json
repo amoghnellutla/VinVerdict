@@ -1,0 +1,6 @@
+{
+  "note": "Dealer links often carry the VIN. Use it as a VIN lookup instead of refusing the link.",
+  "expect": { "kind": "vin", "vin": "1HGCV1F35LA054321", "sourceHost": "princetonhonda.com", "price": null },
+  "mustHit": ["vin-only"],
+  "mustNotHit": ["no-price"]
+}

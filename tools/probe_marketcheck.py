@@ -8,6 +8,7 @@ Usage:
   python tools/probe_marketcheck.py --confirm             # dealer search, 1 call
   python tools/probe_marketcheck.py --mode private --confirm   # private-party test, 1 call
   python tools/probe_marketcheck.py --param radius=200 --confirm  # extra/override params
+  python tools/probe_marketcheck.py --mode history --vin 4T1C11AK3MU436772 --confirm  # VIN listing history, 1 call
 
 Endpoints are best-known defaults: confirm them in MarketCheck's docs first
 and pass --url if they differ.
@@ -22,8 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _probe_common import get_json, load_key, redact, report_fields, save_raw  # noqa: E402
 
-BASE = "https://mc-api.marketcheck.com/v2/search/car"
-URLS = {"dealer": f"{BASE}/active", "private": f"{BASE}/fsbo/active"}
+BASE = "https://api.marketcheck.com/v2/search/car"  # per docs.marketcheck.com, checked 2026-11-09
+URLS = {"dealer": f"{BASE}/active", "private": f"{BASE}/fsbo/active", "history": "https://api.marketcheck.com/v2/history/car/{vin}"}
 
 
 def main() -> int:
@@ -36,6 +37,7 @@ def main() -> int:
     parser.add_argument("--zip", default="08540", help="US ZIP (default: Princeton, NJ)")
     parser.add_argument("--radius", default="100")
     parser.add_argument("--rows", default="50", help="Results requested per call")
+    parser.add_argument("--vin", help="17-character VIN (history mode)")
     parser.add_argument("--param", action="append", default=[], metavar="KEY=VALUE")
     parser.add_argument("--confirm", action="store_true", help="Actually send the request (spends 1 call)")
     args = parser.parse_args()
@@ -45,6 +47,14 @@ def main() -> int:
         "make": args.make, "model": args.model, "year": args.year,
         "zip": args.zip, "radius": args.radius, "rows": args.rows,
     }
+    if args.mode == "history":
+        # History takes the VIN in the path and no search filters.
+        if not args.vin or len(args.vin) != 17 or not args.vin.isalnum():
+            parser.error("--mode history needs --vin with 17 letters/digits")
+        url = url.format(vin=args.vin.upper())
+        params = {}
+    if args.mode == "dealer":
+        params["car_type"] = "used"  # active search includes new cars otherwise
     for kv in args.param:
         key, _, value = kv.partition("=")
         params[key] = value

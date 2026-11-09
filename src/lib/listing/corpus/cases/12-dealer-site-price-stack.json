@@ -1,0 +1,18 @@
+{
+  "note": "Dealer website price stack. The asking price is the 'Internet Price', not MSRP or market value. Traps: '3,000-mile warranty', '100,000-mile powertrain', refundable deposit, 'we pay off your loan' (about trade-ins, not a lien on this car), shipping from a dealer.",
+  "expect": {
+    "year": 2021,
+    "make": "Honda",
+    "model": "CR-V",
+    "price": 25495,
+    "docFee": 499,
+    "miles": 31200,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "none",
+    "ownerCount": 1,
+    "sellerType": "dealer"
+  },
+  "verdict": "clear",
+  "mustNotHit": ["deposit-first", "shipping-only", "lien", "pay-app-upfront"]
+}

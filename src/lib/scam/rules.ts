@@ -54,6 +54,8 @@ export type ScamResult = {
 };
 
 const TOO_GOOD_PCT = 0.3;
+const HIGH_MILES_PER_YEAR = 20_000;
+const FAR_AWAY_MILES = 300;
 
 const sameName = (a: string, b: string) => {
   const x = a.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -118,18 +120,25 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   if (/\bwire (transfer|the money|payment)|western union|moneygram\b/.test(t)) {
     add("pay-wire", "hide", "Wire transfer", "Wired money can't be recovered. Pay only in person, at a bank, after seeing the car and title.");
   }
+  // Dealers routinely ship cars and take refundable deposits through their own
+  // site; from a private seller the same words are the classic scam.
+  const dealer = l.sellerType === "dealer";
   const upfront = /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)/.test(t);
   if (/\b(zelle|cash ?app|venmo|paypal|crypto|bitcoin)\b/.test(t)) {
-    if (upfront) {
+    if (upfront && !dealer) {
       add("pay-app-upfront", "hide", "Payment-app deposit upfront",
         "Asking for Zelle/Cash App/Venmo money before you see the car is the most common used-car scam.");
     } else {
       add("pay-app", "flag", "Payment app mentioned", "Payment apps have no buyer protection. Pay at a bank once the title is in hand.");
     }
-  } else if (/\b(deposit|payment)\b[^.]{0,30}\b(before|to hold|upfront|up front|in advance)\b/.test(t)) {
+  } else if (!dealer && /\b(deposit|payment)\b[^.]{0,30}\b(before|to hold|upfront|up front|in advance)\b/.test(t)) {
     add("deposit-first", "hide", "Deposit before viewing", "Never pay anything before seeing the car and the title in person.");
   }
-  if (/\b(will|can|i'll|we'll|free) ship|shipping (only|included|available|is free)|ebay motors|delivery only|(car|vehicle) is (in|at) (a )?(storage|shipping company|warehouse)/.test(t)) {
+  // These are scams whoever says them: the "eBay Motors buyer protection" and
+  // "car is at a shipping company" stories.
+  const shippingStory = /ebay motors|(car|vehicle) is (in|at|with) (a |an |the )?(storage|shipping company|warehouse|transport company)|in storage with/.test(t);
+  const shipsOnly = /\b(will|can|i'll|we'll|free) ship\b|shipping (only|included|available|is free)|delivery only/.test(t);
+  if (shippingStory || (shipsOnly && !dealer)) {
     add("shipping-only", "hide", "Shipping only", "A seller who can only ship the car (not show it) is a classic scam.");
   }
   if (/\b(deployed|overseas|out of the country|stationed (at|in|overseas)|military (base|deployment)|on (a )?mission)\b|i('m| am) (currently )?(out of state|abroad)|seller is (out of state|abroad)/.test(t) || c.meetsInPersonLocally === false) {
@@ -151,7 +160,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Curbstoning, title washing, liens ---
   if (c.titleInSellerName === false ||
-      /\bsell(ing)? (it )?for (my|a) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is )?not in my name|\b(open|jumped|floating) title\b|\bno title\b|title (is )?(lost|coming|in the mail)/.test(t)) {
+      /\bsell(ing)? (it )?for (my|a) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is )?not in my name|\b(open|jumped|floating) title\b|\bno title\b(?! (issues?|problems?|brands?|damage|history))|title status:? (missing|parts only)|title (is )?(lost|coming|in the mail)/.test(t)) {
     add("curbstoning", "flag", "Title not in seller's name",
       "Unlicensed dealers (\"curbstoners\") pose as private sellers. The name on the title must match the seller's ID.");
   }
@@ -159,13 +168,14 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
     add("title-washing", "flag", "Title recently moved from another state",
       "Moving a car between states can wash a salvage or flood brand off the title. Check its history with NICB VINCheck.");
   }
-  if (c.lienOnTitle === true || (hasUnnegated(t, /\blien\b(?![- ]free)|still (owe|financed|paying)|\bpayoff\b|loan on (it|the car)/))) {
+  // Dealers clear liens themselves, and their pages talk about paying off *your* trade-in loan.
+  if (c.lienOnTitle === true || (!dealer && hasUnnegated(t, /\blien\b(?![- ]free)|still (owe|financed|paying)|\bpayoff\b|loan on (it|the car)/))) {
     add("lien", "flag", "Lien on the title",
       "A lender still owns part of the car. Pay the lender directly at a bank or through escrow, never in cash to the seller.");
   }
 
   // --- Pressure tactics ---
-  if (/\b(must|need to|have to) sell (it )?(today|asap|fast|quickly|this week|immediately)|today only|first (\$|cash|person|come)|\bcash only\b.*\btoday\b|meet (only )?(at|in) (a |the )?(parking lot|gas station|walmart)/.test(t)) {
+  if (/\b(must|need to|have to) sell (it )?(today|asap|fast|quickly|this week|immediately)|today only|first (\$|cash|person with)|\bcash only\b.*\btoday\b|meet (only )?(at|in) (a |the )?(parking lot|gas station|walmart)/.test(t)) {
     add("rushed", "flag", "Rushed sale",
       "Pressure to decide fast or meet in a random lot leaves no time for checks. Take your time and meet somewhere public and safe.");
   }
@@ -178,6 +188,24 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
       add("mileage-low", "flag", "Suspiciously low miles",
         `${l.miles.toLocaleString("en-US")} miles over ${age} years is under 500 a year. Possible odometer rollback; check service records and the NICB/Carfax history.`);
     }
+    // US average is about 13,500 miles a year (FHWA). 20k+ usually means fleet, rideshare or delivery use.
+    const perYear = l.miles / age;
+    if (l.miles >= 40_000 && perYear >= HIGH_MILES_PER_YEAR) {
+      add("high-miles", "flag", "Very high miles for its age",
+        `${l.miles.toLocaleString("en-US")} miles in about ${age} years is ${Math.round(perYear / 1000)}k a year, versus about 13.5k for a typical car. That usually means rideshare, delivery or fleet use: expect more wear, check service records, and price it as a high-mileage car.`);
+    }
+  }
+
+  // --- Former fleet or rental ---
+  if (l.usage === "rental" || l.usage === "fleet") {
+    add("fleet", "flag", l.usage === "rental" ? "Former rental car" : "Former fleet or commercial car",
+      "Many drivers, often driven hard. Ask for maintenance records and get a pre-purchase inspection.");
+  }
+
+  // --- Far away ---
+  if (l.distanceMiles !== null && l.distanceMiles >= FAR_AWAY_MILES) {
+    add("far-away", "info", `${l.distanceMiles.toLocaleString("en-US")} miles away`,
+      "Too far to see before buying without a trip. Get an independent inspection near the car before paying, and add travel or shipping to the cost. Never pay for a car you haven't had inspected.");
   }
 
   // --- Too good to be true (needs comps, Phase 4) ---
@@ -196,7 +224,8 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   return summarize(hits);
 }
 
-function summarize(hits: RuleHit[]): ScamResult {
+/** Risk score and verdict from a list of hits. */
+export function summarize(hits: RuleHit[]): ScamResult {
   const hides = hits.filter((h) => h.action === "hide").length;
   const flags = hits.filter((h) => h.action === "flag").length;
   const risk = hides > 0 ? 100 : Math.min(90, flags * 25);

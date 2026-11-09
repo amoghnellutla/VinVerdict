@@ -1,0 +1,6 @@
+{
+  "note": "Private 'seller' who only ships: scam, even without words like 'deposit'.",
+  "expect": { "year": 2018, "make": "Toyota", "model": "RAV4", "price": 9000, "miles": 40000 },
+  "verdict": "hide",
+  "mustHit": ["shipping-only"]
+}

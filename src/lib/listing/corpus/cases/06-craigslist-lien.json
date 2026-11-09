@@ -1,0 +1,7 @@
+{
+  "note": "Craigslist 'title status: lien' plus a loan payoff. '$3,000' owed must not become the price.",
+  "expect": { "year": 2015, "make": "Toyota", "model": "Corolla", "price": 8200, "miles": 126000, "accident": "none", "sellerType": "private" },
+  "verdict": "caution",
+  "mustHit": ["lien"],
+  "mustNotHit": ["title-brand"]
+}

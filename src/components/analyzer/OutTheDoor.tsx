@@ -6,36 +6,19 @@ import type { Analysis } from "@/lib/analyze";
 import { guessWeightClass, NJ_RATES, type WeightClass } from "@/lib/costs/nj";
 import { outTheDoor } from "@/lib/costs/outTheDoor";
 import { FL_CHART, STATE_TAX, STATE_TAX_AS_OF, type Seller } from "@/lib/costs/stateTax";
+import { readBuyerZip, saveBuyerZip } from "@/lib/buyer-zip";
 import { isStateCode, STATES, zipToState, type StateCode } from "@/lib/geo/zip";
 
 const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
-const input =
-  "w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
+const input = "field mt-1";
 const money = (v: string) => v.replace(/[^\d.]/g, "");
 const num = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-
-// Per-viewer convenience: remember the buyer's ZIP on this device only.
-const SAVED_KEY = "vinverdict.buyerZip";
-function savedZip(): { zip: string; state: StateCode } {
-  try {
-    const raw = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "null") as { zip?: unknown; state?: unknown } | null;
-    if (raw && typeof raw.zip === "string" && typeof raw.state === "string" && isStateCode(raw.state)) {
-      return { zip: raw.zip.replace(/\D/g, "").slice(0, 5), state: raw.state };
-    }
-  } catch {}
-  return { zip: "", state: "NJ" };
-}
-function saveZip(zip: string, state: StateCode) {
-  try {
-    localStorage.setItem(SAVED_KEY, JSON.stringify({ zip, state }));
-  } catch {}
-}
 
 /** Feature A: what you'll actually pay where you register the car, with editable assumptions. */
 export function OutTheDoor({ a }: { a: Analysis }) {
   const guess = guessWeightClass(a.decoded?.curbWeightLb ?? null, a.decoded?.body ?? null);
   // Only rendered after a check runs (client-side), so reading localStorage here is safe.
-  const [where, setWhere] = useState(savedZip);
+  const [where, setWhere] = useState(readBuyerZip);
   const [seller, setSeller] = useState<Seller>(a.listing.sellerType === "private" ? "private" : "dealer");
   const [price, setPrice] = useState(a.listing.price?.toString() ?? "");
   const [docFee, setDocFee] = useState(a.listing.docFee?.toString() ?? "");
@@ -58,13 +41,13 @@ export function OutTheDoor({ a }: { a: Analysis }) {
       setOtherFees("");
     }
     setWhere(next);
-    if (st) saveZip(zip, st);
+    if (st) saveBuyerZip(zip, st);
   }
   function changeState(st: StateCode) {
     setLocalPct("");
     setOtherFees("");
     setWhere({ zip: where.zip, state: st });
-    saveZip(where.zip, st);
+    saveBuyerZip(where.zip, st);
   }
 
   const priceNum = Number(price);
@@ -92,17 +75,17 @@ export function OutTheDoor({ a }: { a: Analysis }) {
     : "Estimated from body type: check the title or door sticker.";
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <section className="border-t border-border pt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-semibold">Out-the-door cost ({STATES[state]})</h2>
+        <h2 className="section-title">Out-the-door cost ({STATES[state]})</h2>
         {result && <p className="text-xl font-semibold">{usd(result.total)}</p>}
       </div>
-      <p className="mt-1 text-xs text-muted">Car tax depends on where you&apos;ll register the car, not where it&apos;s listed.</p>
+      <p className="mt-1 text-sm text-muted">Car tax depends on where you&apos;ll register the car, not where it&apos;s listed.</p>
 
       <div className="mt-4 grid gap-6 md:grid-cols-[1fr_1.2fr]">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Your ZIP code</span>
+            <span className="text-sm text-muted">Your ZIP code</span>
             <input
               className={input}
               inputMode="numeric"
@@ -114,7 +97,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
             />
           </label>
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">State you&apos;ll register in</span>
+            <span className="text-sm text-muted">State you&apos;ll register in</span>
             <select className={input} value={state} onChange={(e) => isStateCode(e.target.value) && changeState(e.target.value)}>
               {(Object.keys(STATES) as StateCode[]).map((s) => (
                 <option key={s} value={s}>
@@ -123,7 +106,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
               ))}
             </select>
           </label>
-          <p id="zip-status" className="col-span-2 -mt-1 text-xs text-muted" aria-live="polite">
+          <p id="zip-status" className="col-span-2 -mt-1 text-sm text-muted" aria-live="polite">
             {where.zip.length === 5
               ? zipState
                 ? zipState === state
@@ -134,38 +117,38 @@ export function OutTheDoor({ a }: { a: Analysis }) {
           </p>
 
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Buying from</span>
+            <span className="text-sm text-muted">Buying from</span>
             <select className={input} value={seller} onChange={(e) => setSeller(e.target.value === "private" ? "private" : "dealer")}>
               <option value="dealer">A dealer</option>
               <option value="private">A private seller</option>
             </select>
           </label>
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Price ($)</span>
+            <span className="text-sm text-muted">Price ($)</span>
             <input className={input} inputMode="decimal" value={price} onChange={(e) => setPrice(money(e.target.value))} />
           </label>
           {seller === "dealer" && (
             <label className="col-span-2 sm:col-span-1">
-              <span className="text-xs text-muted">Dealer doc fee ($)</span>
+              <span className="text-sm text-muted">Dealer doc fee ($)</span>
               <input className={input} inputMode="decimal" placeholder="0" value={docFee} onChange={(e) => setDocFee(money(e.target.value))} />
             </label>
           )}
           {rule.local && (
             <label className="col-span-2 sm:col-span-1">
-              <span className="text-xs text-muted">{rule.local.label}</span>
+              <span className="text-sm text-muted">{rule.local.label}</span>
               <input className={input} inputMode="decimal" placeholder="0" value={localPct} onChange={(e) => setLocalPct(money(e.target.value))} title={rule.local.hint} />
               <span className="mt-0.5 block text-[11px] leading-snug text-muted">{rule.local.hint}</span>
             </label>
           )}
           <label className="col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted">Inspection ($)</span>
+            <span className="text-sm text-muted">Inspection ($)</span>
             <input className={input} inputMode="decimal" value={inspection} onChange={(e) => setInspection(money(e.target.value))} />
           </label>
 
           {state === "NJ" ? (
             <>
               <label className="col-span-2 sm:col-span-1">
-                <span className="text-xs text-muted">Weight class</span>
+                <span className="text-sm text-muted">Weight class</span>
                 <select className={input} value={weight} onChange={(e) => setWeight(e.target.value === "heavy" ? "heavy" : "light")}>
                   <option value="light">Under 3,500 lb</option>
                   <option value="heavy">Over 3,500 lb</option>
@@ -175,11 +158,11 @@ export function OutTheDoor({ a }: { a: Analysis }) {
                 <input type="checkbox" checked={financed} onChange={(e) => setFinanced(e.target.checked)} className="size-4 accent-[var(--accent)]" />
                 <span>Paying with a car loan (adds a lien to the title)</span>
               </label>
-              <p className="col-span-2 text-xs text-muted">{weightNote}</p>
+              <p className="col-span-2 text-sm text-muted">{weightNote}</p>
             </>
           ) : (
             <label className="col-span-2 sm:col-span-1">
-              <span className="text-xs text-muted">Title and registration ($)</span>
+              <span className="text-sm text-muted">Title and registration ($)</span>
               <input className={input} inputMode="decimal" placeholder="0" value={otherFees} onChange={(e) => setOtherFees(money(e.target.value))} />
               <span className="mt-0.5 block text-[11px] leading-snug text-muted">
                 Varies in {STATES[state]}: see the <ExternalLink href={rule.dmv}>official DMV site</ExternalLink>.
@@ -196,7 +179,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
                   <tr key={l.label}>
                     <td className="py-1.5 pr-3">
                       {l.label}
-                      {l.note && <span className="block text-xs text-muted">{l.note}</span>}
+                      {l.note && <span className="block text-sm text-muted">{l.note}</span>}
                     </td>
                     <td className="py-1.5 text-right tabular-nums">{usd(l.amount)}</td>
                   </tr>
@@ -208,7 +191,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
               </tbody>
             </table>
             {(result.notes.length > 0 || (rule.local && !(num(localPct) > 0)) || (state !== "NJ" && !(num(otherFees) > 0))) && (
-              <ul className="mt-3 space-y-1 text-xs text-muted">
+              <ul className="mt-3 space-y-1 text-sm text-muted">
                 {result.notes.map((n) => (
                   <li key={n}>{n}</li>
                 ))}
@@ -222,7 +205,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted">
+      <p className="mt-4 text-sm text-muted">
         {state === "NJ" ? (
           <>
             NJ rates as of {NJ_RATES.asOf}: <ExternalLink href={NJ_RATES.sources.salesTax}>sales tax</ExternalLink>,{" "}
