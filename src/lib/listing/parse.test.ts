@@ -39,7 +39,7 @@ describe("parseListing", () => {
       price: 9000, miles: 100000,
       transmission: "automatic",
       titleStatus: "clean", accident: "none",
-      exteriorColor: "black", ownerCount: 1, sellerType: "private",
+      exteriorColor: "black", ownerCount: 1, sellerType: "private", docFee: null,
     });
   });
 
@@ -58,7 +58,7 @@ describe("parseListing", () => {
     expect(parseListing(DEALER)).toMatchObject({
       year: 2019, make: "Toyota", model: "RAV4",
       price: 21995, miles: 45210,
-      titleStatus: "clean", ownerCount: 1, sellerType: "dealer", exteriorColor: "black",
+      titleStatus: "clean", ownerCount: 1, sellerType: "dealer", exteriorColor: "black", docFee: 499,
     });
   });
 

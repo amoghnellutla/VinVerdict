@@ -39,7 +39,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 | URL | Page | Filled in by |
 | --- | --- | --- |
-| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist). Deal score and out-the-door cost still to come | Phase 3–4 |
+| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, NJ out-the-door cost). Deal score still to come | Phase 3–4 |
 | `/shortlist` | Reliable models/years | Phase 6 |
 | `/search` | In-app search + links to 11 outside sites (built) | Phase 7 |
 | `/car/[id]` | Car detail. `[id]` is a placeholder in the URL, e.g. `/car/abc123` | Phase 5 |
@@ -61,6 +61,7 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `vin.ts` | VIN format and check-digit test (catches typos and made-up VINs for free) | No |
 | `nhtsa/parse.ts` | Turns raw NHTSA replies into small typed objects; decides automatic vs. manual | No |
 | `nhtsa/client.ts` | Calls NHTSA: VIN decode, recalls, crash stars, complaints. **Server-only** (`import "server-only"` makes the build fail if browser code imports it). Results are cached with `"use cache"`: VIN decodes and crash stars for weeks, recalls and complaints for days | Yes (free) |
+| `costs/nj.ts` | NJ out-the-door cost: price + doc fee + 6.625% tax + title + registration + inspection. Official rates and source links live in one `NJ_RATES` object, so a yearly fee check is a one-file change | No |
 | `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
 
 How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actions/analyze.ts`). That's a function that runs on the server, which Next.js exposes as a POST request. It validates the text (1–20,000 characters), applies a rate limit (`lib/rate-limit.ts`: 10 per minute per IP, in memory) and calls `lib/analyze.ts`, which parses the text, checks and decodes the VIN, and fetches NHTSA data in parallel. The page (`components/analyzer/`) then runs the scam rules in the browser through `lib/verdict.ts`, so answering a seller-checklist question updates the verdict instantly.

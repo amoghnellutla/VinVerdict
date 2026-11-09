@@ -37,7 +37,7 @@ describe("parseVinDecode", () => {
         ErrorText: "0 - VIN decoded clean. Check Digit (9th position) is correct",
         ModelYear: "2017", Make: "HONDA", Model: "Accord", Trim: "EX-L", Series: "",
         BodyClass: "Sedan/Saloon", DriveType: "4x2",
-        TransmissionStyle: "Continuously Variable Transmission (CVT)", FuelTypePrimary: "Gasoline",
+        TransmissionStyle: "Continuously Variable Transmission (CVT)", FuelTypePrimary: "Gasoline", CurbWeightLB: "3605",
       },
     ],
   };
@@ -46,7 +46,7 @@ describe("parseVinDecode", () => {
     const d = parseVinDecode("1HGCR2F8XHA000123", body);
     expect(d).toMatchObject({
       year: 2017, make: "HONDA", model: "Accord", trim: "EX-L",
-      transmissionKind: "automatic", errorCode: "0", clean: true,
+      transmissionKind: "automatic", errorCode: "0", clean: true, curbWeightLb: 3605,
     });
   });
 

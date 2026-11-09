@@ -179,7 +179,7 @@ All 16 features are in scope; each uses free data only.
 
 | ID | Feature | What you see | Data |
 | --- | --- | --- | --- |
-| A | Out-the-door cost | Price + NJ sales tax + title/registration fees + pre-purchase inspection ($100–250) | Official NJ rates, set during build |
+| A | Out-the-door cost | Price + NJ sales tax + title/registration fees + pre-purchase inspection ($100–250) | Official NJ rates (verified 2026-11-08): 6.625% sales tax (also on dealer doc fees), title $60 / $85 with a lien, registration $46.50–$84 by weight (3,500 lb split) and model age, plates included |
 | B | Suggested offer | Opening offer based on comps, e.g. "market $11.2k → offer $9.8k" | Comps (section 5) |
 | C | Yearly running cost | Fuel at 12k mi/year + typical maintenance | [FuelEconomy.gov](https://www.fueleconomy.gov) |
 | D | Crash-test stars | NHTSA overall and per-test ratings | [NHTSA](https://www.nhtsa.gov/ratings) |
@@ -296,7 +296,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 - [ ] Exact pre-filled search URL formats for each outside site.
 - [ ] Which listing links can be read by the server vs. need pasted text?
 - [ ] Does Spottable already cover enough to skip any feature?
-- [ ] Current NJ sales tax and MVC fee amounts from official NJ sites.
+- [x] Current NJ sales tax and MVC fee amounts from official NJ sites (2026-11-08: [Taxation](https://www.nj.gov/treasury/taxation/moveqa.shtml), [MVC fees](https://www.nj.gov/mvc/vehicles/regfees.htm), [doc-fee notice](https://nj.gov/njbonds/treasury/taxation/pdf/Noticemotorvehicledealerships.pdf)). Weight class comes from NHTSA curb weight when available.
 - [ ] Hertz Car Sales return policy.
 
 **Found so far (2026-11-08, NHTSA, keyless)**
@@ -335,6 +335,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-08 | Feature A built: NJ out-the-door cost with verified official rates, editable price/doc fee/inspection/weight/loan; dealer doc fee parsed from listings; curb weight from VIN decode |
 | 2026-11-08 | Analyzer wired to the home page: Server Action (input validation, rate limit), verdict, car facts, recalls/crash stars/complaints, seller checklist that updates the verdict live, "before you pay" links. Links are never fetched by the server (SSRF). Login (2b) and out-the-door cost still to do |
 | 2026-11-08 | Phase 3 logic started early while accounts are pending (approved): VIN check digit, NHTSA client with caching, listing-text parser, scam-rule engine, 48 unit tests. Feature E: per-VIN open-recall status via NHTSA link |
 | 2026-11-08 | Named the project VinVerdict. Phase 2 split: 2a skeleton (no login) built alongside Phase 0; 2b login after accounts exist. GitHub repo private until Phase 9 |

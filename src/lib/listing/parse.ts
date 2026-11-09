@@ -27,6 +27,8 @@ export type ParsedListing = {
   make: string | null;
   model: string | null;
   price: number | null;
+  /** Dealer documentation fee mentioned in the text, if any. */
+  docFee: number | null;
   miles: number | null;
   transmission: TransmissionKind;
   titleStatus: TitleStatus;
@@ -125,6 +127,15 @@ function findYear(text: string, makeAt: number): number | null {
     if (near.length) return near[near.length - 1].y;
   }
   return years[0].y;
+}
+
+function findDocFee(text: string): number | null {
+  const m =
+    text.match(/\bdoc(?:ument(?:ation|ary))?\.? fees?\b[^$\d]{0,12}\$?\s?(\d{1,4}(?:\.\d{2})?)\b/) ??
+    text.match(/\$\s?(\d{1,4}(?:\.\d{2})?)\s+doc(?:ument(?:ation|ary))?\.? fees?\b/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n > 0 && n <= 2_000 ? n : null;
 }
 
 function findPrice(text: string): number | null {
@@ -236,6 +247,7 @@ export function parseListing(input: string): ParsedListing {
     make,
     model,
     price: findPrice(text),
+    docFee: findDocFee(text),
     miles: findMiles(text),
     transmission: classifyTransmission(text.match(/[^.;\n·|]{0,40}\btransmission\b[^.;\n·|]{0,20}/)?.[0] ?? (/\b(cvt|automatic|stick ?shift|manual transmission|\d-speed manual)\b/.exec(text)?.[0] ?? null)),
     titleStatus: findTitle(text),

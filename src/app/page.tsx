@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 
 const COMING = [
   { title: "Deal score", text: "Price vs. similar cars at this mileage, price per remaining mile, and a deal label (Phase 4)." },
-  { title: "Out-the-door cost", text: "Price plus NJ sales tax, title and registration fees, and an inspection." },
+  { title: "Saved checks", text: "Every car you check, saved with its source link and price history, once login is on (Phase 2b, 8)." },
 ];
 
 export default function CheckListingPage() {

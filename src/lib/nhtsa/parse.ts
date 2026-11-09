@@ -33,6 +33,8 @@ export type DecodedVin = {
   transmission: string | null;
   transmissionKind: TransmissionKind;
   fuel: string | null;
+  /** Manufacturer curb weight, when vPIC has it (sets the NJ registration weight class). */
+  curbWeightLb: number | null;
   /** "0" means a clean decode. Anything else (e.g. "1" = bad check digit) is a warning. */
   errorCode: string;
   errorText: string;
@@ -62,6 +64,7 @@ export function parseVinDecode(vin: string, body: unknown): DecodedVin {
     transmission,
     transmissionKind: classifyTransmission(transmission),
     fuel: blank(r.FuelTypePrimary),
+    curbWeightLb: Number(blank(r.CurbWeightLB)) > 0 ? Number(blank(r.CurbWeightLB)) : null,
     errorCode,
     errorText: blank(r.ErrorText) ?? "",
     clean: errorCode === "0",

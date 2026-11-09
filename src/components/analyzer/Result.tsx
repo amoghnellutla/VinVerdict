@@ -6,6 +6,7 @@ import type { Analysis } from "@/lib/analyze";
 import type { RuleAction, RuleHit, SellerChecklist, Verdict } from "@/lib/scam/rules";
 import { buildVerdict } from "@/lib/verdict";
 import { Checklist } from "./Checklist";
+import { OutTheDoor } from "./OutTheDoor";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 const miles = (n: number | null) => (n == null ? null : `${n.toLocaleString("en-US")} mi`);
@@ -64,6 +65,7 @@ export function Result({ analysis: a }: { analysis: Analysis }) {
       )}
 
       <Facts a={a} />
+      <OutTheDoor a={a} />
       <Safety a={a} />
       <Checklist value={checklist} onChange={setChecklist} />
       <NextSteps vin={a.listing.vin} />
