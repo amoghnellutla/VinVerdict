@@ -183,7 +183,7 @@ All 16 features are in scope; each uses free data only.
 | B | Suggested offer | Opening offer based on comps, e.g. "market $11.2k → offer $9.8k" | Comps (section 5) |
 | C | Yearly running cost | Fuel at 12k mi/year + typical maintenance | [FuelEconomy.gov](https://www.fueleconomy.gov) |
 | D | Crash-test stars | NHTSA overall and per-test ratings | [NHTSA](https://www.nhtsa.gov/ratings) |
-| E | Recalls and complaints | Open recalls by VIN, top complaint areas by model/year | [NHTSA](https://www.nhtsa.gov/recalls) |
+| E | Recalls and complaints | Recalls for the model/year, top complaint areas; link to NHTSA's VIN lookup for open status (the free API has no per-VIN open status) | [NHTSA](https://www.nhtsa.gov/recalls) |
 | F | Known issues to check | Model/year checklist for the inspection | NHTSA complaints + curated list |
 | G | Seller question checklist | Title in your name? Lien? Accidents? Records? Why selling? Answers feed the scam rules | Built-in |
 | H | VIN checks + inspection step | NICB VINCheck link, Carfax link if dealer gives one, reminder to book an inspection | [NICB](https://www.nicb.org/vincheck) |
@@ -276,7 +276,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 - [ ] **Phase 0 — Setup:** accounts (GitHub, Vercel, Supabase, MarketCheck, Auto.dev) with a step-by-step guide; try the free Spottable extension to see what already exists.
 - [ ] **Phase 1 — API test:** confirm free-tier endpoints, radius, private-party access, accident/title fields, results per call. Adjust this plan from findings.
 - [ ] **Phase 2 — Skeleton:** 2a: Next.js + empty pages (built alongside Phase 0). 2b: Supabase + login (after accounts exist).
-- [ ] **Phase 3 — Analyzer v1:** paste → parse, VIN decode, recalls, crash stars, scam rules, seller checklist, out-the-door cost.
+- [ ] **Phase 3 — Analyzer v1:** paste → parse, VIN decode, recalls, crash stars, scam rules, seller checklist, out-the-door cost. *Logic built early (tested, no UI): VIN check, NHTSA client, listing parser, scam rules.*
 - [ ] **Phase 4 — Value:** comps, value %, price per remaining mile, deal label, suggested offer, manual market value fallback.
 - [ ] **Phase 5 — Car detail:** known issues, VIN check links, inspection step, buyer protection badge, fuel cost.
 - [ ] **Phase 6 — Shortlist:** reliable models/years page with one-click searches.
@@ -298,6 +298,12 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 - [ ] Does Spottable already cover enough to skip any feature?
 - [ ] Current NJ sales tax and MVC fee amounts from official NJ sites.
 - [ ] Hertz Car Sales return policy.
+
+**Found so far (2026-11-08, NHTSA, keyless)**
+
+- [x] NHTSA lists CVTs as "Continuously Variable Transmission (CVT)": the automatic-only rule counts CVT, dual-clutch and automated-manual as automatic.
+- [x] vPIC still decodes a VIN with a bad check digit but returns `ErrorCode` 1: the app checks the digit itself and treats any non-zero code as a warning.
+- [x] The free recalls API is by year/make/model only; open-recall status per VIN needs NHTSA's website lookup (feature E adjusted).
 
 **Risks**
 
@@ -329,6 +335,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-08 | Phase 3 logic started early while accounts are pending (approved): VIN check digit, NHTSA client with caching, listing-text parser, scam-rule engine, 48 unit tests. Feature E: per-VIN open-recall status via NHTSA link |
 | 2026-11-08 | Named the project VinVerdict. Phase 2 split: 2a skeleton (no login) built alongside Phase 0; 2b login after accounts exist. GitHub repo private until Phase 9 |
 | 2026-11-08 | Plan C v2: analyzer-first build order; positioning vs. AutoTempest/CarGurus; trusted-source table with buyer protection; deal labels; new scam rules (curbstoning, title washing, liens, inspection refusal); features O and P; Shortlist and Check-a-listing pages |
 

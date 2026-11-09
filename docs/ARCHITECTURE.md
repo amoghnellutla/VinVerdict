@@ -2,7 +2,7 @@
 
 How the app is put together, in plain language. **Built** means it exists now; **planned** means a later phase adds it (phase numbers from [PLAN.md](PLAN.md) §12).
 
-Last updated: 2026-11-08 (Phase 0 + Phase 2a).
+Last updated: 2026-11-08 (Phase 0 + Phase 2a + early Phase 3 logic).
 
 ## The big picture
 
@@ -26,7 +26,8 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 | --- | --- | --- |
 | `src/app/` | One folder per page (Next.js "App Router"). `page.tsx` is the page, `layout.tsx` wraps every page with the nav and footer | Built (placeholders) |
 | `src/components/` | Shared building blocks: `Nav`, `NavLinks`, `PageHeader`, `EmptyState`, `ExternalLink` | Built |
-| `src/lib/` | Logic that isn't UI. Now: `routes.ts` (nav list). Later: listing parser, VIN check, scam rules, scoring, API adapters (one file per provider so a provider can be swapped) | Started |
+| `src/lib/` | Logic that isn't UI (see "The analyzer's brain" below). Later: scoring, listing-API adapters (one file per provider so a provider can be swapped) | Built (Phase 3 logic) |
+| `src/**/*.test.ts` | Unit tests (Vitest), next to the code they test. `npm test` runs them | Built |
 | `next.config.ts` | App settings, including the security headers | Built |
 | `tools/` | Python scripts for one-off checks outside the app (Phase 1 API probes). They are not deployed | Built |
 | `workflows/` | Step-by-step SOPs for running those scripts | Built |
@@ -48,6 +49,23 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 | `/login` | Email + password (UI only for now) | Phase 2b |
 
 **How pages are served:** the app uses Next.js 16 with *Cache Components*. Pages that don't depend on the request are pre-built once and served instantly (shown as `○` in `npm run build`). `/car/[id]` is *partially* pre-built (`◐`): the frame is ready in advance, and the part that needs the car's id streams in. That's why the id is read inside a `<Suspense>` block, and why the nav's "current page" highlight is wrapped in one too.
+
+## The analyzer's brain (`src/lib/`, built early, no UI yet)
+
+These pieces turn a pasted listing into a verdict. Most are *pure functions*: the same input always gives the same output, with no network, so they're easy to test. Data flows top to bottom:
+
+| File | Job | Network? |
+| --- | --- | --- |
+| `listing/parse.ts` | Reads pasted text and pulls out year, make, model, price, miles, VIN, title status, accidents, color, owners, seller type, ZIP | No |
+| `listing/text.ts` | Helpers: tidy the text; "is this word negated?" (so "no accidents" isn't read as an accident) | No |
+| `vin.ts` | VIN format and check-digit test (catches typos and made-up VINs for free) | No |
+| `nhtsa/parse.ts` | Turns raw NHTSA replies into small typed objects; decides automatic vs. manual | No |
+| `nhtsa/client.ts` | Calls NHTSA: VIN decode, recalls, crash stars, complaints. **Server-only** (`import "server-only"` makes the build fail if browser code imports it). Results are cached with `"use cache"`: VIN decodes and crash stars for weeks, recalls and complaints for days | Yes (free) |
+| `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
+
+Two rules wait for saved data (Phase 8): "same phone on several listings" and "same VIN at different prices". The "30%+ below market" rule is ready but needs the value % from comps (Phase 4).
+
+**Tests:** `npm test` runs 48 offline tests. They include realistic Facebook, Craigslist and dealer listings and the classic "deployed overseas, Zelle deposit, car at a shipping company" scam. `NHTSA_LIVE=1 npx vitest run client.live` also checks the real NHTSA APIs (free).
 
 ## Security in place now (PLAN.md §9)
 
@@ -72,6 +90,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 **Search (Phase 7)**: filters → server route → 24 h cache → quota check → MarketCheck (≤ 100 mi) or Auto.dev (wider) → merge by VIN → hard filters + scam rules → score → cache and return. Full detail in PLAN.md §8.
 
-## Findings so far (from `tools/probe_nhtsa.py`)
-- NHTSA reports CVTs as "Continuously Variable Transmission (CVT)", so the automatic-only rule must count CVT as automatic.
-- vPIC still decodes a VIN with a wrong check digit but sets `ErrorCode` to 1, so the app must check `ErrorCode`.
+## Findings so far (NHTSA)
+- NHTSA reports CVTs as "Continuously Variable Transmission (CVT)", so `classifyTransmission` counts CVT, dual-clutch and automated-manual as automatic.
+- vPIC still decodes a VIN with a wrong check digit but sets `ErrorCode` to 1, so the app checks the digit itself (`vin.ts`) and flags any non-zero code.
+- The free recalls API lists recalls by year/make/model, not open status per VIN, so open status will link to NHTSA's VIN lookup.
