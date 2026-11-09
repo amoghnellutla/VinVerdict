@@ -1,0 +1,5 @@
+# Not part of the website: keep these off Vercel
+tools/
+workflows/
+docs/
+.tmp/
