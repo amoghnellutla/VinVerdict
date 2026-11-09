@@ -161,34 +161,91 @@ export function parseRatingDetail(body: unknown): SafetyRating | null {
 
 // ---------- Complaints (summary only: there can be hundreds) ----------
 
+/** One owner report, as filed with NHTSA (ODI number = NHTSA's own ID for it). */
+export type ComplaintSample = {
+  odi: number;
+  /** ISO date the complaint was filed. */
+  filed: string | null;
+  crash: boolean;
+  fire: boolean;
+  /** The owner's own words, shortened. Plain text. */
+  text: string;
+};
+
 export type ComplaintSummary = {
   total: number;
   crashes: number;
   fires: number;
   injuries: number;
   deaths: number;
-  topComponents: { component: string; count: number }[];
+  /** Each common problem area with the most recent owner reports about it. */
+  topComponents: { component: string; count: number; samples?: ComplaintSample[] }[];
+  /**
+   * Complaints per VIN prefix (first 8 characters: maker, body, engine and
+   * series). NHTSA publishes the first 11 VIN characters of each complaint, so
+   * this shows how many came from cars built like the one being checked.
+   */
+  byPrefix?: Record<string, number>;
 };
 
-export function summarizeComplaints(body: unknown, top = 5): ComplaintSummary {
+/** Complaint dates come as MM/DD/YYYY (recalls use DD/MM/YYYY). */
+export function parseComplaintDate(s: unknown): string | null {
+  const m = typeof s === "string" ? s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/) : null;
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : null;
+}
+
+const SAMPLE_CHARS = 320;
+
+/** Shorten an owner's report on a word boundary. NHTSA redacts details as "XXX". */
+export function shortenComplaint(text: string, max = SAMPLE_CHARS): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 40)).replace(/[\s,;:.-]+$/, "")}…`;
+}
+
+export function summarizeComplaints(body: unknown, top = 5, samplesEach = 2): ComplaintSummary {
   const rows = (body as { results?: Record<string, unknown>[] })?.results ?? [];
   const counts = new Map<string, number>();
+  const reports = new Map<string, ComplaintSample[]>();
+  const byPrefix: Record<string, number> = {};
   let crashes = 0, fires = 0, injuries = 0, deaths = 0;
   for (const r of rows) {
     if (r.crash === true) crashes++;
     if (r.fire === true) fires++;
     injuries += Number(r.numberOfInjuries) || 0;
     deaths += Number(r.numberOfDeaths) || 0;
+    const prefix = String(r.vin ?? "").toUpperCase().slice(0, 8);
+    if (/^[A-HJ-NPR-Z0-9]{8}$/.test(prefix)) byPrefix[prefix] = (byPrefix[prefix] ?? 0) + 1;
+    const odi = Number(r.odiNumber);
+    const text = typeof r.summary === "string" ? r.summary.trim() : "";
+    const sample = Number.isInteger(odi) && odi > 0 && text.length >= 20
+      ? { odi, filed: parseComplaintDate(r.dateComplaintFiled), crash: r.crash === true, fire: r.fire === true, text: shortenComplaint(text) }
+      : null;
     for (const c of String(r.components ?? "").split(",")) {
       const name = c.trim();
-      if (name && name !== "UNKNOWN OR OTHER") counts.set(name, (counts.get(name) ?? 0) + 1);
+      if (!name || name === "UNKNOWN OR OTHER") continue;
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+      if (sample) reports.set(name, [...(reports.get(name) ?? []), sample]);
     }
   }
   const topComponents = [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, top)
-    .map(([component, count]) => ({ component, count }));
-  return { total: rows.length, crashes, fires, injuries, deaths, topComponents };
+    .map(([component, count]) => ({
+      component,
+      count,
+      samples: (reports.get(component) ?? [])
+        .sort((a, b) => (b.filed ?? "").localeCompare(a.filed ?? "") || b.odi - a.odi)
+        .slice(0, samplesEach),
+    }));
+  return { total: rows.length, crashes, fires, injuries, deaths, topComponents, byPrefix };
+}
+
+/** How many complaints came from cars whose VIN starts like this one (null when unknown). */
+export function sameBuildCount(c: ComplaintSummary | null, vin: string | null): number | null {
+  if (!c?.byPrefix || !vin || vin.length < 8) return null;
+  return c.byPrefix[vin.slice(0, 8).toUpperCase()] ?? 0;
 }
 
 /**

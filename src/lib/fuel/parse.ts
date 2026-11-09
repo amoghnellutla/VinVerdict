@@ -34,6 +34,8 @@ export type FuelTarget = {
   drive: "awd" | "2wd" | null;
   hybrid: boolean;
   electric: boolean;
+  /** VIN-decoded trim ("LE"), to prefer "Camry LE/SE" over "Camry XSE". */
+  trim?: string | null;
 };
 
 export type MenuItem = { text: string; value: string };
@@ -97,7 +99,8 @@ export function parsePrices(body: unknown): FuelPrices | null {
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const ELECTRIFIED = /\b(hybrid|plug in|phev|prime|ev|electric|fcv|fuel cell|energi)\b/;
+// "\d{3}h": Lexus names its hybrids "RX 450h", "ES 300h".
+const ELECTRIFIED = /\b(hybrid|plug in|phev|prime|ev|electric|fcv|fuel cell|energi|\d{3}h)\b/;
 const AWD = /\b(awd|4wd|4x4)\b/;
 const TWO_WD = /\b(2wd|fwd|rwd)\b/;
 
@@ -129,13 +132,30 @@ export function pickModels(names: string[], t: FuelTarget, max = 4): string[] {
   return [...list].sort((a, b) => a.length - b.length).slice(0, max);
 }
 
+const cyl = (s: string) => Number(s.match(/(\d+) cyl/)?.[1] ?? NaN);
+const displ = (s: string) => Number(s.match(/([\d.]+) L\b/)?.[1] ?? NaN);
+
 /** Engine options ("Auto (AV-S7), 4 cyl, 2.4 L") that match the VIN decode. */
 export function pickOptions(options: MenuItem[], t: FuelTarget, max = 4): MenuItem[] {
-  const cyl = (s: string) => Number(s.match(/(\d+) cyl/)?.[1] ?? NaN);
-  const displ = (s: string) => Number(s.match(/([\d.]+) L\b/)?.[1] ?? NaN);
   let list = options;
   if (t.cylinders) list = narrow(list, (o) => cyl(o.text) === t.cylinders);
   if (t.displacementL) list = narrow(list, (o) => Math.abs(displ(o.text) - t.displacementL!) < 0.15);
   if (t.transmission !== "unknown") list = narrow(list, (o) => /^man/i.test(o.text) === (t.transmission === "manual"));
   return list.slice(0, max);
+}
+
+/**
+ * Order the variants found across all model names, best match first. Each
+ * name is filtered on its own, so "Camry" (V6 only) can survive next to the
+ * right "Camry LE/SE · 4 cyl, 2.5 L": drop wrong engines when a right one
+ * exists, then put names carrying the VIN's trim first.
+ */
+export function rankVariants<T extends { model: string; text: string }>(list: T[], t: FuelTarget): T[] {
+  const kept = narrow(
+    list,
+    (x) => (!t.cylinders || cyl(x.text) === t.cylinders) && (!t.displacementL || Math.abs(displ(x.text) - t.displacementL) < 0.15),
+  );
+  const trim = t.trim ? norm(t.trim).split(" ")[0] : "";
+  const hasTrim = (x: T) => (trim && norm(x.model).split(" ").includes(trim) ? 0 : 1);
+  return [...kept].sort((a, b) => hasTrim(a) - hasTrim(b));
 }

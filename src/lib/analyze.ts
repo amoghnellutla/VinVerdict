@@ -28,11 +28,22 @@ export type Analysis = {
   recalls: Recall[] | null;
   ratings: SafetyRating[] | null;
   complaints: ComplaintSummary | null;
+  /**
+   * The year/make/model as NHTSA's safety APIs spell it (Lexus "ES350"), so
+   * the page can link to the exact public records it used.
+   */
+  nhtsaVehicle?: VehicleKey | null;
+  /** Recalls and complaints for this model year and the years either side (NHTSA). */
+  years?: YearRow[] | null;
+  /** When the free lookups ran (ISO date), shown in the sources list. */
+  checkedAt?: string;
   /** EPA fuel economy for the likely variants (FuelEconomy.gov), for the running-cost panel. */
   fuel: FuelMatch | null;
   /** Plain-English notes about lookups that failed or were skipped. */
   notices: string[];
 };
+
+export type YearRow = { year: number; recalls: number | null; complaints: number | null; crashOrFire: number | null };
 
 const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
@@ -61,6 +72,8 @@ export async function analyzeListing(text: string): Promise<Analysis> {
   let ratings: SafetyRating[] | null = null;
   let complaints: ComplaintSummary | null = null;
   let fuel: FuelMatch | null = null;
+  let nhtsaVehicle: VehicleKey | null = null;
+  let years: YearRow[] | null = null;
   if (vehicle) {
     const target: FuelTarget = {
       model: vehicle.model,
@@ -70,14 +83,19 @@ export async function analyzeListing(text: string): Promise<Analysis> {
       drive: driveOf(decoded?.driveType ?? null),
       hybrid: /hybrid|hev/i.test(decoded?.electrification ?? "") || /\bhybrid\b/i.test(text),
       electric: /\bBEV\b|battery electric/i.test(decoded?.electrification ?? ""),
+      trim: decoded?.trim ?? null,
     };
     // NHTSA's safety APIs spell some models differently from the VIN decoder (Lexus "ES" → "ES350").
     const nhtsa = { ...vehicle, model: nhtsaModelName(vehicle.make, vehicle.model, decoded?.trim ?? null, text) };
-    const [r, s, c, f] = await Promise.allSettled([
+    nhtsaVehicle = nhtsa;
+    // The years either side, for "is this a good year?" (free, cached; a failure only hides that row).
+    const neighbours = [vehicle.year - 1, vehicle.year + 1].filter((y) => y >= 1981 && y <= new Date().getFullYear());
+    const [r, s, c, f, ...near] = await Promise.allSettled([
       getRecalls(nhtsa),
       getSafetyRatings(nhtsa),
       getComplaintSummary(nhtsa),
       findFuelEconomy(vehicle.year, vehicle.make, target),
+      ...neighbours.flatMap((year) => [getRecalls({ ...nhtsa, year }), getComplaintSummary({ ...nhtsa, year })]),
     ]);
     if (r.status === "fulfilled") recalls = r.value;
     else notices.push("Couldn't load recalls from NHTSA just now.");
@@ -87,9 +105,22 @@ export async function analyzeListing(text: string): Promise<Analysis> {
     else notices.push("Couldn't load complaints from NHTSA just now.");
     if (f.status === "fulfilled") fuel = f.value;
     else notices.push("Couldn't load fuel economy from FuelEconomy.gov just now.");
+    if (complaints) {
+      const row = (year: number, rc: PromiseSettledResult<unknown>, cc: PromiseSettledResult<unknown>): YearRow | null => {
+        const rv = rc.status === "fulfilled" ? (rc.value as Recall[]) : null;
+        const cv = cc.status === "fulfilled" ? (cc.value as ComplaintSummary) : null;
+        if (!rv && !cv) return null;
+        return { year, recalls: rv?.length ?? null, complaints: cv?.total ?? null, crashOrFire: cv ? cv.crashes + cv.fires : null };
+      };
+      const mine: YearRow = { year: vehicle.year, recalls: recalls?.length ?? null, complaints: complaints.total, crashOrFire: complaints.crashes + complaints.fires };
+      const others = neighbours.map((y, i) => row(y, near[i * 2], near[i * 2 + 1])).filter((x): x is YearRow => x !== null);
+      // Only worth showing when the other years have data too (a brand-new model has none).
+      if (others.some((o) => (o.complaints ?? 0) > 0 || (o.recalls ?? 0) > 0)) years = [...others, mine].sort((a, b) => a.year - b.year);
+    }
   } else if (listing.kind !== "url") {
     notices.push("Couldn't tell the year, make and model, so recalls and safety data are missing. Include them or the VIN.");
   }
 
-  return { text, listing, vinCheck, decoded, vehicle, recalls, ratings, complaints, fuel, notices };
+  const checkedAt = new Date().toISOString().slice(0, 10);
+  return { text, listing, vinCheck, decoded, vehicle, recalls, ratings, complaints, nhtsaVehicle, years, checkedAt, fuel, notices };
 }

@@ -235,11 +235,11 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
         </div>
       </form>
 
-      <div className="mt-4 pointer-coarse:hidden">
+      <div className="mt-4 pointer-coarse:hidden print:hidden">
         <Bookmarklet />
       </div>
 
-      <div id="result" aria-live="polite" className="mt-12 scroll-mt-6">
+      <div id="result" aria-live="polite" className="mt-12 scroll-mt-6 print:mt-0">
         {example && (
           <Result
             key={`example-${example.id}`}
@@ -266,7 +266,7 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
 /** Demo: five real checks recorded earlier, one click each (no server call, no API quota). */
 function Examples({ onOpen, loading, current }: { onOpen: (id: ExampleId) => void; loading: ExampleId | null; current: ExampleId | null }) {
   return (
-    <section className="mb-8" aria-labelledby="examples-title">
+    <section className="mb-8 print:hidden" aria-labelledby="examples-title">
       <h2 id="examples-title" className="section-title">Try an example</h2>
       <p className="-mt-2 mb-4 text-muted">Real listings checked with real data. One click, no sign-up.</p>
       <ul className="grid gap-3 sm:grid-cols-2">

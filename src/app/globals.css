@@ -218,3 +218,27 @@ a {
     text-decoration-color: var(--accent);
   }
 }
+
+/* Print / "Save as PDF": just the report, with the source links written out. */
+@media print {
+  header,
+  footer,
+  form,
+  button,
+  .print-hidden {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  section {
+    break-inside: auto;
+  }
+  #sources a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    word-break: break-all;
+    color: #555;
+  }
+}

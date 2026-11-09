@@ -8,6 +8,8 @@ import {
   parseRecalls,
   parseVinDecode,
   summarizeComplaints,
+  sameBuildCount,
+  parseComplaintDate,
 } from "./parse";
 
 // Fixtures are trimmed copies of real responses saved by tools/probe_nhtsa.py
@@ -125,10 +127,40 @@ describe("summarizeComplaints", () => {
     expect(s).toEqual({
       total: 3, crashes: 1, fires: 1, injuries: 2, deaths: 0,
       topComponents: [
-        { component: "ELECTRICAL SYSTEM", count: 2 },
-        { component: "ENGINE", count: 1 },
+        { component: "ELECTRICAL SYSTEM", count: 2, samples: [] },
+        { component: "ENGINE", count: 1, samples: [] },
+      ],
+      byPrefix: {},
+    });
+  });
+
+  it("keeps the newest owner reports per area and counts VIN prefixes", () => {
+    const long = "THE TRANSMISSION SHUDDERS AT 40 MPH. ".repeat(20);
+    const s = summarizeComplaints({
+      results: [
+        { odiNumber: 1, components: "POWER TRAIN", dateComplaintFiled: "01/15/2024", summary: "Transmission slips when cold, dealer could not fix it.", vin: "4T1C11AK3MU" },
+        { odiNumber: 2, components: "POWER TRAIN", dateComplaintFiled: "10/26/2026", summary: long, crash: true, vin: "4t1c11ak9mu" },
+        { odiNumber: 3, components: "POWER TRAIN", dateComplaintFiled: "03/02/2025", summary: "Torque converter shudder at highway speed, replaced.", vin: "4T1G11AK6MU" },
+        { odiNumber: 4, components: "ENGINE", dateComplaintFiled: "03/02/2025", summary: "short", vin: "" },
       ],
     });
+    const pt = s.topComponents[0];
+    expect(pt.component).toBe("POWER TRAIN");
+    expect(pt.samples?.map((x) => x.odi)).toEqual([2, 3]);
+    expect(pt.samples?.[0]).toMatchObject({ filed: "2026-10-26", crash: true, fire: false });
+    expect(pt.samples?.[0].text.length).toBeLessThanOrEqual(321);
+    expect(pt.samples?.[0].text.endsWith("…")).toBe(true);
+    // Too short to be useful as a quote.
+    expect(s.topComponents[1].samples).toEqual([]);
+    expect(s.byPrefix).toEqual({ "4T1C11AK": 2, "4T1G11AK": 1 });
+    expect(sameBuildCount(s, "4T1C11AK3MU436772")).toBe(2);
+    expect(sameBuildCount(s, "1HGCV1F30LA000000")).toBe(0);
+    expect(sameBuildCount(s, null)).toBeNull();
+  });
+
+  it("reads complaint dates as month/day/year", () => {
+    expect(parseComplaintDate("09/30/2026")).toBe("2026-09-30");
+    expect(parseComplaintDate("2026-09-30")).toBeNull();
   });
 });
 

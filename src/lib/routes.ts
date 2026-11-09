@@ -15,5 +15,6 @@ export const NAV_ROUTES = [
 export const GUEST_ROUTES = [
   { href: "/", label: "Check a car" },
   { href: "/shortlist", label: "Shortlist" },
+  { href: "/why", label: "Why not Google?" },
   { href: "/security", label: "How it's secured" },
 ] as const;

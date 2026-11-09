@@ -16,10 +16,26 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("next/cache", () => ({ cacheLife: () => {}, cacheTag: () => {} }));
 
 const RUN = process.env.RECORD_DEMO === "1";
+const FREE_ONLY = process.env.RECORD_DEMO === "analysis";
 const ZIP = "08540";
 const DIR = join(__dirname, "data");
 
 type Example = { id: string; title: string; text: string; realVin: boolean };
+
+describe.skipIf(!FREE_ONLY)("refresh demo analyses (free NHTSA data only)", () => {
+  it("re-runs the free analysis and keeps each recorded price check", { timeout: 300_000 }, async () => {
+    const { analyzeListing } = await import("@/lib/analyze");
+    const examples = JSON.parse(readFileSync(join(__dirname, "examples.json"), "utf8")) as Example[];
+    for (const ex of examples) {
+      const file = join(DIR, `${ex.id}.json`);
+      const saved = JSON.parse(readFileSync(file, "utf8")) as { recordedAt: string };
+      const analysis = await analyzeListing(ex.text);
+      // The analysis date stays the recording date, so the page shows one date for the example.
+      writeFileSync(file, JSON.stringify({ ...saved, analysis: { ...analysis, checkedAt: saved.recordedAt } }) + "\n");
+      console.log(`${ex.id}: recalls ${analysis.recalls?.length ?? "-"} · complaints ${analysis.complaints?.total ?? "-"} · years ${analysis.years?.map((y) => y.year).join("/") ?? "-"}`);
+    }
+  });
+});
 
 describe.skipIf(!RUN)("record demo examples (spends API quota)", () => {
   it("records every example", { timeout: 300_000 }, async () => {

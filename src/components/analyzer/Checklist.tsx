@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { SellerChecklist } from "@/lib/scam/rules";
 
 type Key = keyof SellerChecklist;
@@ -20,9 +21,9 @@ const ALSO_ASK = [
   "Any warning lights, leaks or noises?",
 ];
 
-type Props = { value: SellerChecklist; onChange: (next: SellerChecklist) => void };
+type Props = { value: SellerChecklist; onChange: (next: SellerChecklist) => void; children?: ReactNode };
 
-export function Checklist({ value, onChange }: Props) {
+export function Checklist({ value, onChange, children }: Props) {
   return (
     <section className="border-t border-border pt-8">
       <h2 className="section-title">Ask the seller</h2>
@@ -53,6 +54,7 @@ export function Checklist({ value, onChange }: Props) {
         })}
       </ul>
       <p className="mt-4 text-sm text-muted">Also ask: {ALSO_ASK.join(" · ")}</p>
+      {children}
     </section>
   );
 }

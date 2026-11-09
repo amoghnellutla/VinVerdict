@@ -7,7 +7,7 @@ const money = (n: number | null) => (n == null ? "—" : `$${n.toLocaleString("e
 export function ListingHistory({ h }: { h: HistorySummary }) {
   if (!h.records) {
     return (
-      <section className="border-t border-border pt-8">
+      <section className="border-t border-border pt-8" id="listing-history">
         <h2 className="section-title">Where this car has been listed</h2>
         <p className="max-w-2xl text-muted">
           No past listings found for this VIN. That&apos;s normal for a car that has only been sold privately, and it isn&apos;t proof of a clean
@@ -19,7 +19,7 @@ export function ListingHistory({ h }: { h: HistorySummary }) {
   const rows = [...h.stints].reverse();
   const notes = historyHighlights(h);
   return (
-    <section className="border-t border-border pt-8">
+    <section className="border-t border-border pt-8" id="listing-history">
       <h2 className="section-title">Where this car has been listed</h2>
       <p className="max-w-2xl text-muted">
         Every dealer and online listing of this VIN since 2015, from MarketCheck. Miles and prices at each one show rollbacks, price cuts and

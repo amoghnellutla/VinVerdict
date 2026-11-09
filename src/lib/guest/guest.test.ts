@@ -29,7 +29,7 @@ describe("Turnstile answer", () => {
 
 describe("demo pages", () => {
   it("opens only the demo pages", () => {
-    for (const p of ["/", "/shortlist", "/security", "/share"]) expect(isDemoPath(p)).toBe(true);
+    for (const p of ["/", "/shortlist", "/security", "/share", "/why"]) expect(isDemoPath(p)).toBe(true);
     for (const p of ["/checked", "/compare", "/search", "/settings", "/car/1", "/mfa", "/shortlist/x"]) expect(isDemoPath(p)).toBe(false);
   });
 });

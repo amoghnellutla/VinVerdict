@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { parseMenu, parsePrices, parseVehicle, pickModels, pickOptions, type FuelPrices, type FuelTarget, type FuelVehicle, type MenuItem } from "./parse";
+import { parseMenu, parsePrices, parseVehicle, pickModels, pickOptions, rankVariants, type FuelPrices, type FuelTarget, type FuelVehicle, type MenuItem } from "./parse";
 
 /**
  * FuelEconomy.gov web services (EPA/DOE, free, no key). Server-only.
@@ -67,9 +67,10 @@ export async function findFuelEconomy(year: number, make: string, t: FuelTarget)
   if (!models.length) return null;
 
   const optionLists = await Promise.all(models.map((m) => getOptions(year, make, m)));
-  const picks = models
-    .flatMap((m, i) => pickOptions(optionLists[i], t).map((o) => ({ id: Number(o.value), label: `${m} · ${o.text}` })))
-    .slice(0, 8);
+  const picks = rankVariants(
+    models.flatMap((m, i) => pickOptions(optionLists[i], t).map((o) => ({ id: Number(o.value), model: m, text: o.text, label: `${m} · ${o.text}` }))),
+    t,
+  ).slice(0, 8);
 
   const [vehicles, prices] = await Promise.all([
     Promise.all(picks.map((p) => getFuelVehicle(p.id, p.label))),

@@ -22,11 +22,9 @@ export function BuyingDay({ vin, seller }: { vin: string | null; seller: SellerT
       <h3 className="font-semibold">Check the car</h3>
       <ol className="mt-2 list-decimal space-y-2 pl-5">
         <li>
-          Theft and insurance total-loss records: <ExternalLink href="https://www.nicb.org/vincheck" className="link">NICB VINCheck</ExternalLink> (free)
-          {vin && <> with VIN <code className="font-mono text-[0.95em]">{vin}</code></>}.
-        </li>
-        <li>
-          Open recalls on this exact car: enter the VIN on <ExternalLink href="https://www.nhtsa.gov/recalls" className="link">NHTSA</ExternalLink>.
+          Run the free checks in <a href="#check-yourself" className="link">Check it yourself</a>
+          {vin && <> with VIN <code className="font-mono text-[0.95em]">{vin}</code></>}: open recalls on NHTSA, theft and insurance
+          write-offs on NICB VINCheck.
         </li>
         <li>A pre-purchase inspection by your own mechanic ($100–250). Give them the inspection checklist above.</li>
         <li>

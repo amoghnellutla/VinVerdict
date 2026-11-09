@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultMaintenance, yearlyRunningCost } from "@/lib/costs/running";
-import { driveOf, fuelKind, parseMenu, parsePrices, parseVehicle, pickModels, pickOptions, type FuelTarget } from "./parse";
+import { driveOf, fuelKind, parseMenu, parsePrices, parseVehicle, pickModels, pickOptions, rankVariants, type FuelTarget } from "./parse";
 
 // Shapes captured from the live API on 2026-11-08.
 const ACCORD_2017 = {
@@ -97,5 +97,20 @@ describe("yearlyRunningCost", () => {
   it("EV uses kWh per 100 miles", () => {
     const r = yearlyRunningCost({ vehicle: { comb: 114, kwhPer100: 29.5354, fuel: "electric" }, milesPerYear: 12000, fuelPrice: 0.15, maintenancePerYear: 0 });
     expect(r.fuel).toBe(531.64); // 12000 × 0.295354 × 0.15
+  });
+});
+
+describe("rankVariants", () => {
+  it("drops other engines and puts the VIN's trim first (2021 Camry LE, 2.5 L)", () => {
+    const list = [
+      { model: "Camry", text: "Auto (S8), 6 cyl, 3.5 L" },
+      { model: "Camry TRD", text: "Auto (S8), 6 cyl, 3.5 L" },
+      { model: "Camry XSE", text: "Auto (S8), 4 cyl, 2.5 L" },
+      { model: "Camry LE/SE", text: "Auto (S8), 4 cyl, 2.5 L" },
+    ];
+    const t = { model: "Camry", displacementL: 2.5, cylinders: 4, transmission: "automatic", drive: "2wd", hybrid: false, electric: false, trim: "LE" } as const;
+    expect(rankVariants(list, t).map((x) => x.model)).toEqual(["Camry LE/SE", "Camry XSE"]);
+    // Nothing matches the engine: keep everything rather than nothing.
+    expect(rankVariants(list.slice(0, 2), t)).toHaveLength(2);
   });
 });

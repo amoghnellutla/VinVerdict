@@ -55,7 +55,7 @@ export function PriceCheck({ a, carId, state, action, pending, valuation: v, gue
   const done = state.status === "done" ? state : null;
 
   return (
-    <section className="border-t border-border pt-8">
+    <section className="border-t border-border pt-8" id="price-check">
       <h2 className="section-title">Is the price fair?</h2>
 
       {!done && (

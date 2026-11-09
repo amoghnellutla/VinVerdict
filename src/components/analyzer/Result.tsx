@@ -9,7 +9,13 @@ import type { LiveListing as Live } from "@/lib/live/parse";
 import type { RuleAction, RuleHit, SellerChecklist, Verdict } from "@/lib/scam/rules";
 import { valueCar, DEAL_TEXT, fmt, type Valuation } from "@/lib/value/estimate";
 import { buildVerdict } from "@/lib/verdict";
+import { ExternalLink } from "@/components/ExternalLink";
+import { ON_PAGE, raw, RULE_SOURCE } from "@/lib/sources";
 import { Bookmarklet } from "./Bookmarklet";
+import { CheckYourself } from "./CheckYourself";
+import { ReportSources } from "./ReportSources";
+import { Safety } from "./Safety";
+import { SellerMessage } from "./SellerMessage";
 import { BuyerProtection } from "./BuyerProtection";
 import { BuyingDay } from "./BuyingDay";
 import { Checklist } from "./Checklist";
@@ -93,22 +99,33 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const hits = [...result.hits].sort((x, y) => order.indexOf(x.action) - order.indexOf(y.action));
   const vinOnly = a.listing.kind === "vin";
   const v = vinOnly && !live && result.verdict === "clear" ? VIN_ONLY_CLEAR : VERDICT[result.verdict];
+  const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
+  const make = a.decoded?.make ?? a.listing.make;
 
   return (
     <div className="space-y-10">
       <div>
-        <CarLine a={m} />
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <CarLine a={m} />
+          <span className="flex gap-4 text-sm print:hidden">
+            <a href="#sources" className="link">Sources</a>
+            <PrintButton />
+          </span>
+        </div>
         <section className={`mt-3 rounded-md border-l-4 px-5 py-4 ${v.tone}`}>
           <h2 className={`text-2xl sm:text-3xl ${v.title}`}>{v.label}</h2>
           <p className="mt-1 text-[1.05rem]">{v.text}</p>
-          <Summary hits={hits} valuation={valuation} price={m.listing.price} />
-          <p className="mt-2 text-sm text-muted">Risk score {result.risk} out of 100</p>
+          <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
+          <p className="mt-2 text-sm text-muted">
+            Risk score {result.risk} out of 100 · every finding below names its source, and{" "}
+            <a href="#check-yourself" className="link">you can check the car yourself</a>
+          </p>
         </section>
 
         {hits.length > 0 && (
           <ul className="mt-6 divide-y divide-border">
             {hits.map((h) => (
-              <HitRow key={h.id} hit={h} />
+              <HitRow key={h.id} hit={h} vin={goodVin} />
             ))}
           </ul>
         )}
@@ -116,6 +133,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 
       <PriceCheck a={m} carId={carId} state={priceState} action={priceAction} pending={pricePending} valuation={valuation} guest={guest} recordedAt={recorded?.recordedAt ?? null} />
       {history && <ListingHistory h={history} />}
+      <CheckYourself vin={goodVin} make={make} />
       <BuyerProtection a={m} />
       <Facts a={a} live={live} />
       {/* key: start the calculator again with the live price once it arrives */}
@@ -124,8 +142,18 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       <RunningCost a={m} />
       <Safety a={m} />
       <InspectionList a={m} />
-      <Checklist value={checklist} onChange={setChecklist} />
+      <Checklist value={checklist} onChange={setChecklist}>
+        <SellerMessage
+          carName={carName(m)}
+          listing={m.listing}
+          hits={hits}
+          checklist={checklist}
+          recallCount={a.recalls?.length ?? null}
+          topComplaint={a.complaints?.topComponents[0]?.component ?? null}
+        />
+      </Checklist>
       <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} />
+      <ReportSources a={m} hits={hits} live={live} sources={sources} history={rawHistory} recordedAt={recorded?.recordedAt ?? null} />
 
       <p className="border-t border-border pt-6 text-sm text-muted">
         {carId ? (
@@ -147,11 +175,13 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 }
 
 /** The three things that matter most, inside the verdict box (feature 4). */
-function Summary({ hits, valuation, price }: { hits: RuleHit[]; valuation: Valuation | null; price: number | null }) {
+function Summary({ hits, valuation, price, walkAway }: { hits: RuleHit[]; valuation: Valuation | null; price: number | null; walkAway: boolean }) {
   const points: string[] = [];
   if (valuation?.label && price) {
     const diff = valuation.fair - price;
-    points.push(`${DEAL_TEXT[valuation.label]}: ${Math.abs(diff) < 100 ? "right at" : `${fmt(Math.abs(diff))} ${diff > 0 ? "under" : "over"}`} the fair price of about ${fmt(valuation.fair)}`);
+    // Next to a deal-breaker, a big discount is bait, not a bargain.
+    if (walkAway && diff >= valuation.fair * 0.15) points.push(`${fmt(diff)} under the fair price of about ${fmt(valuation.fair)}: too cheap to be real`);
+    else points.push(`${DEAL_TEXT[valuation.label]}: ${Math.abs(diff) < 100 ? "right at" : `${fmt(Math.abs(diff))} ${diff > 0 ? "under" : "over"}`} the fair price of about ${fmt(valuation.fair)}`);
   }
   for (const h of hits) {
     if (points.length >= 3) break;
@@ -165,25 +195,61 @@ function Summary({ hits, valuation, price }: { hits: RuleHit[]; valuation: Valua
   );
 }
 
-function HitRow({ hit }: { hit: RuleHit }) {
+function HitRow({ hit, vin }: { hit: RuleHit; vin: string | null }) {
   const s = ACTION_STYLE[hit.action];
+  const ref = RULE_SOURCE[hit.id];
+  const here = ON_PAGE[hit.id];
+  const decode = (hit.id === "vin-mismatch" || hit.id === "vin-decode-warning") && vin;
   return (
     <li className="grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
       <span className={`tag h-fit w-fit ${s.badge}`}>{s.label}</span>
       <div>
         <p className="font-semibold">{hit.title}</p>
         <p className="text-muted">{hit.reason}</p>
+        {(ref || here || decode) && (
+          <p className="mt-1 text-sm text-muted">
+            Source:{" "}
+            {decode ? (
+              <ExternalLink href={raw.decode(vin)}>NHTSA&apos;s decode of this VIN</ExternalLink>
+            ) : here ? (
+              <a href={here.anchor} className="text-accent underline-offset-2 hover:underline">{here.name}</a>
+            ) : (
+              <ExternalLink href={ref!.href}>{ref!.name}</ExternalLink>
+            )}
+          </p>
+        )}
       </div>
     </li>
   );
 }
 
+/** Opens every collapsed detail first, so the printout (or PDF) has the full report. */
+function PrintButton() {
+  return (
+    <button
+      type="button"
+      className="link"
+      onClick={() => {
+        document.querySelectorAll<HTMLDetailsElement>("#result details").forEach((d) => (d.open = true));
+        window.print();
+      }}
+    >
+      Print or save as PDF
+    </button>
+  );
+}
+
+function carName(a: Analysis): string {
+  const l = a.listing;
+  const d = a.decoded;
+  return [d?.year ?? l.year, d?.make ? cap(d.make.toLowerCase()) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || "car";
+}
+
 /** "2021 Toyota Camry LE · $9,900 · 183,086 mi": what the result is about, in one line. */
 function CarLine({ a }: { a: Analysis }) {
   const l = a.listing;
-  const d = a.decoded;
-  const name = [d?.year ?? l.year, d?.make ? cap(d.make.toLowerCase()) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ");
-  const parts = [name || "This car", money(l.price), miles(l.miles)].filter(Boolean);
+  const name = carName(a);
+  const parts = [name === "car" ? "This car" : name, money(l.price), miles(l.miles)].filter(Boolean);
   return <p className="nums text-lg font-semibold">{parts.join(" · ")}</p>;
 }
 
@@ -239,109 +305,6 @@ function Facts({ a, live }: { a: Analysis; live: Live | null }) {
             ))}
           </tbody>
         </table>
-      </div>
-    </Panel>
-  );
-}
-
-function Stars({ n }: { n: number | null }) {
-  if (n == null) return <span className="text-muted">Not rated</span>;
-  return (
-    <span aria-label={`${n} of 5 stars`}>
-      <span className="text-warn">{"★".repeat(n)}</span>
-      <span className="text-border">{"★".repeat(5 - n)}</span>
-    </span>
-  );
-}
-
-function Safety({ a }: { a: Analysis }) {
-  if (!a.vehicle) return null;
-  const { year, make, model } = a.vehicle;
-  const parkIt = a.recalls?.filter((r) => r.parkIt || r.parkOutside) ?? [];
-  // The VIN decode wins over what the listing says, so say which one this is.
-  const source = a.decoded?.year && a.decoded.model ? "per the VIN" : "per the listing";
-  return (
-    <Panel title={`Recalls and safety: ${year} ${make} ${model} (${source})`}>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div>
-          <h3 className="font-semibold">Recalls</h3>
-          {a.recalls == null ? (
-            <p className="mt-1 text-sm text-muted">Unavailable right now.</p>
-          ) : a.recalls.length === 0 ? (
-            <p className="mt-1 text-sm text-muted">None for this model/year.</p>
-          ) : (
-            <>
-              <p className="mt-1 text-sm">
-                {a.recalls.length} for this model/year.{" "}
-                <span className="text-muted">Ask whether they were fixed, or check the VIN on NHTSA (below).</span>
-              </p>
-              {parkIt.length > 0 && (
-                <p className="mt-2 rounded-md bg-bad-soft px-3 py-2 text-sm text-bad">
-                  {parkIt.length} recall{parkIt.length > 1 ? "s say" : " says"} don&apos;t drive or park it outside until fixed.
-                </p>
-              )}
-              <ul className="mt-2 space-y-2">
-                {a.recalls.slice(0, 5).map((r) => (
-                  <li key={r.campaign} className="text-sm">
-                    <span className="font-medium">{r.component}</span>
-                    <span className="text-muted"> · {r.campaign}{r.reportDate ? ` · ${r.reportDate.slice(0, 4)}` : ""}</span>
-                  </li>
-                ))}
-              </ul>
-              {a.recalls.length > 5 && <p className="mt-1 text-sm text-muted">+ {a.recalls.length - 5} more</p>}
-            </>
-          )}
-        </div>
-
-        <div>
-          <h3 className="font-semibold">Crash-test stars</h3>
-          {a.ratings == null ? (
-            <p className="mt-1 text-sm text-muted">Unavailable right now.</p>
-          ) : a.ratings.length === 0 ? (
-            <p className="mt-1 text-sm text-muted">Not tested by NHTSA.</p>
-          ) : (
-            <ul className="mt-1 space-y-2 text-sm">
-              {a.ratings.map((r) => (
-                <li key={r.vehicleId}>
-                  <p className="text-sm text-muted">{r.description}</p>
-                  <p>
-                    Overall <Stars n={r.overall} />
-                  </p>
-                  <p className="text-sm text-muted">
-                    Front {r.front ?? "–"} · Side {r.side ?? "–"} · Rollover {r.rollover ?? "–"}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div>
-          <h3 className="font-semibold">Owner complaints</h3>
-          {a.complaints == null ? (
-            <p className="mt-1 text-sm text-muted">Unavailable right now.</p>
-          ) : (
-            <>
-              <p className="mt-1 text-sm">
-                {a.complaints.total.toLocaleString("en-US")} filed with NHTSA
-                {a.complaints.crashes > 0 && <span className="text-muted"> · {a.complaints.crashes} involved a crash</span>}
-              </p>
-              {a.complaints.topComponents.length > 0 && (
-                <>
-                  <p className="mt-2 text-sm text-muted">Most common areas: have your mechanic check these.</p>
-                  <ul className="mt-1 space-y-1 text-sm">
-                    {a.complaints.topComponents.map((c) => (
-                      <li key={c.component} className="flex justify-between gap-2">
-                        <span>{c.component}</span>
-                        <span className="text-muted">{c.count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </>
-          )}
-        </div>
       </div>
     </Panel>
   );
