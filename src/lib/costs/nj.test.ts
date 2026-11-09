@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { guessWeightClass, isRecentModel, njOutTheDoor } from "./nj";
+import { guessWeightClass, isRecentModel } from "./nj";
+import { outTheDoor } from "./outTheDoor";
 
 const NOW = new Date("2026-11-08T12:00:00Z");
 
-describe("njOutTheDoor", () => {
+describe("outTheDoor in NJ", () => {
   it("adds tax, title, registration and inspection for a private sale", () => {
-    const r = njOutTheDoor({ price: 9000, modelYear: 2017, weightClass: "heavy", financed: false, inspection: 175, now: NOW });
+    const r = outTheDoor({ state: "NJ", price: 9000, modelYear: 2017, seller: "private", nj: { weightClass: "heavy", financed: false }, inspection: 175, now: NOW });
     // 9000 × 6.625% = 596.25; title 60; older car over 3,500 lb = 71.50
     expect(r.lines.map((l) => l.amount)).toEqual([9000, 596.25, 60, 71.5, 175]);
     expect(r.total).toBe(9902.75);
+    expect(r.lines[1].note).toBe("Private sale: paid at the MVC");
   });
 
   it("taxes a dealer doc fee and charges the lien title fee when financed", () => {
-    const r = njOutTheDoor({ price: 21995, modelYear: 2019, weightClass: "light", financed: true, docFee: 499, inspection: 0, now: NOW });
+    const r = outTheDoor({ state: "NJ", price: 21995, modelYear: 2019, seller: "dealer", nj: { weightClass: "light", financed: true }, docFee: 499, inspection: 0, now: NOW });
     const byLabel = Object.fromEntries(r.lines.map((l) => [l.label, l.amount]));
     expect(byLabel["Dealer doc fee"]).toBe(499);
     expect(byLabel["NJ sales tax (6.625%)"]).toBe(1490.23); // (21995 + 499) × 0.06625 = 1490.2275
@@ -21,7 +23,7 @@ describe("njOutTheDoor", () => {
   });
 
   it("uses the higher registration rate for a model within 2 years", () => {
-    const r = njOutTheDoor({ price: 30000, modelYear: 2026, weightClass: "light", financed: false, inspection: 0, now: NOW });
+    const r = outTheDoor({ state: "NJ", price: 30000, modelYear: 2026, seller: "dealer", nj: { weightClass: "light", financed: false }, inspection: 0, now: NOW });
     expect(r.lines.find((l) => l.label.startsWith("Registration"))?.amount).toBe(59);
   });
 });

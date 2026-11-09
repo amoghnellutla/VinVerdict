@@ -1,7 +1,7 @@
 /**
- * Out-the-door cost for a used car bought and registered in New Jersey
- * (PLAN.md feature A). Pure, so the page recalculates instantly when you
- * change an input.
+ * New Jersey MVC fees (PLAN.md feature A): title and registration. NJ is the
+ * one state with a full fee breakdown; other states get an editable fee line
+ * (see outTheDoor.ts). NJ sales tax is in stateTax.ts with the other states.
  *
  * Rates checked on 2026-11-08 against official NJ sources (links below).
  * Re-check them yearly. MVC says to confirm with its fee calculator.
@@ -30,25 +30,7 @@ export const NJ_RATES = {
 
 export type WeightClass = "light" | "heavy";
 
-export type CostInput = {
-  price: number;
-  modelYear: number | null;
-  weightClass: WeightClass;
-  /** A lien means a car loan: the title fee goes up. */
-  financed: boolean;
-  /** Dealer documentation fee, if any (taxable in NJ, so it's added before tax). */
-  docFee?: number | null;
-  /** Who collects the sales tax: a dealer at sale, or the MVC for a private sale. */
-  seller?: "private" | "dealer" | "unknown";
-  inspection: number;
-  now?: Date;
-};
-
 export type CostLine = { label: string; amount: number; note?: string };
-
-export type CostBreakdown = { lines: CostLine[]; total: number };
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * "Within 2 years" on the MVC table: this model year or last year's (or next
@@ -67,25 +49,11 @@ export function guessWeightClass(curbWeightLb: number | null, body: string | nul
   return { value: heavyBody ? "heavy" : "light", estimated: true };
 }
 
-export function njOutTheDoor(i: CostInput): CostBreakdown {
-  const docFee = i.docFee && i.docFee > 0 ? i.docFee : 0;
-  const taxable = i.price + docFee;
+/** NJ MVC title + one year of registration. Sales tax lives in stateTax.ts. */
+export function njFeeLines(i: { modelYear: number | null; weightClass: WeightClass; financed: boolean; now?: Date }): CostLine[] {
   const reg = NJ_RATES.registration[i.weightClass][isRecentModel(i.modelYear, i.now) ? "recent" : "older"];
-
-  const lines: CostLine[] = [{ label: "Price", amount: i.price }];
-  if (docFee) lines.push({ label: "Dealer doc fee", amount: docFee, note: "Negotiable; taxed like the price" });
-  lines.push(
-    { label: "NJ sales tax (6.625%)", amount: round2(taxable * NJ_RATES.salesTaxRate), note: i.seller === "dealer" ? "Collected by the dealer" : i.seller === "private" ? "Private sale: paid at the MVC" : "Paid to the dealer, or at the MVC for a private sale" },
-    {
-      label: i.financed ? "Title (with a lien)" : "Title",
-      amount: i.financed ? NJ_RATES.titleFeeOneLien : NJ_RATES.titleFee,
-    },
-    {
-      label: "Registration, 1 year (plates included)",
-      amount: reg,
-      note: `${i.weightClass === "heavy" ? "Over" : "Under"} 3,500 lb`,
-    },
-    { label: "Pre-purchase inspection", amount: i.inspection, note: "Usually $100–250, paid to your mechanic" },
-  );
-  return { lines, total: round2(lines.reduce((s, l) => s + l.amount, 0)) };
+  return [
+    { label: i.financed ? "Title (with a lien)" : "Title", amount: i.financed ? NJ_RATES.titleFeeOneLien : NJ_RATES.titleFee },
+    { label: "Registration, 1 year (plates included)", amount: reg, note: `${i.weightClass === "heavy" ? "Over" : "Under"} 3,500 lb` },
+  ];
 }
