@@ -38,6 +38,7 @@ describe("parseVinDecode", () => {
         ModelYear: "2017", Make: "HONDA", Model: "Accord", Trim: "EX-L", Series: "",
         BodyClass: "Sedan/Saloon", DriveType: "4x2",
         TransmissionStyle: "Continuously Variable Transmission (CVT)", FuelTypePrimary: "Gasoline", CurbWeightLB: "3605",
+        DisplacementL: "2.4", EngineCylinders: "4", ElectrificationLevel: "",
       },
     ],
   };
@@ -47,6 +48,7 @@ describe("parseVinDecode", () => {
     expect(d).toMatchObject({
       year: 2017, make: "HONDA", model: "Accord", trim: "EX-L",
       transmissionKind: "automatic", errorCode: "0", clean: true, curbWeightLb: 3605,
+      displacementL: 2.4, cylinders: 4, electrification: null,
     });
   });
 

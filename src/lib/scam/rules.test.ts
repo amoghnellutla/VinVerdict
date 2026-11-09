@@ -11,7 +11,7 @@ one owner, service records. Selling my car because I'm moving. Happy to meet at 
 const DECODED: DecodedVin = {
   vin: "1HGCR2F8XHA000123", year: 2017, make: "HONDA", model: "Accord", trim: "EX-L",
   body: "Sedan/Saloon", driveType: "4x2", transmission: "Continuously Variable Transmission (CVT)",
-  transmissionKind: "automatic", fuel: "Gasoline", curbWeightLb: 3605, errorCode: "0", errorText: "", clean: true,
+  transmissionKind: "automatic", fuel: "Gasoline", curbWeightLb: 3605, displacementL: 2.4, cylinders: 4, electrification: null, errorCode: "0", errorText: "", clean: true,
 };
 
 function run(text: string, extra: Partial<ScamInput> = {}) {

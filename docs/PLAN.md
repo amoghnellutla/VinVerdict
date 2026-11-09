@@ -181,7 +181,7 @@ All 16 features are in scope; each uses free data only.
 | --- | --- | --- | --- |
 | A | Out-the-door cost | Price + car tax for the buyer's state (from their ZIP) + local rate they enter + title/registration + pre-purchase inspection ($100–250) | Any US ZIP → state (offline table, state can be changed). State car-tax rules for all 50 + DC from the Florida DOR 50-state chart (as of 2026-02-11) plus each state's own site for special rules (private-sale exemptions AZ/NV/HI/old cars in MS, IL RUT-50 table, TN $1,600 local cap, FL surtax on first $5,000, SC $500 cap, GA TAVT, WA +0.5%, OK excise, etc.). City/county rate is typed in, not looked up. NJ keeps full fees (verified 2026-11-08): 6.625% tax, title $60 / $85 with a lien, registration $46.50–$84 by weight and model age. Other states: editable title/registration line + official DMV link |
 | B | Suggested offer | Opening offer based on comps, e.g. "market $11.2k → offer $9.8k" | Comps (section 5) |
-| C | Yearly running cost | Fuel at 12k mi/year + typical maintenance | [FuelEconomy.gov](https://www.fueleconomy.gov) |
+| C | Yearly running cost | Fuel at 12k mi/year (EPA combined MPG × this week's US average price, both editable) + maintenance/repairs/tires (AAA 2025: 11.04¢/mile, editable). Variant matched from the VIN's engine size, cylinders, drive, transmission and hybrid/EV; buyer picks if several match | [FuelEconomy.gov](https://www.fueleconomy.gov), [AAA Your Driving Costs 2025](https://newsroom.aaa.com/wp-content/uploads/2025/09/UPDATE-AAA-Fact-Sheet-Your-Driving-Cost-9.2025-1.pdf) |
 | D | Crash-test stars | NHTSA overall and per-test ratings | [NHTSA](https://www.nhtsa.gov/ratings) |
 | E | Recalls and complaints | Recalls for the model/year, top complaint areas; link to NHTSA's VIN lookup for open status (the free API has no per-VIN open status) | [NHTSA](https://www.nhtsa.gov/recalls) |
 | F | Known issues to check | Model/year checklist for the inspection | NHTSA complaints + curated list |
@@ -335,6 +335,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-09 | Feature C built: yearly running cost from FuelEconomy.gov (free, keyless, cached) + AAA 2025 maintenance rate. VIN decode now keeps engine size, cylinders and electrification |
 | 2026-11-08 | Feature A extended to any US ZIP (approved): ZIP → state, car-tax rules for 50 states + DC, local-rate box, seller type (dealer/private), editable fees + DMV link outside NJ. No API or quota; ZIP remembered on the device only |
 | 2026-11-08 | Feature A built: NJ out-the-door cost with verified official rates, editable price/doc fee/inspection/weight/loan; dealer doc fee parsed from listings; curb weight from VIN decode |
 | 2026-11-08 | Analyzer wired to the home page: Server Action (input validation, rate limit), verdict, car facts, recalls/crash stars/complaints, seller checklist that updates the verdict live, "before you pay" links. Links are never fetched by the server (SSRF). Login (2b) and out-the-door cost still to do |

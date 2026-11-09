@@ -39,7 +39,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 | URL | Page | Filled in by |
 | --- | --- | --- |
-| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, out-the-door cost for any US ZIP). Deal score still to come | Phase 3–4 |
+| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist, out-the-door cost for any US ZIP, yearly running cost). Deal score still to come | Phase 3–4 |
 | `/shortlist` | Reliable models/years | Phase 6 |
 | `/search` | In-app search + links to 11 outside sites (built) | Phase 7 |
 | `/car/[id]` | Car detail. `[id]` is a placeholder in the URL, e.g. `/car/abc123` | Phase 5 |
@@ -65,6 +65,9 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `costs/stateTax.ts` | Car tax for each of the 50 states + DC: the state rate plus special rules (private-sale exemptions, caps, flat amounts, tiers). Each state has an official source link and a DMV link. City/county tax uses the rate the buyer types in | No |
 | `costs/nj.ts` | NJ title and registration fees. Official rates and source links live in one `NJ_RATES` object, so a yearly fee check is a one-file change | No |
 | `costs/outTheDoor.ts` | Adds it all up: price + doc fee + state tax + local tax + fees (itemised for NJ, typed in elsewhere) + inspection | No |
+| `fuel/parse.ts` | Reads FuelEconomy.gov replies and picks the right version of the car: NHTSA says "CR-V", FuelEconomy.gov lists "CR-V AWD" and "CR-V FWD" with several engines, so it narrows by hybrid/EV, drive, cylinders, engine size and transmission (never down to zero) | No |
+| `fuel/client.ts` | Calls FuelEconomy.gov (EPA, free, no key): model list, engine options, MPG, national fuel prices. **Server-only**, cached with `"use cache"` (vehicle data for weeks, prices for days). At most 13 calls for a new car, then none | Yes (free) |
+| `costs/running.ts` | Yearly running cost: miles ÷ MPG × fuel price (kWh for EVs) + maintenance (AAA 2025 average, 11.04¢/mile) | No |
 | `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
 
 How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actions/analyze.ts`). That's a function that runs on the server, which Next.js exposes as a POST request. It validates the text (1–20,000 characters), applies a rate limit (`lib/rate-limit.ts`: 10 per minute per IP, in memory) and calls `lib/analyze.ts`, which parses the text, checks and decodes the VIN, and fetches NHTSA data in parallel. The page (`components/analyzer/`) then runs the scam rules in the browser through `lib/verdict.ts`, so answering a seller-checklist question updates the verdict instantly.

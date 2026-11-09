@@ -35,6 +35,11 @@ export type DecodedVin = {
   fuel: string | null;
   /** Manufacturer curb weight, when vPIC has it (sets the NJ registration weight class). */
   curbWeightLb: number | null;
+  /** Engine size and cylinders: used to pick the right FuelEconomy.gov variant. */
+  displacementL: number | null;
+  cylinders: number | null;
+  /** e.g. "Strong HEV (Hybrid Electric Vehicle)", "BEV (Battery Electric Vehicle)"; null for gas-only. */
+  electrification: string | null;
   /** "0" means a clean decode. Anything else (e.g. "1" = bad check digit) is a warning. */
   errorCode: string;
   errorText: string;
@@ -44,6 +49,11 @@ export type DecodedVin = {
 const blank = (v: unknown): string | null => {
   const s = typeof v === "string" ? v.trim() : "";
   return s && s !== "Not Applicable" ? s : null;
+};
+
+const positive = (v: unknown): number | null => {
+  const n = Number(blank(v));
+  return Number.isFinite(n) && n > 0 ? n : null;
 };
 
 export function parseVinDecode(vin: string, body: unknown): DecodedVin {
@@ -64,7 +74,10 @@ export function parseVinDecode(vin: string, body: unknown): DecodedVin {
     transmission,
     transmissionKind: classifyTransmission(transmission),
     fuel: blank(r.FuelTypePrimary),
-    curbWeightLb: Number(blank(r.CurbWeightLB)) > 0 ? Number(blank(r.CurbWeightLB)) : null,
+    curbWeightLb: positive(r.CurbWeightLB),
+    displacementL: positive(r.DisplacementL),
+    cylinders: positive(r.EngineCylinders),
+    electrification: blank(r.ElectrificationLevel),
     errorCode,
     errorText: blank(r.ErrorText) ?? "",
     clean: errorCode === "0",
