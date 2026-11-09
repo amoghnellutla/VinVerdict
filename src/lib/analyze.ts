@@ -1,0 +1,72 @@
+import "server-only";
+import { parseListing, type ParsedListing } from "@/lib/listing/parse";
+import { decodeVin, getComplaintSummary, getRecalls, getSafetyRatings, type VehicleKey } from "@/lib/nhtsa/client";
+import type { ComplaintSummary, DecodedVin, Recall, SafetyRating } from "@/lib/nhtsa/parse";
+import { checkVin, type VinCheck } from "@/lib/vin";
+
+/**
+ * The paste-analyzer pipeline (PLAN.md §8, paste flow steps 2–5), minus
+ * market value (Phase 4). Server-only because it calls NHTSA.
+ *
+ * Returns only what the page shows: no raw API responses. Each NHTSA call
+ * fails on its own, so one slow service doesn't sink the whole result.
+ *
+ * Links are never fetched: reading arbitrary URLs from the server would let
+ * someone make it request internal addresses (SSRF). Facebook needs login
+ * anyway, so the user pastes the text instead.
+ */
+
+export type Analysis = {
+  text: string;
+  listing: ParsedListing;
+  vinCheck: VinCheck | null;
+  decoded: DecodedVin | null;
+  /** Year/make/model used for NHTSA lookups: decoded VIN first, then the listing. */
+  vehicle: VehicleKey | null;
+  recalls: Recall[] | null;
+  ratings: SafetyRating[] | null;
+  complaints: ComplaintSummary | null;
+  /** Plain-English notes about lookups that failed or were skipped. */
+  notices: string[];
+};
+
+const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
+export async function analyzeListing(text: string): Promise<Analysis> {
+  const listing = parseListing(text);
+  const notices: string[] = [];
+
+  const vinCheck = listing.vin ? checkVin(listing.vin) : null;
+  let decoded: DecodedVin | null = null;
+  // A VIN with a bad check digit is still decoded: NHTSA's answer helps show
+  // whether it's a typo (decodes to the listed car) or junk.
+  if (listing.vin && (vinCheck?.ok || vinCheck?.reason === "check-digit")) {
+    try {
+      decoded = await decodeVin(listing.vin);
+    } catch {
+      notices.push("Couldn't reach NHTSA to decode the VIN just now. Try again in a minute.");
+    }
+  }
+
+  const year = decoded?.year ?? listing.year;
+  const make = decoded?.make ? titleCase(decoded.make) : listing.make;
+  const model = decoded?.model ?? listing.model;
+  const vehicle: VehicleKey | null = year && make && model ? { year, make, model } : null;
+
+  let recalls: Recall[] | null = null;
+  let ratings: SafetyRating[] | null = null;
+  let complaints: ComplaintSummary | null = null;
+  if (vehicle) {
+    const [r, s, c] = await Promise.allSettled([getRecalls(vehicle), getSafetyRatings(vehicle), getComplaintSummary(vehicle)]);
+    if (r.status === "fulfilled") recalls = r.value;
+    else notices.push("Couldn't load recalls from NHTSA just now.");
+    if (s.status === "fulfilled") ratings = s.value;
+    else notices.push("Couldn't load crash-test ratings from NHTSA just now.");
+    if (c.status === "fulfilled") complaints = c.value;
+    else notices.push("Couldn't load complaints from NHTSA just now.");
+  } else if (listing.kind !== "url") {
+    notices.push("Couldn't tell the year, make and model, so recalls and safety data are missing. Include them or the VIN.");
+  }
+
+  return { text, listing, vinCheck, decoded, vehicle, recalls, ratings, complaints, notices };
+}

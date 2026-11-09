@@ -39,7 +39,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 | URL | Page | Filled in by |
 | --- | --- | --- |
-| `/` | Check a listing: paste box (UI only for now) | Phase 3–4 |
+| `/` | Check a listing: **works now** (verdict, car facts, recalls, crash stars, complaints, seller checklist). Deal score and out-the-door cost still to come | Phase 3–4 |
 | `/shortlist` | Reliable models/years | Phase 6 |
 | `/search` | In-app search + links to 11 outside sites (built) | Phase 7 |
 | `/car/[id]` | Car detail. `[id]` is a placeholder in the URL, e.g. `/car/abc123` | Phase 5 |
@@ -50,7 +50,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 
 **How pages are served:** the app uses Next.js 16 with *Cache Components*. Pages that don't depend on the request are pre-built once and served instantly (shown as `○` in `npm run build`). `/car/[id]` is *partially* pre-built (`◐`): the frame is ready in advance, and the part that needs the car's id streams in. That's why the id is read inside a `<Suspense>` block, and why the nav's "current page" highlight is wrapped in one too.
 
-## The analyzer's brain (`src/lib/`, built early, no UI yet)
+## The analyzer's brain (`src/lib/`)
 
 These pieces turn a pasted listing into a verdict. Most are *pure functions*: the same input always gives the same output, with no network, so they're easy to test. Data flows top to bottom:
 
@@ -62,6 +62,10 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `nhtsa/parse.ts` | Turns raw NHTSA replies into small typed objects; decides automatic vs. manual | No |
 | `nhtsa/client.ts` | Calls NHTSA: VIN decode, recalls, crash stars, complaints. **Server-only** (`import "server-only"` makes the build fail if browser code imports it). Results are cached with `"use cache"`: VIN decodes and crash stars for weeks, recalls and complaints for days | Yes (free) |
 | `scam/rules.ts` | Runs the PLAN §6 rules and returns each hit as **hide** (walk away), **flag** (ask about it) or **info** (missing facts), with a plain-English reason, plus an overall verdict (`hide` / `verify` / `caution` / `clear`) and a 0–100 risk number | No |
+
+How a check runs: the **Analyze** button calls a *Server Action* (`src/app/actions/analyze.ts`). That's a function that runs on the server, which Next.js exposes as a POST request. It validates the text (1–20,000 characters), applies a rate limit (`lib/rate-limit.ts`: 10 per minute per IP, in memory) and calls `lib/analyze.ts`, which parses the text, checks and decodes the VIN, and fetches NHTSA data in parallel. The page (`components/analyzer/`) then runs the scam rules in the browser through `lib/verdict.ts`, so answering a seller-checklist question updates the verdict instantly.
+
+**Not yet protected by login** (Phase 2b adds it). Don't deploy publicly until then.
 
 Two rules wait for saved data (Phase 8): "same phone on several listings" and "same VIN at different prices". The "30%+ below market" rule is ready but needs the value % from comps (Phase 4).
 
@@ -81,7 +85,7 @@ Two rules wait for saved data (Phase 8): "same phone on several listings" and "s
 ## Planned request flows
 
 **Paste a listing (Phase 3–4, the core flow)**
-1. You paste text, a link or a VIN. Planned: a server route checks login and input size.
+1. You paste text or a VIN. The Server Action checks input size and the rate limit (built). A pasted link is **never fetched** by the server, because fetching user-supplied URLs would let someone make the server request internal addresses (SSRF), so you're asked to paste the text. Login check: Phase 2b.
 2. Server pulls out year, make, model, trim, miles, price, VIN, location and seller type from the text.
 3. NHTSA vPIC decodes the VIN and checks it against the listing. A non-zero `ErrorCode` (e.g. a bad check digit) is a flag.
 4. Market value from cached comps, 1 API call, or a value you type in.
