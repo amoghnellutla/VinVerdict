@@ -74,6 +74,15 @@ const ACTION_STYLE: Record<RuleAction, { badge: string; label: string }> = {
   info: { badge: "bg-surface-muted text-muted", label: "Good to know" },
 };
 
+/** The lookup, with a lost connection or a server cut-off turned into a message instead of a broken page. */
+async function safePriceCheck(prev: PriceState, form: FormData): Promise<PriceState> {
+  try {
+    return await priceCheckAction(prev, form);
+  } catch {
+    return { status: "error", message: "The lookup didn't come back: the connection dropped or the server took too long." };
+  }
+}
+
 export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
   analysis: Analysis;
   carId?: number | null;
@@ -96,7 +105,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const [details, setDetails] = useState<Details>({ miles: null, trim: null });
   // Photos of a likely same car, shown only when the person asks.
   const [matchPhotos, setMatchPhotos] = useState(false);
-  const [liveState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
+  const [liveState, priceAction, pricePending] = useActionState(safePriceCheck, { status: "idle" } as PriceState);
   const priceState = recorded?.price ?? liveState;
   const done = priceState.status === "done" ? priceState : null;
   const live = done?.live ?? null;

@@ -14,7 +14,7 @@ import { lookupLiveListing } from "@/lib/live/client";
 import type { LiveListing } from "@/lib/live/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import type { AccidentStatus, SellerType, TitleStatus, Usage } from "@/lib/listing/parse";
-import { fetchPriceSources, type PriceCheck } from "@/lib/value/client";
+import { fetchPredicted, fetchPriceSources, type PriceCheck } from "@/lib/value/client";
 import { valueCar } from "@/lib/value/estimate";
 import { quotaBlock, recordUsage } from "@/lib/usage";
 import { checkVin, normalizeVin } from "@/lib/vin";
@@ -33,6 +33,9 @@ export type PriceState =
       car: { year: number; make: string; model: string; trim: string | null; miles: number | null } | null;
       notes: string[];
     };
+
+// The whole check answers within this, even when a listing site hangs (each call also has its own timeout).
+const DEADLINE_MS = 25_000;
 
 // Quota guards (PLAN.md §10): a check spends up to 5 calls (3 MarketCheck, 2 Auto.dev).
 // In-memory per server instance until the Phase 7 usage meter.
@@ -58,15 +61,14 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
   const vin = vinRaw && checkVin(vinRaw).ok ? vinRaw : null;
   // ZIP for local prices. With a VIN it may be left out: the car is still looked up
   // online, and priced where it's listed (or not priced until a ZIP is given).
-  const validZip = (z: string | null | undefined) => (z && /^\d{5}$/.test(z) && zipToState(z) ? z : null);
   const zipIn = text(form.get("zip"), 5);
-  let zip = validZip(zipIn) ?? validZip(text(form.get("listingZip"), 5));
+  const zip = validZip(zipIn) ?? validZip(text(form.get("listingZip"), 5));
   if (!zip && (zipIn || !vin)) return { status: "error", message: "Enter your 5-digit US ZIP code, so prices are local." };
-  let year = int(form.get("year"), 1981, new Date().getFullYear() + 1);
+  const year = int(form.get("year"), 1981, new Date().getFullYear() + 1);
   let make = text(form.get("make"), 40) || null;
   let model = text(form.get("model"), 60) || null;
   const trim = text(form.get("trim"), 60) || null;
-  let miles = int(form.get("miles"), 0, 600_000);
+  const miles = int(form.get("miles"), 0, 600_000);
   if (make && !/^[a-z][a-z -]{1,39}$/i.test(make)) make = null;
   if (model && !/^[a-z0-9][a-z0-9 .-]{0,59}$/i.test(model)) model = null;
   if (!vin && !(year && make && model)) return { status: "error", message: "Need the VIN, or the year, make and model, to check the price." };
@@ -88,7 +90,33 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
     if (allowed !== "ok") return { status: "error", message: allowanceMessage(allowed, "price") };
   }
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<PriceState>((resolve) => {
+    timer = setTimeout(
+      () => resolve({ status: "error", message: "The listing sites took longer than 25 seconds to answer. Try again in a minute: whatever came back is cached, so the next try is quicker." }),
+      DEADLINE_MS,
+    );
+  });
+  try {
+    return await Promise.race([runCheck(form, { owner: !!owner, vin, year, make, model, trim, miles, zip }), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const validZip = (z: string | null | undefined) => (z && /^\d{5}$/.test(z) && zipToState(z) ? z : null);
+
+type CheckInput = { owner: boolean; vin: string | null; year: number | null; make: string | null; model: string | null; trim: string | null; miles: number | null; zip: string | null };
+
+async function runCheck(form: FormData, input: CheckInput): Promise<PriceState> {
+  const { owner, vin, trim } = input;
+  let { year, make, model, miles, zip } = input;
   const notes: string[] = [];
+  // When the car is already known (VIN decode or listing) the price search starts now, alongside the lookups.
+  const milesUpfront = miles;
+  const early = year && make && model && zip
+    ? fetchPriceSources({ vin, year, make, model, trim, miles, zip }, { skipPriceModel: !owner || miles === null })
+    : null;
   try {
     let live: LiveListing | null = null;
     let liveTried: string[] = [];
@@ -131,7 +159,14 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
       return { status: "done", live, history, sources: null, car: { year, make, model, trim: trim ?? live?.trim ?? null, miles }, notes };
     }
     // Visitors skip MarketCheck's price model (1 call): sold + for-sale comps still price the car.
-    const sources = await fetchPriceSources({ vin, year, make, model, trim: trim ?? live?.trim ?? null, miles, zip }, { skipPriceModel: !owner });
+    let sources: PriceCheck;
+    if (early) {
+      sources = await early;
+      // Miles found only now (VIN only): the owner's price model runs with them.
+      if (owner && vin && milesUpfront === null && miles !== null) sources = { ...sources, predicted: await fetchPredicted(vin, miles, zip) };
+    } else {
+      sources = await fetchPriceSources({ vin, year, make, model, trim: trim ?? live?.trim ?? null, miles, zip }, { skipPriceModel: !owner });
+    }
     // The owner's meter is per login; visitor use is counted by the guest allowance.
     if (owner) {
       await recordUsage({

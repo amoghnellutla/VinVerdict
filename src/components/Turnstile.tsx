@@ -39,15 +39,20 @@ function loadScript(): Promise<void> {
   return loading;
 }
 
-export function Turnstile({ action, onToken }: { action: string; onToken: (token: string | null) => void }) {
+/** What the widget is doing, for the page to explain: it wants a click, it failed, or its pass expired. */
+export type TurnstileStatus = "interactive" | "error" | "expired";
+
+export function Turnstile({ action, onToken, onStatus }: { action: string; onToken: (token: string | null) => void; onStatus?: (s: TurnstileStatus) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const [failed, setFailed] = useState(false);
   // Keep the latest callback without re-rendering the widget.
   const cb = useRef(onToken);
+  const st = useRef(onStatus);
   useEffect(() => {
     cb.current = onToken;
-  }, [onToken]);
+    st.current = onStatus;
+  }, [onToken, onStatus]);
 
   useEffect(() => {
     if (!siteKey) return;
@@ -59,20 +64,31 @@ export function Turnstile({ action, onToken }: { action: string; onToken: (token
         id = window.turnstile.render(box.current, {
           sitekey: siteKey,
           action,
-          theme: "auto",
+          theme: "dark",
           callback: (t: string) => cb.current(t),
-          "expired-callback": () => cb.current(null),
-          "error-callback": () => cb.current(null),
+          "expired-callback": () => {
+            cb.current(null);
+            st.current?.("expired");
+          },
+          "error-callback": () => {
+            cb.current(null);
+            st.current?.("error");
+          },
+          "timeout-callback": () => st.current?.("expired"),
+          "before-interactive-callback": () => st.current?.("interactive"),
         });
       })
-      .catch(() => setFailed(true));
+      .catch(() => {
+        setFailed(true);
+        st.current?.("error");
+      });
     return () => {
       cancelled = true;
       if (id && window.turnstile) window.turnstile.remove(id);
     };
   }, [siteKey, action]);
 
-  if (!siteKey) return <p className="text-sm text-muted">Live checks aren&apos;t switched on in this demo yet. The example cars above show full price checks.</p>;
+  if (!siteKey) return <p className="text-sm text-muted">Live checks aren&apos;t switched on in this demo yet. The full examples on the home page show complete checks.</p>;
   if (failed) return <p className="text-sm text-bad">The &quot;I&apos;m human&quot; check didn&apos;t load. Turn off blockers for this site or try again.</p>;
   return <div ref={box} className="min-h-[65px]" />;
 }

@@ -59,6 +59,15 @@ async function forSaleNearby(year: number, make: string, model: string, zip: str
   return parseAutoDevComps(await getJson(`https://api.auto.dev/listings?${q}`, { Authorization: `Bearer ${key}` }));
 }
 
+/** MarketCheck's sold-price model alone (owner checks whose miles were only found during the lookup). */
+export async function fetchPredicted(vin: string, miles: number, zip: string): Promise<number | null> {
+  try {
+    return await marketCheckPrice(vin, Math.round(miles / 1000) * 1000, zip);
+  } catch {
+    return null;
+  }
+}
+
 export type PriceCar = { vin: string | null; year: number; make: string; model: string; trim: string | null; miles: number | null; zip: string };
 
 export type PriceCheck = PriceSources & {

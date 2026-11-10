@@ -9,6 +9,7 @@ import { MAX_SCREENSHOTS, pickImages, readScreenshots, type OcrProgress } from "
 import { HomePlay } from "@/components/play/HomePlay";
 import type { PlayData } from "@/lib/demo/play";
 import { Bookmarklet } from "./Bookmarklet";
+import { useElapsed } from "./LookupProgress";
 import { Result } from "./Result";
 
 const initial: AnalyzeState = { status: "idle" };
@@ -22,13 +23,23 @@ const subscribeCoarse = (cb: () => void) => {
 };
 const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => false);
 
+/** The check, with a lost connection or a server cut-off turned into a message instead of a broken page. */
+async function safeAnalyze(prev: AnalyzeState, form: FormData): Promise<AnalyzeState> {
+  try {
+    return await analyzeAction(prev, form);
+  } catch {
+    return { status: "error", message: "The check didn't come back: the connection dropped or the server took too long. Try again." };
+  }
+}
+
 /**
  * Paste box + results for the "Check a listing" page. `guest` = demo visitor (no login).
  * `intro` (the page's headline and pitch) shows until a result does; then the
  * page belongs to the result and the box shrinks to "Check another car".
  */
 export function Analyzer({ guest = false, intro = null, outro = null, play = null }: { guest?: boolean; intro?: ReactNode; outro?: ReactNode; play?: PlayData | null }) {
-  const [state, formAction, pending] = useActionState(analyzeAction, initial);
+  const [state, formAction, pending] = useActionState(safeAnalyze, initial);
+  const elapsed = useElapsed(pending);
   // Listing screenshots the current check was read from (local previews for the result).
   const [shots, setShots] = useState<string[]>([]);
   const shotsRef = useRef<string[]>([]);
@@ -259,6 +270,13 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
               Check this listing
             </button>
           </div>
+        )}
+        {pending && (
+          <p role="status" className="mt-3 flex items-center gap-2 text-sm text-muted">
+            <span aria-hidden className="size-2 rounded-full bg-accent motion-safe:animate-pulse" />
+            Reading the listing and asking NHTSA for the VIN decode, recalls, complaints and crash tests ({elapsed}{" "}
+            {elapsed === 1 ? "second" : "seconds"}). Usually 2 to 8 seconds.
+          </p>
         )}
         {pasteNote && (
           <p role="status" className="mt-3 rounded-md bg-warn-soft px-3 py-2 text-warn">

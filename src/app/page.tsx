@@ -4,6 +4,9 @@ import { Analyzer } from "@/components/analyzer/Analyzer";
 import { currentUser } from "@/lib/auth/session";
 import { playData } from "@/lib/demo/play";
 
+// The page's Server Actions (check, price & history lookup) may take up to ~25 s when listing sites are slow.
+export const maxDuration = 30;
+
 export default function CheckListingPage() {
   return (
     <Suspense fallback={<Analyzer guest intro={<GuestIntro />} outro={<Points />} play={playData()} />}>

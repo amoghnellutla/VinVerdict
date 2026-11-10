@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
-import { Turnstile } from "@/components/Turnstile";
+import { Turnstile, type TurnstileStatus } from "@/components/Turnstile";
 import type { Analysis } from "@/lib/analyze";
 import { readBuyerZip } from "@/lib/buyer-zip";
 import type { HistoryRecord } from "@/lib/history/parse";
@@ -11,6 +11,7 @@ import type { LiveListing } from "@/lib/live/parse";
 import type { Comp, CompEstimate } from "@/lib/value/comps";
 import { DEAL_TEXT, fmt, type DealLabel, type Valuation } from "@/lib/value/estimate";
 import { LiveFacts } from "./LiveListing";
+import { LookupProgress, useElapsed } from "./LookupProgress";
 import { SellValue } from "./SellValue";
 
 /** Details the person can correct after the lookup (VIN only). null = use what was found. */
@@ -68,6 +69,7 @@ export function PriceCheck(props: Props) {
   // Client-only component (rendered after a check), so localStorage is safe here.
   const [zip, setZip] = useState(() => readBuyerZip().zip || l.zip || "");
   const [humanToken, setHumanToken] = useState<string | null>(null);
+  const [humanStatus, setHumanStatus] = useState<TurnstileStatus | null>(null);
   // A Turnstile token works once: a new widget for each try.
   const [attempt, setAttempt] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
@@ -88,11 +90,20 @@ export function PriceCheck(props: Props) {
     formRef.current?.requestSubmit();
   }, [autoRun, state.status, pending, guest, humanToken]);
 
+  // Visitors: the lookup waits for Cloudflare's "I'm human" pass. Say so, and say when it needs a click.
+  const waitingForHuman = guest && autoRun && !done && !pending && !humanToken && state.status === "idle";
+  const waited = useElapsed(waitingForHuman);
+
   if (!(vinOk || (year && make && model))) return null;
   // Looked up, but not priced yet (no ZIP anywhere): ask for one.
   const needsZip = !!done && !done.sources && !!done.car && !recordedAt;
   const zipOk = zip.length === 5 || (vinOk && zip.length === 0 && !done);
   const shown = selling ? sell?.privateV ?? null : v;
+  const zipShown = zip.length === 5 ? zip : l.zip ?? null;
+  const steps = [
+    ...(vinOk ? [`Where it's listed now (${guest ? "Auto.dev" : "Auto.dev, then MarketCheck"})`, "Every past listing of this VIN since 2015 (MarketCheck)"] : []),
+    `Similar cars sold and for sale ${zipShown ? `near ${zipShown}` : "near where it's listed"} (MarketCheck, Auto.dev)`,
+  ];
 
   const form = (
     <form
@@ -138,22 +149,53 @@ export function PriceCheck(props: Props) {
           />
         </label>
         <button type="submit" disabled={pending || !zipOk || (guest && !humanToken)} className="btn btn-primary">
-          {pending ? (vinOk && !done ? "Looking it up…" : "Checking prices…") : needsZip ? "Price it" : vinOk ? "Look it up" : "Check the price"}
+          {pending ? (vinOk && !done ? "Looking it up…" : "Checking prices…") : state.status === "error" ? "Try again" : needsZip ? "Price it" : vinOk ? "Look it up" : "Check the price"}
         </button>
       </div>
+      {pending && <LookupProgress steps={steps} usual={vinOk ? "5 to 15 seconds" : "3 to 10 seconds"} />}
+      {waitingForHuman && (
+        <p role="status" className={`rounded-md px-3 py-2 text-sm ${humanStatus === "interactive" || waited >= 6 ? "bg-warn-soft text-warn" : "text-muted"}`}>
+          {humanStatus === "error"
+            ? "The \"I'm human\" check didn't load. Turn off ad or script blockers for this site, or press Try the check again."
+            : humanStatus === "expired"
+              ? "The \"I'm human\" check timed out. Press Try the check again."
+              : humanStatus === "interactive" || waited >= 6
+                ? "Cloudflare wants a quick check first: tick the box below and the lookup starts by itself."
+                : "Confirming you're not a bot (Cloudflare), then the lookup starts by itself…"}
+          {(humanStatus === "error" || humanStatus === "expired") && (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="link font-semibold"
+                onClick={() => {
+                  setHumanStatus(null);
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                Try the check again
+              </button>
+            </>
+          )}
+        </p>
+      )}
       {vinOk && !done && <p className="text-sm text-muted">The ZIP sets where prices are compared. Without one, it&apos;s priced where the car is listed.</p>}
       {guest ? (
         <>
           <p className="text-sm text-muted">
             Demo: two live lookups per visitor per day, and a few for everyone each day, because the listing data comes from free plans with small
-            monthly limits. It starts by itself once the &quot;I&apos;m human&quot; check passes. The example cars above include full lookups.
+            monthly limits. It starts by itself once the &quot;I&apos;m human&quot; check passes. The full examples on the home page include lookups.
           </p>
-          <Turnstile key={attempt} action="price" onToken={setHumanToken} />
+          <Turnstile key={attempt} action="price" onToken={(t) => { setHumanToken(t); if (t) setHumanStatus(null); }} onStatus={setHumanStatus} />
         </>
       ) : (
         <p className="text-sm text-muted">Uses up to 5 free listing-data lookups. The same car again today is free.</p>
       )}
-      {state.status === "error" && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-bad">{state.message}</p>}
+      {state.status === "error" && !pending && (
+        <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-bad">
+          {state.message} The rest of this report doesn&apos;t need the lookup and is already complete.
+        </p>
+      )}
     </form>
   );
 
