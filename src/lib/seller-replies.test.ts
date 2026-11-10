@@ -20,6 +20,13 @@ describe("checkReplies", () => {
     expect(h.suggest).toMatch(/don't send money before/);
   });
 
+  it("a seller refusing payment apps isn't flagged; a negation word can't hide a deposit demand", () => {
+    expect(ids("I don't take Zelle or Venmo, only cash in person. We can meet at the bank.")).toEqual([]);
+    expect(ids("We won't do PayPal, cash at the DMV.")).toEqual([]);
+    expect(ids("Don't miss out send Zelle deposit to hold it today")).toEqual(expect.arrayContaining(["msg-deposit-first"]));
+    expect(ids("Don't wait, Zelle me $200 to hold it before you come")).toEqual(expect.arrayContaining(["msg-pay-app-upfront"]));
+  });
+
   it("catches the away-now and shipping story", () => {
     expect(ids("I'm currently deployed overseas so the car is with a transport company, they deliver it after payment.")).toEqual(
       expect.arrayContaining(["msg-seller-remote", "msg-shipping-only"]),

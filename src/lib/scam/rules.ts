@@ -142,7 +142,8 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // Money before seeing the car, however it's named: a deposit, a "refundable viewing fee", "send it first".
   const upfront =
     /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)|\b(viewing|showing|reservation) fee\b|fee (to|for) (see|view|set up|schedule)|to set up a viewing|(cash ?app|zelle|venmo|paypal)[^.!?]{0,15}\bfirst\b/.test(t);
-  if (/\b(zelle|cash ?app|venmo|paypal|crypto|bitcoin)\b/.test(t)) {
+  // "I don't take Zelle or Venmo, cash only" isn't a payment-app request.
+  if (hasUnnegated(t, /\b(zelle|cash ?app|venmo|paypal|crypto|bitcoin)\b/)) {
     if (upfront && !dealer) {
       add("pay-app-upfront", "hide", "Payment-app deposit upfront",
         "Asking for Zelle/Cash App/Venmo money before you see the car is the most common used-car scam.");

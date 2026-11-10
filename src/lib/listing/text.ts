@@ -13,7 +13,7 @@ export function normalizeText(raw: string): string {
 // A negating word up to 3 words before a match flips its meaning
 // ("no accidents", "never been in an accident"). Punctuation breaks the
 // link, so "no rust, minor accident" still counts the accident.
-const NEGATION = /\b(no|not|never|non|zero|without|free of|isn'?t|wasn'?t)((?:[\s-]+[\w']+){0,3})[\s-]*$/;
+const NEGATION = /\b(no|not|never|non|zero|without|free of|isn'?t|wasn'?t|don'?t|doesn'?t|won'?t|can'?t)((?:[\s-]+[\w']+){0,3})[\s-]*$/;
 // A negation that already ended ("no title issues reported") doesn't reach the
 // next phrase. Pasted pages lose their line breaks, so without this
 // "No title issues reported / 1 accident reported" would hide the accident.
