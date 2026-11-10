@@ -115,7 +115,7 @@ export function PhotoDeck({ photos, cards, verdict, onOpen, onCheckOwn }: { phot
                 {c.photo && (
                   // Real listing photo (Auto.dev's photo host, allowed by the CSP).
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.photo} alt="" draggable={false} referrerPolicy="no-referrer" className="pointer-events-none h-full w-full object-cover" />
+                  <img src={c.photo} alt="" draggable={false} loading="lazy" decoding="async" referrerPolicy="no-referrer" className="pointer-events-none h-full w-full object-cover" />
                 )}
                 {/* Scrim so the finding stays readable over any photo. */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-5 pt-16 pb-4 text-white">

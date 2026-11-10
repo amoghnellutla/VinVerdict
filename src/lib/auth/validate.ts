@@ -20,8 +20,11 @@ export function isPublicPath(pathname: string): boolean {
  */
 export const DEMO_PATHS = ["/", "/mine", "/shortlist", "/security", "/share", "/why", "/accuracy", "/scam-signs"] as const;
 
+/** The Car guide is public too: /cars, /cars/<make> and /cars/<make>/<model> (not the owner's /car/[id]). */
+const CAR_GUIDE = /^\/cars(?:\/[a-z0-9-]+){0,2}\/?$/;
+
 export function isDemoPath(pathname: string): boolean {
-  return (DEMO_PATHS as readonly string[]).includes(pathname);
+  return (DEMO_PATHS as readonly string[]).includes(pathname) || CAR_GUIDE.test(pathname);
 }
 
 /**

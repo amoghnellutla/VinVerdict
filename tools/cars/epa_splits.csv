@@ -1,0 +1,38 @@
+make,epa_basemodel,model_regex,name,note
+Land Rover,Range Rover,^(new )?range rover sport,Range Rover Sport,EPA's base model groups four different Range Rovers
+Land Rover,Range Rover,^range rover velar,Range Rover Velar,
+Land Rover,Range Rover,^range rover evoque,Range Rover Evoque,
+Land Rover,Evoque,.,Range Rover Evoque,Later years list it without "Range Rover"
+Land Rover,Discovery,^discovery sport,Discovery Sport,A smaller SUV than the Discovery
+Porsche,718,cayman,718 Cayman,Coupe and roadster are separate models
+Porsche,718,boxster,718 Boxster,
+Subaru,Legacy/Outback,outback,Outback,EPA groups them for early years
+Subaru,Legacy/Outback,legacy,Legacy,
+Subaru,Impreza/Outback Sport,.,Impreza,
+Toyota,Camry,solara,Camry Solara,A coupe and convertible sold separately from the Camry
+Mitsubishi,Lancer,evolution,Lancer Evolution,
+Mitsubishi,Outlander,^outlander sport,Outlander Sport,A smaller SUV than the Outlander
+Ford,Explorer,sport trac,Explorer Sport Trac,A pickup based on the Explorer
+Ford,Explorer,^explorer sport,Explorer Sport,The 2-door Explorer (2001-2003)
+Ford,Expedition,^expedition (el|max),Expedition MAX,The long Expedition (EL until 2017)
+Hyundai,Santa Fe,^santa fe sport,Santa Fe Sport,The 2013-2018 two-row Santa Fe
+Hyundai,Santa Fe,^santa fe xl,Santa Fe XL,The 2019 three-row Santa Fe
+GMC,Yukon,^yukon xl,Yukon XL,The long Yukon
+GMC,Envoy,^envoy xl,Envoy XL,
+Cadillac,Escalade,esv,Escalade ESV,The long Escalade
+Volkswagen,Golf/GTI,^gti,GTI,
+Volkswagen,Golf/GTI,^e-golf,e-Golf,
+Volkswagen,Golf/GTI,^golf r,Golf R,
+Volkswagen,Golf/GTI,.,Golf,
+Volkswagen,Atlas,cross sport,Atlas Cross Sport,A two-row Atlas
+Volkswagen,Jetta,sportwagen,Jetta SportWagen,
+Volkswagen,Beetle,^new beetle,New Beetle,The 1998-2010 Beetle
+Chrysler,Town and Country/Voyager/Grand Voyager,.,Town and Country,
+Pontiac,Firebird/Trans Am/Formula,.,Firebird,
+BMW,M,^m2,M2,EPA's "M" groups different BMW M cars
+BMW,M,^m3,M3,
+BMW,M,^m4,M4,
+BMW,M,^m5,M5,
+BMW,M,^m6,M6,
+BMW,M,^m8,M8,
+BMW,M,^m (coupe|roadster),Z4 M,The M Coupe and M Roadster are Z3/Z4-based

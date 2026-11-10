@@ -16,7 +16,7 @@ import urllib.request
 from common import parse_args
 
 args = parse_args(__doc__ or "")
-PATHS = ["/", "/mine", "/shortlist", "/why", "/security", "/accuracy", "/scam-signs", "/login", "/checked"]
+PATHS = ["/", "/mine", "/shortlist", "/why", "/security", "/accuracy", "/scam-signs", "/cars", "/cars/toyota/camry", "/login", "/checked"]
 N, CONCURRENCY = 700, 50
 
 

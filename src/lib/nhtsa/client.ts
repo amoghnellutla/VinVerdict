@@ -14,7 +14,8 @@ import {
 
 /**
  * NHTSA data fetchers (free, no key). Server-only.
- * Results are cached with "use cache" (PLAN.md §10: NHTSA data cached per
+ * Results are cached with "use cache: remote": one shared cache for every server
+ * instance, so a car looked up once is instant for the next visitor (PLAN.md §10: cached per
  * model/year). Only the small parsed objects are cached, not raw responses.
  * Errors throw and are not cached, so a failed call is retried next time.
  */
@@ -46,14 +47,14 @@ const q = (s: string) => encodeURIComponent(s.trim());
 
 /** Decode a VIN. Caller must pass a format-checked VIN (see lib/vin.ts). */
 export async function decodeVin(vin: string): Promise<DecodedVin> {
-  "use cache";
+  "use cache: remote";
   cacheLife("weeks");
   return parseVinDecode(vin, await getJson(`${VPIC}/DecodeVinValues/${q(vin)}?format=json`));
 }
 
 /** All recalls for the model/year (not per-VIN open status; see PLAN.md §13). */
 export async function getRecalls(v: VehicleKey): Promise<Recall[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("days");
   assertVehicle(v);
   return parseRecalls(
@@ -63,7 +64,7 @@ export async function getRecalls(v: VehicleKey): Promise<Recall[]> {
 
 /** Crash-test stars for each body variant (e.g. 4-door FWD, 2-door FWD). */
 export async function getSafetyRatings(v: VehicleKey): Promise<SafetyRating[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("weeks");
   assertVehicle(v);
   const variants = parseRatingVariants(
@@ -76,7 +77,7 @@ export async function getSafetyRatings(v: VehicleKey): Promise<SafetyRating[]> {
 }
 
 export async function getComplaintSummary(v: VehicleKey): Promise<ComplaintSummary> {
-  "use cache";
+  "use cache: remote";
   cacheLife("days");
   assertVehicle(v);
   return summarizeComplaints(

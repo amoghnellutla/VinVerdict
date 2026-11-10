@@ -341,23 +341,25 @@ a {
   background-size: 160px 160px;
 }
 /* Tire tracks: behind the page on a computer, over it on a phone (data-over). Never catch clicks. */
-.fx-tracks,
-.fx-car {
+.fx-tracks {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-.fx-tracks {
   z-index: -1;
 }
 .fx-tracks[data-over] {
   z-index: 40;
 }
-/* The little car cursor sits above everything, including the sticky section bar. */
+/* The little car cursor: a small canvas moved by the compositor, above everything (even the sticky section bar). */
 .fx-car {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
   z-index: 70;
+  will-change: transform;
 }
 /* With the car on, the system cursor hides except where you click or type. */
 html.car-cursor,

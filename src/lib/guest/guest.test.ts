@@ -32,6 +32,10 @@ describe("demo pages", () => {
     for (const p of ["/", "/mine", "/shortlist", "/security", "/share", "/why", "/accuracy", "/scam-signs"]) expect(isDemoPath(p)).toBe(true);
     for (const p of ["/checked", "/compare", "/search", "/settings", "/car/1", "/mfa", "/shortlist/x"]) expect(isDemoPath(p)).toBe(false);
   });
+  it("opens the Car guide and its make and model pages, and nothing else under /cars", () => {
+    for (const p of ["/cars", "/cars/toyota", "/cars/land-rover/range-rover", "/cars/toyota/camry/"]) expect(isDemoPath(p)).toBe(true);
+    for (const p of ["/car", "/car/abc", "/cars/toyota/camry/2016/x", "/cars/../checked", "/cars/Toyota", "/carsx", "/cars/a/b/c"]) expect(isDemoPath(p)).toBe(false);
+  });
 });
 
 // --- Server Actions, visitor path (all outside services mocked) ---

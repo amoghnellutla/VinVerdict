@@ -1,0 +1,52 @@
+make,epa_basemodel,name,note
+Mazda,2,Mazda2,EPA uses the bare number; Mazda sells it as Mazda2
+Mazda,3,Mazda3,EPA uses the bare number; Mazda sells it as Mazda3
+Mazda,5,Mazda5,EPA uses the bare number; Mazda sells it as Mazda5
+Mazda,6,Mazda6,EPA uses the bare number; Mazda sells it as Mazda6
+Mazda,MX-5,MX-5 Miata,Same car; EPA lists some years without "Miata"
+Mazda,Protege/Protege 5,Protege,Same car line
+Mazda,Protege/Protege MPS,Protege,Same car line
+Mazda,Speed 3,Mazdaspeed3,Mazda's name for it
+Chevrolet,Lumina/Monte Carlo,Monte Carlo,EPA groups them for 2000 only
+Porsche,Carrera 2 911 GT3,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 Cabriolet,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 Cabriolet Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 Coupe,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 Coupe Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 S Cabriolet,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 2 S Coupe,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 Cabriolet,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 Cabriolet Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 Coupe,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S Cabriolet,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S Cabriolet Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S Coupe,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 S Targa,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Carrera 4 Targa,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,New 911 Carrera,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Targa,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 2 911 GT2,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 Cab,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 Cab Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 S,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 Turbo,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo 4 911 Turbo Cab S,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo GT2,911,EPA lists 911 trims as separate models for 2003-2012
+Porsche,Turbo Kit,911,EPA lists 911 trims as separate models for 2003-2012
+Dodge,Caravan/Grand Caravan,Grand Caravan,EPA groups them; both are the Grand Caravan line
+Jeep,Gladiator Pickup,Gladiator,Same truck
+Jeep,Wrangler/TJ,Wrangler,TJ is the 1997-2006 Wrangler
+Jeep,Liberty/Cherokee,Liberty,Sold in the US as the Liberty
+Kia,Sephia/Spectra,Spectra,Same car line
+Hyundai,Accent/Brio,Accent,Sold in the US as the Accent
+Buick,Lacrosse/Allure,LaCrosse,Sold in the US as the LaCrosse
+Chrysler,Concorde/LHS,Concorde,EPA groups them
+Dodge,Neon/SRT-4/SX 2.0,Neon,Same car line
+Audi,TT Coupe,TT,Same car; EPA splits body styles some years
+Audi,TT Roadster,TT,Same car; EPA splits body styles some years
+Nissan,LEAF,Leaf,Same car

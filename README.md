@@ -89,6 +89,14 @@ Behind it are four checks: **Listing trust, Car condition, Price, Ready to pay.*
 
 ![Comparing saved cars side by side](docs/images/compare.png)
 
+### 4. Car guide: every car since 2000
+
+[vinverdict.vercel.app/cars](https://vinverdict.vercel.app/cars) covers 86 makes and 988 models sold in the US from 2000 to 2026. Search by name or browse by make, then see each model year side by side:
+- body type and size, engines, gas, hybrid or electric;
+- the EPA's MPG and yearly fuel cost, also shown per month.
+
+Every year links to the EPA's own page for that car. "Luxury brand" and "Sports car" labels appear only when the brand's or model's Wikipedia article says so in its opening, and the page quotes that sentence with the link. Owner complaints, recalls, crash ratings and plain-word summaries ("strong on fuel cost, watch electrical complaints") are coming next, each from a cited source.
+
 ## How to use it
 
 **On a computer**
@@ -245,6 +253,7 @@ Without the listing-API keys, everything except the price and history lookups st
 | `npm run dev` | Local site with hot reload |
 | `npm test` | All tests, offline, with the parser and scam scorecards (no API calls) |
 | `npm run add-case -- --name <name> --label scam\|honest --file listing.txt` | Add a pasted listing to the labelled dataset (removes phone numbers and emails) |
+| `.venv\Scripts\python -I tools/build_cars.py download epa labels merge` | Rebuild the Car guide data from EPA and Wikipedia (free; see `workflows/build_cars.md`) |
 | `npm run retrain` | Retrain the model, refresh the published scorecard and the dataset file, run every test |
 | `npm run lint` / `npx tsc --noEmit` | Lint / type-check |
 | `npm run build` then `npm start` | Production build, run locally |
@@ -257,6 +266,7 @@ src/components/     the result page and shared UI
 src/lib/decision.ts the buyer's decision: severity, evidence, four areas, next step
 src/lib/scam/       warning-sign rules, and eval/ (labelled ads, scorecard, trained model)
 dataset/            the labelled dataset as one JSONL file, with its description
+src/data/catalog/   the Car guide data (built by tools/build_cars.py)
 src/lib/listing/    listing parser and its accuracy corpus
 src/lib/value/      price estimate and the manual comparison
 src/lib/nhtsa/      NHTSA client and parsing

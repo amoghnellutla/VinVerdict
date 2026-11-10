@@ -1,0 +1,1 @@
+{"make":"STI","models":{"s209":{"name":"S209","years":{"2019":{"body":"car","classes":["Compact Cars"],"cylinders":[4],"displacementL":[2.5,2.5],"drive":["AWD"],"epaIds":[42138],"fuelCostYear":{"max":4550,"median":4550,"min":4550},"manual":true,"mpg":[17,17],"power":["gas"],"premiumFuel":true,"size":"compact","supercharged":false,"turbo":true,"variants":1}}}},"slug":"sti"}

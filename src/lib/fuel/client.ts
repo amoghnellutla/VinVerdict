@@ -4,7 +4,7 @@ import { parseMenu, parsePrices, parseVehicle, pickModels, pickOptions, rankVari
 
 /**
  * FuelEconomy.gov web services (EPA/DOE, free, no key). Server-only.
- * Everything is cached with "use cache": vehicle data is fixed per model year
+ * Everything is cached with "use cache: remote" (shared by all server instances): vehicle data is fixed per model year
  * (weeks), national fuel prices change weekly (days). One car costs at most
  * 1 + 4 + 8 calls the first time, then none.
  */
@@ -32,21 +32,21 @@ function assertYmm(year: number, make: string, model?: string) {
 }
 
 export async function getModelNames(year: number, make: string): Promise<string[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("weeks");
   assertYmm(year, make);
   return parseMenu(await getJson("/vehicle/menu/model", { year, make })).map((m) => m.value);
 }
 
 export async function getOptions(year: number, make: string, model: string): Promise<MenuItem[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("weeks");
   assertYmm(year, make, model);
   return parseMenu(await getJson("/vehicle/menu/options", { year, make, model }));
 }
 
 export async function getFuelVehicle(id: number, label: string): Promise<FuelVehicle | null> {
-  "use cache";
+  "use cache: remote";
   cacheLife("weeks");
   if (!Number.isInteger(id) || id <= 0) throw new FuelError(`Invalid id: ${id}`);
   return parseVehicle(await getJson(`/vehicle/${id}`), label);
@@ -54,7 +54,7 @@ export async function getFuelVehicle(id: number, label: string): Promise<FuelVeh
 
 /** National average prices: $/gallon, electricity $/kWh. */
 export async function getFuelPrices(): Promise<FuelPrices | null> {
-  "use cache";
+  "use cache: remote";
   cacheLife("days");
   return parsePrices(await getJson("/fuelprices"));
 }

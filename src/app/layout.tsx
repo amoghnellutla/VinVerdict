@@ -11,7 +11,8 @@ import "./globals.css";
 // Overpass is the open version of Highway Gothic, the lettering on US road signs:
 // one family for everything. Overpass Mono only for VINs (fixed-width, like a VIN plate).
 const body = Overpass({ variable: "--font-body", subsets: ["latin"] });
-const mono = Overpass_Mono({ variable: "--font-vin", subsets: ["latin"], weight: ["400", "600", "700"] });
+// Not preloaded: VINs appear only in results, so pages shouldn't wait for it.
+const mono = Overpass_Mono({ variable: "--font-vin", subsets: ["latin"], weight: ["400", "600", "700"], preload: false });
 
 const DESCRIPTION =
   "A free second opinion before you buy a used car: paste a listing or VIN and see scam warning signs, a fair price, recalls and what to check next. Every fact linked to its source.";
