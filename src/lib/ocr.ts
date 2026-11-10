@@ -13,18 +13,43 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const MAX_WIDTH = 2000;
 const MIN_WIDTH = 1000;
 const MAX_PIXELS = 16_000_000;
+// A real screenshot is under ~20 MP; a tiny file claiming far more is a
+// "decompression bomb" that could run a phone out of memory when decoded.
+const MAX_SOURCE_PIXELS = 50_000_000;
 
 export type OcrProgress = { image: number; of: number; pct: number; loading: boolean };
+
+/** Raster images only (no SVG: it's a document that can carry script, and never a screenshot). */
+const isRaster = (f: File) => f.type.startsWith("image/") && !f.type.includes("svg");
 
 /** Keep only images, at most MAX_SCREENSHOTS, each under 25 MB. */
 export function pickImages(files: FileList | File[] | null): { files: File[]; skipped: number } {
   const all = Array.from(files ?? []);
-  const ok = all.filter((f) => f.type.startsWith("image/") && f.size > 0 && f.size <= MAX_BYTES).slice(0, MAX_SCREENSHOTS);
+  const ok = all.filter((f) => isRaster(f) && f.size > 0 && f.size <= MAX_BYTES).slice(0, MAX_SCREENSHOTS);
   return { files: ok, skipped: all.length - ok.length };
+}
+
+/** The image's width and height from its header, without decoding the pixels. */
+function measure(file: File): Promise<{ w: number; h: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      reject(new Error("not an image"));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
 }
 
 /** Scale to a size OCR reads well, grey it, and flip dark-mode screenshots to dark-on-light. */
 async function prepare(file: File): Promise<HTMLCanvasElement> {
+  const { w, h } = await measure(file);
+  if (!w || !h || w * h > MAX_SOURCE_PIXELS) throw new Error("image too large");
   const bmp = await createImageBitmap(file);
   let scale = bmp.width < MIN_WIDTH ? MIN_WIDTH / bmp.width : bmp.width > MAX_WIDTH ? MAX_WIDTH / bmp.width : 1;
   if (bmp.width * bmp.height * scale * scale > MAX_PIXELS) scale = Math.sqrt(MAX_PIXELS / (bmp.width * bmp.height));
