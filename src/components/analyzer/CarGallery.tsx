@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { isSafeImageSrc } from "@/lib/live/parse";
 
 /**
  * The car's photos at the top of a result: the live listing's photos, or the
@@ -9,7 +10,8 @@ import { useMemo, useState } from "react";
  */
 export function CarGallery({ photos, label, caption }: { photos: string[]; label: string; caption: string }) {
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
-  const list = useMemo(() => photos.filter((p) => !failed.has(p)), [photos, failed]);
+  // Only the approved photo host or local previews, whatever the caller passes (defence in depth; the CSP allows nothing else either).
+  const list = useMemo(() => photos.filter((p) => isSafeImageSrc(p) && !failed.has(p)), [photos, failed]);
   const [at, setAt] = useState(0);
   const shown = list.length ? at % list.length : 0;
 

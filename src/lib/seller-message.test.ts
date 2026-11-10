@@ -20,7 +20,8 @@ describe("sellerMessage", () => {
 
   it("makes three-word phrases from the word list", () => {
     let i = 0;
-    const seq = [0, 0.5, 0.99];
-    expect(proofPhrase(() => seq[i++])).toMatch(/^[a-z]+ [a-z]+ [a-z]+$/);
+    const seq = [0, 24, 47];
+    expect(proofPhrase(() => seq[i++])).toBe("maple jasmine jungle");
+    expect(proofPhrase()).toMatch(/^[a-z]+ [a-z]+ [a-z]+$/);
   });
 });

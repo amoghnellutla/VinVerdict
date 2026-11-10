@@ -1,4 +1,5 @@
 import { ExternalLink } from "@/components/ExternalLink";
+import { isSafeImageSrc } from "@/lib/live/parse";
 
 const enc = encodeURIComponent;
 
@@ -9,7 +10,8 @@ const enc = encodeURIComponent;
  * what comes back (dealers legitimately post the same photos on many sites).
  */
 export function PhotoCheck({ photos, dealer }: { photos: string[]; dealer: boolean }) {
-  const shown = photos.filter((p) => /^https:\/\//.test(p)).slice(0, 3);
+  // Only listing photos with a public address on the approved host (never local previews, never other hosts).
+  const shown = photos.filter((p) => isSafeImageSrc(p) && !p.startsWith("blob:")).slice(0, 3);
   return (
     <section className="border-t border-border pt-8" id="photo-check">
       <h2 className="section-title">Are the photos really this car?</h2>

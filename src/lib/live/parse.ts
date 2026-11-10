@@ -46,6 +46,17 @@ export type LiveListing = {
 
 /** Auto.dev's photo host; numbered photos follow "{VIN}-{n}.jpg". Old listings' photos expire, so the page hides any that fail. */
 export const PHOTO_HOST = "retail.photos.vin";
+
+/** Image addresses the page may show: listing photos from PHOTO_HOST over https, or local blob: previews of the person's own screenshots. */
+export function isSafeImageSrc(src: string): boolean {
+  if (src.startsWith("blob:")) return true;
+  try {
+    const u = new URL(src);
+    return u.protocol === "https:" && u.hostname === PHOTO_HOST;
+  } catch {
+    return false;
+  }
+}
 const MAX_PHOTOS = 12;
 
 export function listingPhotos(primary: unknown, count: unknown, vin: string): string[] {

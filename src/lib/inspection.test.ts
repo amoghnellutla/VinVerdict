@@ -60,6 +60,10 @@ describe("buyerProtection", () => {
   it("private sellers get no protection", () => {
     expect(buyerProtection({ ...base, sellerType: "private" })).toMatchObject({ source: "private", level: "none", returns: null });
     expect(buyerProtection({ ...base, sourceHost: "newjersey.craigslist.org" }).level).toBe("none");
+    expect(buyerProtection({ ...base, sourceHost: "www.facebook.com" }).source).toBe("private");
+    // Look-alike hosts aren't Facebook or Craigslist.
+    expect(buyerProtection({ ...base, sourceHost: "notfacebook.com" }).source).not.toBe("private");
+    expect(buyerProtection({ ...base, sourceHost: "craigslist.org.example.net" }).source).not.toBe("private");
   });
 
   it("dealers get the Buyers Guide and NJ warranty tier", () => {

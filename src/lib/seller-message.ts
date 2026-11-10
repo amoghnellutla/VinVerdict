@@ -30,9 +30,19 @@ const WORDS = [
   "velvet", "walnut", "yellow", "zebra", "basket", "cobalt", "desert", "feather", "ginger", "honey", "igloo", "jungle",
 ];
 
-/** Three random words, e.g. "copper tulip harbor". Pass a random source in tests. */
-export function proofPhrase(random: () => number = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32): string {
-  return Array.from({ length: 3 }, () => WORDS[Math.floor(random() * WORDS.length)]).join(" ");
+/** An unbiased random index below n, from the browser's cryptographic generator (rejection sampling). */
+function cryptoIndex(n: number): number {
+  const limit = Math.floor(2 ** 32 / n) * n;
+  const buf = new Uint32Array(1);
+  for (;;) {
+    crypto.getRandomValues(buf);
+    if (buf[0] < limit) return buf[0] % n;
+  }
+}
+
+/** Three random words, e.g. "copper tulip harbor". Pass an index source in tests. */
+export function proofPhrase(pick: (n: number) => number = cryptoIndex): string {
+  return Array.from({ length: 3 }, () => WORDS[pick(WORDS.length)]).join(" ");
 }
 
 export function sellerMessage(m: MessageInput): string {

@@ -91,7 +91,8 @@ export function buyerProtection(i: ProtectionInput): Protection {
   const big = PATTERNS.find(([re]) => re.test(hay))?.[1];
   if (big) return { source: big, ...BIG_SELLERS[big] };
 
-  if (i.sellerType === "private" || /facebook\.com|craigslist\.org/i.test(i.sourceHost ?? "")) {
+  // Anchored, so "notfacebook.com" or "facebook.com.example" don't count.
+  if (i.sellerType === "private" || /(^|\.)(facebook\.com|craigslist\.org)$/i.test(i.sourceHost ?? "")) {
     return {
       source: "private",
       name: "Private seller",
