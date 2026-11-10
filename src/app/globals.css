@@ -2,9 +2,8 @@
 
 
 /*
- * VinVerdict look: night driving. Solid black road, and a "headlight" that
- * follows the pointer across a faint grid of stamped dots (VIN-plate
- * texture; components/BackgroundFx.tsx). Lettering is Overpass (Highway
+ * VinVerdict look: night driving. Solid black asphalt with a fine grain, and
+ * tire tracks wherever the mouse or a finger goes (components/BackgroundFx.tsx). Lettering is Overpass (Highway
  * Gothic's open version), VINs in Overpass Mono. Road-sign blue is the one
  * accent; red, amber and green only for verdicts, like a traffic light.
  * Dark only, by request; print switches to paper (see @media print).
@@ -332,43 +331,20 @@ a {
 .d5 { animation-delay: 400ms; }
 .d6 { animation-delay: 480ms; }
 
-/* Background: black, stamped dots everywhere, and the headlight (components/BackgroundFx.tsx). */
+/* Background: black asphalt grain and fading tire tracks (components/BackgroundFx.tsx). */
 .bg-fx {
-  --x: 50vw;
-  --y: 18vh;
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  background-color: var(--background);
+  background-size: 160px 160px;
 }
-.bg-fx::before,
-.bg-fx::after {
-  content: "";
+.bg-fx canvas {
   position: absolute;
   inset: 0;
-  background-size: 22px 22px;
-}
-.bg-fx::before {
-  background-image: radial-gradient(rgb(255 255 255 / 0.075) 1px, transparent 1.5px);
-}
-/* The same dots, brighter, only inside the beam. */
-.bg-fx::after {
-  background-image: radial-gradient(rgb(var(--glow) / 0.7) 1.1px, transparent 1.7px);
-  mask-image: radial-gradient(circle 240px at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.35) 45%, transparent 100%);
-  opacity: 0.55;
-  transition: opacity 0.4s ease;
-}
-/* The beam's soft light. */
-.bg-fx > span {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle 460px at var(--x) var(--y), rgb(var(--glow) / 0.11), transparent 70%);
-  opacity: 0.7;
-  transition: opacity 0.4s ease;
-}
-.bg-fx[data-lit] > span,
-.bg-fx[data-lit]::after {
-  opacity: 1;
+  width: 100%;
+  height: 100%;
 }
 
 /* Raised things (photos, the photo deck) sit on a soft dark shadow with a faint edge light. */
