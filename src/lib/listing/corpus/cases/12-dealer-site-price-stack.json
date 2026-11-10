@@ -14,5 +14,12 @@
     "sellerType": "dealer"
   },
   "verdict": "clear",
-  "mustNotHit": ["deposit-first", "shipping-only", "lien", "pay-app-upfront"]
+  "mustNotHit": [
+    "deposit-first",
+    "shipping-only",
+    "lien",
+    "pay-app-upfront"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

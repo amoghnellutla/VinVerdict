@@ -1,5 +1,17 @@
 {
   "note": "Private Prius. Traps: 'battery replaced at 98k' (service, not the odometer), '50+ mpg'.",
-  "expect": { "year": 2017, "make": "Toyota", "model": "Prius", "price": 13200, "miles": 112000, "ownerCount": 1, "accident": "none", "titleStatus": "clean", "sellerType": "private" },
-  "verdict": "clear"
+  "expect": {
+    "year": 2017,
+    "make": "Toyota",
+    "model": "Prius",
+    "price": 13200,
+    "miles": 112000,
+    "ownerCount": 1,
+    "accident": "none",
+    "titleStatus": "clean",
+    "sellerType": "private"
+  },
+  "verdict": "clear",
+  "scam": false,
+  "origin": "synthetic"
 }

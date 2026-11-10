@@ -1,6 +1,18 @@
 {
   "note": "Rebuilt title on Craigslist.",
-  "expect": { "year": 2018, "make": "Honda", "model": "CR-V", "price": 13500, "miles": 64000, "titleStatus": "rebuilt", "exteriorColor": "blue" },
+  "expect": {
+    "year": 2018,
+    "make": "Honda",
+    "model": "CR-V",
+    "price": 13500,
+    "miles": 64000,
+    "titleStatus": "rebuilt",
+    "exteriorColor": "blue"
+  },
   "verdict": "hide",
-  "mustHit": ["title-brand"]
+  "mustHit": [
+    "title-brand"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

@@ -1,0 +1,181 @@
+{
+  "about": "Held-out ads: written after the rules were tuned on cases.json and never used to tune them. Their score is reported separately and as-is. If a case here leads to a rule change, it moves to cases.json (and a new held-out case replaces it).",
+  "cases": [
+    {
+      "id": "h01-logistics-partner",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2018 Honda Accord LX $4,800\n63,000 miles\nI travel for work and I'm currently overseas, the car is handled by my logistics partner who delivers nationwide. Send the payment and they dispatch it the same day."
+    },
+    {
+      "id": "h13-hold-fee-apple-pay",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcApps",
+      "text": "2018 Toyota Camry LE $5,100\n59,000 miles\nI have a lot of interest so I need a small holding payment through Apple Pay Cash before I give you the address. Car comes with a clean title."
+    },
+    {
+      "id": "h03-target-cards",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcPay",
+      "text": "2016 Honda Civic $3,600\n85,000 miles\nPayment for the hold can be made with Target or Walmart gift cards, the balance on pickup."
+    },
+    {
+      "id": "h04-wife-deployed-ship",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2019 Toyota Corolla $5,400\n30k miles\nMy wife and I are deployed overseas. The car is at a transport company and will be shipped to you after payment."
+    },
+    {
+      "id": "h05-zelle-reserve",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcApps",
+      "text": "2018 Mazda CX-5 $6,300\n50,000 miles\nZelle $400 to reserve and I'll take it off the market. I'm out of state so my brother will deliver."
+    },
+    {
+      "id": "h06-wire-private",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcWire",
+      "text": "2016 Lexus ES 350 $5,900\n92k miles, private owner\nI only take a wire transfer, then the title is overnighted and the car is delivered."
+    },
+    {
+      "id": "h07-escrow-site",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2017 Subaru Outback $5,000\n68,000 miles\nI'm abroad for a family emergency. We use a secure escrow service; you pay them and the car ships to you with a 7 day return."
+    },
+    {
+      "id": "h08-venmo-deposit",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcApps",
+      "text": "2019 Honda CR-V EX $7,900\n44k miles\nVenmo deposit required before showing the car."
+    },
+    {
+      "id": "h09-paypal-shipping",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2015 Toyota Highlander $5,500\n101k miles\nRelocated to another state, I can ship it to you, shipping is included. Pay through PayPal, you get a 5 day inspection."
+    },
+    {
+      "id": "h10-crypto-hold",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcPay",
+      "text": "2018 Toyota Camry SE $5,600\n57,000 miles\nSend a crypto deposit (USDT or bitcoin) upfront to hold it."
+    },
+    {
+      "id": "h11-not-local-cousin",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2017 Honda Pilot $5,800\n94k miles\nI'm not local, my cousin has the car. Cash App the full amount and he'll drop it off with the title."
+    },
+    {
+      "id": "h12-mission-storage",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2016 Toyota Prius $3,100\n88,000 miles\nI'm stationed overseas, so the car is in storage and the shipping company will bring it to you once paid."
+    },
+    {
+      "id": "k01-dealer-zelle-deposit",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2021 Honda Civic Sport $21,995\nStock #H8812 | 26,000 miles\nCentral Jersey Honda, dealer. Hold this vehicle with a refundable deposit online. We ship to all 50 states."
+    },
+    {
+      "id": "k02-no-shipping",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2017 Toyota Corolla LE $10,400\n81k miles\nNo shipping, no deposits, no Zelle. Local sale only, see it in Edison."
+    },
+    {
+      "id": "k03-meet-bank",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2018 Honda Accord Sport $16,200\n61,000 miles, clean title in my name\nWe can meet at my bank. Bring your mechanic if you like."
+    },
+    {
+      "id": "k04-overseas-next-month",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2016 Toyota Camry XLE $12,300\n96,000 miles\nMoving overseas next month for a new job, so the car has to go. It's in Princeton, come test drive it."
+    },
+    {
+      "id": "k05-gift-card-joke",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2015 Honda CR-V LX $9,700\n118k miles\nNot interested in trades, gift cards or payment plans. Cash or cashier's check in person."
+    },
+    {
+      "id": "k06-paypal-no",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2019 Mazda Mazda3 $14,900\n39k miles\nCash only, I won't take PayPal or Venmo. Happy to meet at a safe trade spot."
+    },
+    {
+      "id": "k07-dealer-wire-before",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2020 Toyota Highlander XLE $31,500\nStock #T7703 | Dealer\n42,000 miles. Out-of-state buyers: we accept wire transfer after signing; vehicle released when funds clear."
+    },
+    {
+      "id": "k08-garage-storage",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2014 Lexus RX 350 $13,800\n109k miles\nKept in storage most of the year, only driven in summer. You can see it at my house in Hopewell."
+    },
+    {
+      "id": "k09-ebay-reference",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2016 Subaru Outback $12,600\n90,000 miles\nPriced below eBay Motors and KBB comps. Clean title, see it in Trenton any weekend."
+    },
+    {
+      "id": "k10-no-test-drive-until",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2018 Toyota RAV4 XLE $18,400\n66k miles\nNo test drives until I see your license, sorry. Mechanic inspection is fine."
+    },
+    {
+      "id": "k11-deployed-spouse-local",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2017 Honda Odyssey EX $15,900\n87,000 miles\nSelling for my son who is deployed, the title is signed over to me. Come see it in Lakewood."
+    },
+    {
+      "id": "k12-venmo-after-drive",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2016 Mazda CX-5 $11,800\n99k miles\nAfter the test drive you can pay cash or Venmo, title handed over right there."
+    },
+    {
+      "id": "k13-free-delivery-private",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2019 Honda HR-V $16,700\n41,000 miles\nCome see it first in New Brunswick. If you buy it, I can deliver it within 20 miles for free."
+    }
+  ],
+  "firstRun": "2026-11-10: precision 100%, recall 92% (11 of 12), false alarms 0% (0 of 13). Missed: a refundable viewing fee by Cash App (moved to cases.json after the fix)."
+}

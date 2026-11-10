@@ -14,5 +14,11 @@
     "ownerCount": 2,
     "sellerType": "private"
   },
-  "mustNotHit": ["accident-reported", "rushed", "vin-mismatch"]
+  "mustNotHit": [
+    "accident-reported",
+    "rushed",
+    "vin-mismatch"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

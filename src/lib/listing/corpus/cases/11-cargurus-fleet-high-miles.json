@@ -1,6 +1,21 @@
 {
   "note": "Ex-rental with about 25k miles a year.",
-  "expect": { "year": 2020, "make": "Nissan", "model": "Altima", "price": 11250, "miles": 148320, "accident": "none", "usage": "rental", "sellerType": "dealer", "transmission": "automatic" },
+  "expect": {
+    "year": 2020,
+    "make": "Nissan",
+    "model": "Altima",
+    "price": 11250,
+    "miles": 148320,
+    "accident": "none",
+    "usage": "rental",
+    "sellerType": "dealer",
+    "transmission": "automatic"
+  },
   "verdict": "caution",
-  "mustHit": ["high-miles", "fleet"]
+  "mustHit": [
+    "high-miles",
+    "fleet"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

@@ -183,3 +183,7 @@ Two rules wait for saved data (Phase 8): "same phone on several listings" and "s
 ## The buyer's decision (`lib/decision.ts`)
 
 On top of the rule engine (`lib/verdict.ts`, which still drives saved cars and the corpus), `decide()` maps each finding to a public severity (stop / verify / note), an evidence source and one of four areas (listing trust, car condition, price, ready to pay), then works out one next step. Each area lists what's still unknown, so nothing found is never shown as checked clean. It's pure and runs in the browser (`components/analyzer/VerdictCard.tsx`), so answering a seller question or attaching a report updates it instantly. Tests: `lib/decision.test.ts`.
+
+## Measuring the scam warnings (`lib/scam/eval/`)
+
+`cases.json` (tuning) and `holdout.json` (never used to tune) hold labelled ads; corpus cases with a `scam` label join the tuning set. `evaluate.ts` runs each through the real parser, rules and `decide()`; an ad counts as flagged when the answer is "Stop" because of the listing or the payment. It also scores a keyword filter as a baseline. `eval.test.ts` prints the scorecard and fails if `scorecard.json` (rendered by `/accuracy`) doesn't match the code; refresh it with `UPDATE_SCORECARD=1 npx vitest run src/lib/scam/eval`. A held-out ad that leads to a rule change moves to `cases.json` and is replaced, so the held-out number stays honest.

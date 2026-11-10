@@ -1,6 +1,21 @@
 {
   "note": "Short private text: two-digit year ('08'), bare price ('4500 cash'), '165k' miles, a dent (not an accident).",
-  "expect": { "year": 2008, "make": "Honda", "model": "Accord", "price": 4500, "miles": 165000, "sellerType": "private", "accident": "unknown" },
-  "mustHit": ["no-vin"],
-  "mustNotHit": ["accident-reported", "rushed"]
+  "expect": {
+    "year": 2008,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 4500,
+    "miles": 165000,
+    "sellerType": "private",
+    "accident": "unknown"
+  },
+  "mustHit": [
+    "no-vin"
+  ],
+  "mustNotHit": [
+    "accident-reported",
+    "rushed"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

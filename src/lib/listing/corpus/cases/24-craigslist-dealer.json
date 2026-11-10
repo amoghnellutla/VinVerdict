@@ -1,6 +1,19 @@
 {
   "note": "Craigslist dealer post ('by dealer' section).",
-  "expect": { "year": 2018, "make": "Toyota", "model": "RAV4", "price": 17995, "miles": 88450, "sellerType": "dealer", "titleStatus": "clean", "exteriorColor": "gray" },
+  "expect": {
+    "year": 2018,
+    "make": "Toyota",
+    "model": "RAV4",
+    "price": 17995,
+    "miles": 88450,
+    "sellerType": "dealer",
+    "titleStatus": "clean",
+    "exteriorColor": "gray"
+  },
   "verdict": "clear",
-  "mustHit": ["accident-unknown"]
+  "mustHit": [
+    "accident-unknown"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

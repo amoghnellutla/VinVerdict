@@ -18,7 +18,7 @@ export function isPublicPath(pathname: string): boolean {
  * else (My cars, Compare, Search, Settings, car pages) needs the owner's
  * two-step login.
  */
-export const DEMO_PATHS = ["/", "/shortlist", "/security", "/share", "/why"] as const;
+export const DEMO_PATHS = ["/", "/shortlist", "/security", "/share", "/why", "/accuracy"] as const;
 
 export function isDemoPath(pathname: string): boolean {
   return (DEMO_PATHS as readonly string[]).includes(pathname);

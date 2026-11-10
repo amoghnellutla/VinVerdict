@@ -1,6 +1,15 @@
 {
   "note": "Manual car whose feature list says 'automatic' twice.",
-  "expect": { "transmission": "manual", "price": 14000, "miles": 72000, "ownerCount": 1 },
+  "expect": {
+    "transmission": "manual",
+    "price": 14000,
+    "miles": 72000,
+    "ownerCount": 1
+  },
   "verdict": "hide",
-  "mustHit": ["manual"]
+  "mustHit": [
+    "manual"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

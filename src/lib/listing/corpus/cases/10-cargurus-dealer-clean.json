@@ -14,5 +14,13 @@
     "usage": "personal"
   },
   "verdict": "clear",
-  "mustNotHit": ["shipping-only", "deposit-first", "curbstoning", "accident-reported", "fleet"]
+  "mustNotHit": [
+    "shipping-only",
+    "deposit-first",
+    "curbstoning",
+    "accident-reported",
+    "fleet"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

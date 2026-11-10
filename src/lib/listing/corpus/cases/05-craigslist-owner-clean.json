@@ -18,5 +18,7 @@
     "lien",
     "accident-reported",
     "no-inspection"
-  ]
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

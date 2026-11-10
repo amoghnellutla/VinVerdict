@@ -63,6 +63,12 @@ const sameName = (a: string, b: string) => {
   return x === y || x.includes(y) || y.includes(x);
 };
 
+/** The sentences of a text (split after . ! ? and at line breaks). */
+const sentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/);
+/** The seller invites the buyer to see or inspect the car in person. */
+const CAN_SEE =
+  /come (and |by )?see|see it (in person|first|any)|test drive|bring (a |your )?mechanic|(after|once) you('ve| have)? (seen|inspected|test)|welcome to come|for a viewing|come by/;
+
 export function evaluateScamRules(input: ScamInput): ScamResult {
   const { listing: l, decoded, checklist: c = {} } = input;
   const t = normalizeText(input.text);
@@ -114,16 +120,28 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   }
 
   // --- Payment and remote-sale scams ---
-  if (/\bgift ?cards?\b/.test(t)) {
+  // Gift cards as payment, not in passing ("the unused car wash gift card") or in a
+  // warning ("scammers asking about gift cards, don't bother").
+  const giftPay = sentences(t).some((x) => {
+    const m = /\bgift ?cards?\b/.exec(x);
+    if (!m || /scam/.test(x)) return false;
+    const before = x.slice(0, m.index);
+    return /\b(pay|payment|deposit|accept\w*|send|only|card numbers?)\b/.test(x) && !/\b(no|not|don'?t|won'?t|never|without)\b[^.!?]{0,25}$/.test(before);
+  });
+  if (giftPay) {
     add("pay-gift-card", "hide", "Gift card payment", "No real car seller asks for gift cards. This is a scam pattern.");
   }
-  if (/\bwire (transfer|the money|payment)|western union|moneygram\b/.test(t)) {
+  // Dealers take wires at signing; from a private seller, or before seeing the car, it's the scam.
+  const wireAsked = /\bwire (transfer|the money|payment)/.test(t) && (l.sellerType !== "dealer" || /\b(before|in advance|upfront|up front)\b/.test(t));
+  if (wireAsked || /western union|moneygram\b/.test(t)) {
     add("pay-wire", "hide", "Wire transfer", "Wired money can't be recovered. Pay only in person, at a bank, after seeing the car and title.");
   }
   // Dealers routinely ship cars and take refundable deposits through their own
   // site; from a private seller the same words are the classic scam.
   const dealer = l.sellerType === "dealer";
-  const upfront = /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)/.test(t);
+  // Money before seeing the car, however it's named: a deposit, a "refundable viewing fee", "send it first".
+  const upfront =
+    /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)|\b(viewing|showing|reservation) fee\b|fee (to|for) (see|view|set up|schedule)|to set up a viewing|(cash ?app|zelle|venmo|paypal)[^.!?]{0,15}\bfirst\b/.test(t);
   if (/\b(zelle|cash ?app|venmo|paypal|crypto|bitcoin)\b/.test(t)) {
     if (upfront && !dealer) {
       add("pay-app-upfront", "hide", "Payment-app deposit upfront",
@@ -136,12 +154,22 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   }
   // These are scams whoever says them: the "eBay Motors buyer protection" and
   // "car is at a shipping company" stories.
-  const shippingStory = /ebay motors|(car|vehicle) is (in|at|with) (a |an |the )?(storage|shipping company|warehouse|transport company)|in storage with/.test(t);
+  // Only in the scam story's sense: a "protection" plan or shipping company holding the
+  // car, not "also listed on eBay Motors" or "in storage for the winter".
+  const shippingStory =
+    /ebay motors[^.!?]{0,80}(protection|escrow|agent|ship|warehouse|deliver)|(protection|escrow|agent|shipping company)[^.!?]{0,40}ebay motors/.test(t) ||
+    /(car|vehicle) is (already )?(in|at|with) (a |an |the |their )?(shipping company|warehouse|transport company)/.test(t) ||
+    (/\bstorage\b/.test(t) && /(transport|shipping) company|escrow|\bagent\b/.test(t));
   const shipsOnly = /\b(will|can|i'll|we'll|free) ship\b|shipping (only|included|available|is free)|delivery only/.test(t);
-  if (shippingStory || (shipsOnly && !dealer)) {
+  // "I can ship it after you've inspected it" is a service, not the scam.
+  if (shippingStory || (shipsOnly && !dealer && !CAN_SEE.test(t))) {
     add("shipping-only", "hide", "Shipping only", "A seller who can only ship the car (not show it) is a classic scam.");
   }
-  if (/\b(deployed|overseas|out of the country|stationed (at|in|overseas)|military (base|deployment)|on (a )?mission)\b|i('m| am) (currently )?(out of state|abroad)|seller is (out of state|abroad)/.test(t) || c.meetsInPersonLocally === false) {
+  // The seller is away *now* ("I am deployed overseas", "I'm out of the country"), not
+  // "I'm stationed at Joint Base McGuire, see it any evening" or "moving out of state next month".
+  const awayNow =
+    /\b(i'?m|i am|we'?re|we are|currently|now) (currently |now )?(deployed|overseas|out of the country|abroad|stationed overseas|on (a )?(military )?(deployment|mission))\b|deployed overseas|stationed overseas|mission trip abroad|i('m| am) (currently )?(out of state|not local)|seller is (out of state|abroad)/;
+  if (awayNow.test(t) || c.meetsInPersonLocally === false) {
     add("seller-remote", "hide", "Seller isn't local",
       "The seller is out of state, overseas or won't meet in person. That's the most common fake-listing story: you can't see the car or the title, so don't send money.");
   }
@@ -153,7 +181,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Inspection refusal ---
   if (c.allowsInspection === false ||
-      /\b(no|not allowing|won'?t allow|will not allow|don'?t allow|doesn'?t allow) (an? )?(pre-?purchase )?(inspections?|mechanics?|ppi)\b|\bno test drives?\b/.test(t)) {
+      /\b(no|not allowing|won'?t allow|will not allow|don'?t allow|doesn'?t allow) (an? )?(pre-?purchase )?(inspections?|mechanics?|ppi)\b|\bno test drives?\b(?! (without|unless|until))/.test(t)) {
     add("no-inspection", "hide", "Won't allow an inspection",
       "A seller who refuses a pre-purchase inspection may be hiding something. Don't buy without one.");
   }

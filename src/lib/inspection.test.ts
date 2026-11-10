@@ -108,8 +108,10 @@ describe("known-issue citations", () => {
   });
   it("a bulletin named in the advice matches the one cited", () => {
     for (const k of KNOWN_ISSUES) {
-      const named = k.check.match(/\d{2}-\d{3}/g) ?? [];
+      const named = k.check.match(/\b\d{2}-\d{3}\b/g) ?? [];
       for (const n of named) expect(k.source.label, `${k.id} mentions ${n}`).toContain(n);
     }
+    // The check above must actually see bulletin numbers (it once matched nothing and passed silently).
+    expect(KNOWN_ISSUES.find((k) => k.id === "honda-cvt-p1890")!.check.match(/\b\d{2}-\d{3}\b/g)).toEqual(["16-053"]);
   });
 });

@@ -14,6 +14,15 @@
     "distanceMiles": 969
   },
   "verdict": "hide",
-  "mustHit": ["accident-reported", "high-miles"],
-  "mustNotHit": ["no-price", "shipping-only", "no-vin"]
+  "mustHit": [
+    "accident-reported",
+    "high-miles"
+  ],
+  "mustNotHit": [
+    "no-price",
+    "shipping-only",
+    "no-vin"
+  ],
+  "scam": false,
+  "origin": "real"
 }

@@ -16,5 +16,10 @@
     "zip": "08540"
   },
   "verdict": "clear",
-  "mustNotHit": ["accident-reported", "accident-unknown"]
+  "mustNotHit": [
+    "accident-reported",
+    "accident-unknown"
+  ],
+  "scam": false,
+  "origin": "synthetic"
 }

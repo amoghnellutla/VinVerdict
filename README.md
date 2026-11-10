@@ -110,35 +110,34 @@ flowchart LR
 
 ## Accuracy
 
-VinVerdict is tested against **real listings with known answers** (`src/lib/listing/corpus/`). Every time it gets a listing wrong, that listing becomes a new test case. `npm test` runs them all offline and prints a scorecard:
+**Measured, not claimed.** The full write-up, including what isn't tested yet, is on the site's [How accurate is it?](https://vinverdict.vercel.app/accuracy) page.
+
+**Scam warnings.** Every ad in [`src/lib/scam/eval/`](src/lib/scam/eval/) is labelled by hand. Some show a known scam pattern (FBI, FTC, NICB). The rest are honest ads that use the same words innocently: "no deposits", "I don't take Zelle", "I'm stationed at the base, come see it". A warning counts when VinVerdict says **Stop** because of the listing or the payment.
+
+| Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
+| --- | --- | --- | --- |
+| VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
+| VinVerdict, tuning ads | 28 of 28 | 0 of 46 | 100% |
+| A keyword filter (payment app / shipping / deposit / away) | 27 of 28 | **19 of 46** | 59% |
+
+- **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads to stop (20%)**. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set.
+- **The caveat:** most ads so far are written from published scam patterns. Real listings are being added and reported separately, and real-world numbers will be lower.
+
+**Listing parser.** Real page layouts (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`src/lib/listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong is a case:
 
 ```
 Listing corpus scorecard (26 cases)
-  accident                17/17
-  distanceMiles            1/1
-  docFee                   2/2
-  exteriorColor            7/7
-  false alarms avoided    32/32
-  kind                     4/4
-  make                    21/21
-  miles                   23/23
-  model                   21/21
-  ownerCount              10/10
-  price                   26/26
-  rules fired             24/24
-  sellerType              17/17
-  sourceHost               2/2
-  titleStatus             13/13
-  transmission            11/11
-  usage                    5/5
-  verdict                 20/20
+  accident     17/17    make         21/21    price         26/26
+  miles        23/23    model        21/21    titleStatus   13/13
+  sellerType   17/17    transmission 11/11    verdict       20/20
+  rules fired  24/24    false alarms avoided  32/32
+  ownerCount   10/10    exteriorColor 7/7     usage          5/5
+  kind          4/4     docFee        2/2     sourceHost     2/2    distanceMiles 1/1
 ```
 
-26 cases is a start, not proof: they're the listings checked so far, and every number above is "fields checked", not real-world accuracy.
+**Sources.** Every known model-year problem cites the maker's bulletin it was checked against. A test fails if a bulletin number or year range changes. It was added after an outside review found the 2015–16 Accord/CR-V CVT warning citing the wrong bulletin.
 
-The whole test suite runs on every push ([CI](.github/workflows/ci.yml)). Known-issue citations are pinned to the documents they were checked against, so a wrong bulletin number fails the build.
-
-Next: a larger labelled set of real and synthetic scam listings, with published precision, recall and false-alarm rates (see the roadmap in [docs/PLAN.md](docs/PLAN.md)).
+All of this runs offline on every push ([CI](.github/workflows/ci.yml)); the published scorecard can't go stale, because the build fails if it doesn't match the code.
 
 ## Security and privacy
 

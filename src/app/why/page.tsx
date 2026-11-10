@@ -34,7 +34,7 @@ const ROWS: { q: string; search: string; chatbot: string; us: string }[] = [
     q: "Is the ad a scam?",
     search: "General advice articles.",
     chatbot: "Good general advice, if you think to ask.",
-    us: "More than 30 checks on the ad's own words and data, each tied to FBI, FTC or NICB guidance.",
+    us: "More than 50 checks on the ad's own words and data, each tied to FBI, FTC or NICB guidance, and measured for false alarms on honest ads (see How accurate is it?).",
   },
   {
     q: "What will it cost me in total?",

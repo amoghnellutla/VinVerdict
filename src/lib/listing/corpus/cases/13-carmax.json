@@ -1,5 +1,18 @@
 {
   "note": "CarMax page. Traps: '42K mi', '$199 processing fee', '10-day', '30-day'. CarMax named in the text means dealer.",
-  "expect": { "year": 2019, "make": "Toyota", "model": "Corolla", "price": 17998, "miles": 42000, "accident": "none", "ownerCount": 1, "titleStatus": "clean", "sellerType": "dealer", "usage": "personal" },
-  "verdict": "clear"
+  "expect": {
+    "year": 2019,
+    "make": "Toyota",
+    "model": "Corolla",
+    "price": 17998,
+    "miles": 42000,
+    "accident": "none",
+    "ownerCount": 1,
+    "titleStatus": "clean",
+    "sellerType": "dealer",
+    "usage": "personal"
+  },
+  "verdict": "clear",
+  "scam": false,
+  "origin": "synthetic"
 }

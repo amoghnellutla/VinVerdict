@@ -1,6 +1,22 @@
 {
   "note": "Classic military-deployment / eBay Motors shipping scam.",
-  "expect": { "year": 2019, "make": "Honda", "model": "Civic", "price": 4500, "miles": 31000, "vin": null },
+  "expect": {
+    "year": 2019,
+    "make": "Honda",
+    "model": "Civic",
+    "price": 4500,
+    "miles": 31000,
+    "vin": null
+  },
   "verdict": "hide",
-  "mustHit": ["seller-remote", "shipping-only", "pay-gift-card", "pay-app-upfront", "no-inspection", "no-vin"]
+  "mustHit": [
+    "seller-remote",
+    "shipping-only",
+    "pay-gift-card",
+    "pay-app-upfront",
+    "no-inspection",
+    "no-vin"
+  ],
+  "scam": true,
+  "origin": "synthetic"
 }
