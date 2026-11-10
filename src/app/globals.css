@@ -340,11 +340,39 @@ a {
   background-color: var(--background);
   background-size: 160px 160px;
 }
-.bg-fx canvas {
-  position: absolute;
+/* Tire tracks: behind the page on a computer, over it on a phone (data-over). Never catch clicks. */
+.fx-tracks,
+.fx-car {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
+}
+.fx-tracks {
+  z-index: -1;
+}
+.fx-tracks[data-over] {
+  z-index: 40;
+}
+/* The little car cursor sits above everything, including the sticky section bar. */
+.fx-car {
+  z-index: 70;
+}
+/* With the car on, the system cursor hides except where you click or type. */
+html.car-cursor,
+html.car-cursor * {
+  cursor: none;
+}
+html.car-cursor :is(a, button, summary, label, select, [role="button"], [role="tab"]),
+html.car-cursor :is(a, button, summary, label, select, [role="button"], [role="tab"]) * {
+  cursor: pointer;
+}
+html.car-cursor :is(input, textarea, [contenteditable="true"]) {
+  cursor: text;
+}
+html.car-cursor :is(button, input, select, textarea):disabled {
+  cursor: not-allowed;
 }
 
 /* Raised things (photos, the photo deck) sit on a soft dark shadow with a faint edge light. */
@@ -414,7 +442,9 @@ html {
     --bad: #b3261e;
     --bad-soft: #fbe8e6;
   }
-  .bg-fx {
+  .bg-fx,
+  .fx-tracks,
+  .fx-car {
     display: none !important;
   }
   /* Tabbed sections print every panel. */
