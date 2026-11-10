@@ -1,0 +1,132 @@
+{
+  "about": "Labelled seller replies for the seller-messages check, all about the same honest-looking ad (a 2017 Honda Accord EX-L, $9,000, 98,000 miles, clean title, no accidents, private seller). 'scam': true means the reply shows a known scam pattern a buyer should stop at. Written before the first measurement (2026-11-10), from FTC/FBI/NICB patterns; honest replies reuse the same words innocently.",
+  "ad": "2017 Honda Accord EX-L $9,000\n98,000 miles, clean title, no accidents\nPrivate seller in Princeton. VIN 1HGCR2F8XHA000123",
+  "cases": [
+    {
+      "id": "m-s01",
+      "scam": true,
+      "text": "Yes it's still available. A lot of people want it, so send a $200 Zelle deposit to hold it and I'll text you the address."
+    },
+    {
+      "id": "m-s02",
+      "scam": true,
+      "text": "I'm deployed overseas right now, the car is with a transport company. Once you pay they deliver it with the title."
+    },
+    {
+      "id": "m-s03",
+      "scam": true,
+      "text": "Can you pay with Apple gift cards? It's easier for me, then you can pick it up."
+    },
+    {
+      "id": "m-s04",
+      "scam": true,
+      "text": "I don't allow inspections, sorry, the car is perfect. Cash only."
+    },
+    {
+      "id": "m-s05",
+      "scam": true,
+      "text": "Please wire the money to my bank and I'll ship the car to you next week."
+    },
+    {
+      "id": "m-s06",
+      "scam": true,
+      "text": "I moved out of state for work so I'm not local anymore. My cousin will deliver it after you send payment by Cash App."
+    },
+    {
+      "id": "m-s07",
+      "scam": true,
+      "text": "To set up a viewing there's a refundable $100 fee by Venmo first, too many no-shows."
+    },
+    {
+      "id": "m-s08",
+      "scam": true,
+      "text": "The car is in storage with eBay Motors, they handle the payment and give you 5 days to inspect after delivery."
+    },
+    {
+      "id": "m-s09",
+      "scam": true,
+      "text": "Send it through Western Union and the keys and title will be mailed."
+    },
+    {
+      "id": "m-s10",
+      "scam": true,
+      "text": "Honestly it has a salvage title but it drives like new, that's why the price is low."
+    },
+    {
+      "id": "m-s11",
+      "scam": true,
+      "text": "I'm out of the country until next month. Pay half upfront with PayPal friends and family and I'll have it shipped."
+    },
+    {
+      "id": "m-s12",
+      "scam": true,
+      "text": "I can only do bitcoin for the deposit, the rest when it's delivered."
+    },
+    {
+      "id": "m-l01",
+      "scam": false,
+      "text": "Yes it's available! Come see it Saturday morning, you can bring your mechanic."
+    },
+    {
+      "id": "m-l02",
+      "scam": false,
+      "text": "No deposit needed. Cash or cashier's check when you see it and the title is in your hand."
+    },
+    {
+      "id": "m-l03",
+      "scam": false,
+      "text": "I don't take Zelle or Venmo, only cash in person. We can meet at the bank."
+    },
+    {
+      "id": "m-l04",
+      "scam": false,
+      "text": "Sure, test drive is fine. Title is in my name, no loan on it."
+    },
+    {
+      "id": "m-l05",
+      "scam": false,
+      "text": "If you're far I can help ship it after you've seen it and paid at my bank."
+    },
+    {
+      "id": "m-l06",
+      "scam": false,
+      "text": "Someone asked me to take gift cards, lol, no. Cash only and come see it first."
+    },
+    {
+      "id": "m-l07",
+      "scam": false,
+      "text": "It's at my house in Princeton. Mileage is 98,200 now. Service records in the glove box."
+    },
+    {
+      "id": "m-l08",
+      "scam": false,
+      "text": "No accidents, never been hit. Happy to show you the Carfax."
+    },
+    {
+      "id": "m-l09",
+      "scam": false,
+      "text": "I'm moving out of state next month, that's why I'm selling. Available evenings this week."
+    },
+    {
+      "id": "m-l10",
+      "scam": false,
+      "text": "You can pay with Zelle at pickup once you've driven it, or cash, whatever you prefer."
+    },
+    {
+      "id": "m-l11",
+      "scam": false,
+      "text": "No test drives without a license, but a pre-purchase inspection is totally fine."
+    },
+    {
+      "id": "m-l12",
+      "scam": false,
+      "text": "My husband is deployed, so I'm selling his car. Come by any evening and bring a mechanic."
+    },
+    {
+      "id": "m-l13",
+      "scam": false,
+      "text": "It was in storage over the winter in my garage, starts right up. Come take a look."
+    }
+  ],
+  "firstRun": "2026-11-10: 12 of 12 scam replies caught, 0 of 13 honest replies flagged (written before measuring, no tuning)."
+}

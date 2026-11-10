@@ -137,6 +137,8 @@ These limits are deliberate. A tool that sounds sure when it isn't does more har
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
 | VinVerdict, tuning ads | 28 of 28 | 0 of 46 | 100% |
 | A keyword filter (payment app, shipping, deposit, away) | 27 of 28 | **19 of 46** | 59% |
+| VinVerdict, **seller replies** (written before the first measurement) | 12 of 12 | 0 of 13 | 100% |
+| The keyword filter, same replies | 10 of 12 | **7 of 13** | 59% |
 
 - **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads (20%)** to stop. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set, so the held-out number stays honest.
 - **The caveat:** most ads so far are written from published scam patterns. Real listings are being added and reported separately, and real-world numbers will be lower.

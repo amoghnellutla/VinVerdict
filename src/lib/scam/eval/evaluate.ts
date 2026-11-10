@@ -11,6 +11,7 @@
 import { decide } from "@/lib/decision";
 import { EMPTY_REPORT } from "@/lib/history-report";
 import { parseListing } from "@/lib/listing/parse";
+import { checkReplies } from "@/lib/seller-replies";
 import { buildVerdict } from "@/lib/verdict";
 
 export type EvalCase = { id: string; origin: "real" | "synthetic"; scam: boolean; basis?: string; text: string };
@@ -26,6 +27,15 @@ export function vinverdictFlags(text: string): { flagged: boolean; why: string[]
   });
   const why = d.findings.filter((f) => f.severity === "stop" && (f.area === "listing" || f.area === "deal")).map((f) => f.id);
   return { flagged: why.length > 0, why };
+}
+
+/** A seller reply is flagged when, on its own, it turns the verdict to "Stop". */
+export function replyFlags(adText: string, reply: string): boolean {
+  const hits = checkReplies(reply, parseListing(adText));
+  return decide({
+    hits, kind: "text", hasVin: true, hasPrice: true, decoded: false, recalls: null, report: EMPTY_REPORT, checklist: {},
+    listingStatesHistory: false, priced: false, price: null,
+  }).level === "stop";
 }
 
 /** What a simple "scary word" filter would do: flag any ad that mentions a payment app, shipping, a deposit or being away. */
@@ -58,10 +68,16 @@ export type Scorecard = {
   byOrigin: { real: Metrics; synthetic: Metrics };
   /** Ads never used to tune the rules (holdout.json): the honest number. */
   heldOut: Metrics;
+  /** Seller replies (messages.json), checked by the seller-messages check. */
+  messages: Metrics;
+  /** The keyword filter on the same replies. */
+  messagesBaseline: Metrics;
   misses: { id: string; kind: "missed scam" | "false alarm"; why: string[] }[];
 };
 
-export function score(cases: EvalCase[], heldOut: EvalCase[], generated: string): Scorecard {
+export type ReplyCase = { id: string; scam: boolean; text: string };
+
+export function score(cases: EvalCase[], heldOut: EvalCase[], generated: string, replies: { ad: string; cases: ReplyCase[] } = { ad: "", cases: [] }): Scorecard {
   const rows = cases.map((c) => ({ ...c, ...vinverdictFlags(c.text) }));
   const held = heldOut.map((c) => ({ ...c, ...vinverdictFlags(c.text) }));
   return {
@@ -71,6 +87,8 @@ export function score(cases: EvalCase[], heldOut: EvalCase[], generated: string)
     baseline: metrics(cases.map((c) => ({ scam: c.scam, flagged: baselineFlags(c.text) }))),
     byOrigin: { real: metrics(rows.filter((r) => r.origin === "real")), synthetic: metrics(rows.filter((r) => r.origin === "synthetic")) },
     heldOut: metrics(held),
+    messages: metrics(replies.cases.map((c) => ({ scam: c.scam, flagged: replyFlags(replies.ad, c.text) }))),
+    messagesBaseline: metrics(replies.cases.map((c) => ({ scam: c.scam, flagged: baselineFlags(c.text) }))),
     misses: [...rows, ...held]
       .filter((r) => r.scam !== r.flagged)
       .map((r) => ({ id: r.id, kind: r.scam ? "missed scam" as const : "false alarm" as const, why: r.why })),

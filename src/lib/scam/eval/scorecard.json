@@ -63,5 +63,29 @@
     "recall": 1,
     "falseAlarmRate": 0
   },
+  "messages": {
+    "cases": 25,
+    "scams": 12,
+    "legit": 13,
+    "tp": 12,
+    "fp": 0,
+    "fn": 0,
+    "tn": 13,
+    "precision": 1,
+    "recall": 1,
+    "falseAlarmRate": 0
+  },
+  "messagesBaseline": {
+    "cases": 25,
+    "scams": 12,
+    "legit": 13,
+    "tp": 10,
+    "fp": 7,
+    "fn": 2,
+    "tn": 6,
+    "precision": 0.588,
+    "recall": 0.833,
+    "falseAlarmRate": 0.538
+  },
   "misses": []
 }

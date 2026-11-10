@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import type { Metrics, Scorecard } from "@/lib/scam/eval/evaluate";
 import card from "@/lib/scam/eval/scorecard.json";
 import holdout from "@/lib/scam/eval/holdout.json";
+import messages from "@/lib/scam/eval/messages.json";
 
 export const metadata: Metadata = { title: "How accurate is it?" };
 
@@ -17,7 +18,47 @@ const ROWS: { name: string; note: string; m: Metrics }[] = [
   { name: "A keyword filter", note: "Flags any ad mentioning a payment app, shipping, a deposit, a wire or the seller being away", m: s.baseline },
 ];
 
-function Row({ name, note, m }: { name: string; note: string; m: Metrics }) {
+const REPLY_ROWS: { name: string; note: string; m: Metrics }[] = [
+  { name: "VinVerdict, seller replies", note: `${s.messages.cases} replies, written before the first measurement`, m: s.messages },
+  { name: "A keyword filter", note: "The same scary-word filter, on the same replies", m: s.messagesBaseline },
+];
+
+/** One scorecard: a stacked list on phones, a table on wider screens. */
+function ScoreTable({ rows, unit }: { rows: { name: string; note: string; m: Metrics }[]; unit: string }) {
+  return (
+    <>
+      <ul className="mt-5 divide-y divide-border border-y border-border sm:hidden">
+        {rows.map((r) => (
+          <li key={r.name} className="py-3">
+            <p className="font-semibold">{r.name}</p>
+            <p className="text-sm text-muted">{r.note}</p>
+            <p className="nums mt-1">
+              Caught {r.m.tp} of {r.m.scams} scams · false alarms on {r.m.fp} of {r.m.legit} honest {unit} · {r.m.tp + r.m.fp ? pct(r.m.precision) : "–"} of
+              warnings right
+            </p>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-5 hidden sm:block">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-border-strong text-sm text-muted">
+              <th className="py-2 pr-4 font-medium">Checked by</th>
+              <th className="py-2 pr-4 font-medium">Scams caught</th>
+              <th className="py-2 pr-4 font-medium">False alarms</th>
+              <th className="py-2 font-medium">Warnings that were right</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => <Row key={r.name} {...r} unit={unit} />)}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function Row({ name, note, m, unit }: { name: string; note: string; m: Metrics; unit: string }) {
   return (
     <tr className="align-top">
       <th scope="row" className="py-3 pr-4 text-left font-semibold">
@@ -25,7 +66,7 @@ function Row({ name, note, m }: { name: string; note: string; m: Metrics }) {
         <span className="block text-sm font-normal text-muted">{note}</span>
       </th>
       <td className="nums py-3 pr-4">{m.tp + m.fn ? `${pct(m.recall)}` : "–"}<span className="block text-sm text-muted">{m.tp} of {m.scams} scams</span></td>
-      <td className="nums py-3 pr-4">{m.fp + m.tn ? pct(m.falseAlarmRate) : "–"}<span className="block text-sm text-muted">{m.fp} of {m.legit} honest ads</span></td>
+      <td className="nums py-3 pr-4">{m.fp + m.tn ? pct(m.falseAlarmRate) : "–"}<span className="block text-sm text-muted">{m.fp} of {m.legit} honest {unit}</span></td>
       <td className="nums py-3">{m.tp + m.fp ? pct(m.precision) : "–"}<span className="block text-sm text-muted">of its warnings</span></td>
     </tr>
   );
@@ -46,35 +87,20 @@ export default function AccuracyPage() {
           that happens to use the same words (&quot;no deposits&quot;, &quot;I don&apos;t take Zelle&quot;, &quot;stationed at the base, come see it&quot;)? A warning
           counts when VinVerdict&apos;s answer is <strong>Stop: serious warning</strong> because of the listing or the payment.
         </p>
-        <ul className="mt-5 divide-y divide-border border-y border-border sm:hidden">
-          {ROWS.map((r) => (
-            <li key={r.name} className="py-3">
-              <p className="font-semibold">{r.name}</p>
-              <p className="text-sm text-muted">{r.note}</p>
-              <p className="nums mt-1">
-                Caught {r.m.tp} of {r.m.scams} scams · false alarms on {r.m.fp} of {r.m.legit} honest ads · {r.m.tp + r.m.fp ? pct(r.m.precision) : "–"} of warnings right
-              </p>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-5 hidden sm:block">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-border-strong text-sm text-muted">
-                <th className="py-2 pr-4 font-medium">Checked by</th>
-                <th className="py-2 pr-4 font-medium">Scams caught</th>
-                <th className="py-2 pr-4 font-medium">False alarms</th>
-                <th className="py-2 font-medium">Warnings that were right</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ROWS.map((r) => <Row key={r.name} {...r} />)}
-            </tbody>
-          </table>
-        </div>
+        <ScoreTable rows={ROWS} unit="ads" />
         {s.misses.length > 0 && (
           <p className="mt-3 text-sm text-muted">Still wrong: {s.misses.map((m) => `${m.id} (${m.kind})`).join(", ")}.</p>
         )}
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="section-title">Seller replies, measured</h2>
+        <p className="max-w-2xl">
+          Many scams only show after the first message. These are replies to the same honest-looking ad: some ask for a deposit, a wire or gift cards, or tell
+          the away-and-shipping story; the rest are honest replies using the same words (&quot;no deposit needed&quot;, &quot;I don&apos;t take Zelle&quot;,
+          &quot;my husband is deployed, come by&quot;). First run: {messages.firstRun.replace(/^[\d-]+: /, "")}
+        </p>
+        <ScoreTable rows={REPLY_ROWS} unit="replies" />
       </section>
 
       <section className="mt-10 border-t border-border pt-8">

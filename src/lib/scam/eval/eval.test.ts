@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import { score, type EvalCase } from "./evaluate";
 import data from "./cases.json";
 import holdout from "./holdout.json";
+import messages from "./messages.json";
 import published from "./scorecard.json";
 
 const CORPUS = join(__dirname, "../../listing/corpus/cases");
@@ -32,19 +33,21 @@ const all = [...(data.cases as EvalCase[]), ...corpusCases()];
 const held = holdout.cases as EvalCase[];
 
 describe("scam scorecard", () => {
-  const card = score(all, held, published.generated);
+  const card = score(all, held, published.generated, messages);
 
   it("prints the scorecard", () => {
     const pct = (x: number) => `${Math.round(x * 100)}%`.padStart(5);
     const line = (name: string, m: typeof card.vinverdict) =>
       `  ${name.padEnd(12)} precision ${pct(m.precision)}  recall ${pct(m.recall)}  false alarms ${pct(m.falseAlarmRate)}  (${m.tp} caught, ${m.fn} missed of ${m.scams} scams; ${m.fp} false alarms of ${m.legit} legit)`;
     console.log(`\nScam scorecard (${card.vinverdict.cases} labelled ads)\n${line("VinVerdict", card.vinverdict)}\n${line("Keywords", card.baseline)}
-${line("Held out", card.heldOut)}\n${card.misses.map((m) => `    ${m.kind}: ${m.id}${m.why.length ? ` [${m.why.join(", ")}]` : ""}`).join("\n")}\n`);
+${line("Held out", card.heldOut)}
+${line("Replies", card.messages)}
+${line("Replies (kw)", card.messagesBaseline)}\n${card.misses.map((m) => `    ${m.kind}: ${m.id}${m.why.length ? ` [${m.why.join(", ")}]` : ""}`).join("\n")}\n`);
   });
 
   it("the published scorecard matches the code (refresh with UPDATE_SCORECARD=1)", () => {
     if (process.env.UPDATE_SCORECARD) {
-      const fresh = score(all, held, new Date().toISOString().slice(0, 10));
+      const fresh = score(all, held, new Date().toISOString().slice(0, 10), messages);
       writeFileSync(join(__dirname, "scorecard.json"), JSON.stringify(fresh, null, 2) + "\n");
       return;
     }
