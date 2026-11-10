@@ -38,6 +38,8 @@ import { Safety } from "./Safety";
 import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
 import { SellerReplies } from "./SellerReplies";
+import { SaveToList } from "./SaveToList";
+import { carId as listCarId } from "@/lib/workspace/local";
 import { DealerCheck } from "./DealerCheck";
 import { checkReplies } from "@/lib/seller-replies";
 import { proofPhrase } from "@/lib/seller-message";
@@ -256,7 +258,26 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       <header id="verdict" className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <CarLine a={m} />
-          <span className="flex gap-4 pt-2 text-sm print:hidden">
+          <span className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-sm print:hidden">
+            {!selling && (
+              <SaveToList
+                build={() => ({
+                  id: listCarId(goodVin, a.text),
+                  savedAt: new Date().toISOString(),
+                  title: carName(m),
+                  text: a.text,
+                  vin: goodVin,
+                  price: m.listing.price,
+                  miles: m.listing.miles,
+                  level: decision.level,
+                  verdict: decision.title,
+                  areas: decision.areas.map(({ area, status, line }) => ({ area, status, line })),
+                  unknown: decision.areas.reduce((n, r) => n + r.unknown.length, 0),
+                  warnings: decision.findings.filter((f) => f.severity !== "note").slice(0, 5).map((f) => f.title),
+                  note: "",
+                })}
+              />
+            )}
             <a href="#sources" className="link">Sources</a>
             <PrintButton />
           </span>

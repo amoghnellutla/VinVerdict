@@ -1,5 +1,6 @@
 "use client";
 
+import { ManualCompare } from "./ManualCompare";
 import { useEffect, useRef, useState } from "react";
 import type { PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -258,6 +259,8 @@ export function PriceCheck(props: Props) {
           )}
         </div>
       )}
+
+      {!selling && l.price != null && <ManualCompare asking={l.price} />}
     </section>
   );
 }

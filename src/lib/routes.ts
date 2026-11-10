@@ -14,6 +14,7 @@ export const NAV_ROUTES = [
 /** Demo visitors (no login) see only the public pages. */
 export const GUEST_ROUTES = [
   { href: "/", label: "Check a car" },
+  { href: "/mine", label: "My list" },
   { href: "/shortlist", label: "Shortlist" },
   { href: "/why", label: "Why not Google?" },
   { href: "/security", label: "How it's secured" },

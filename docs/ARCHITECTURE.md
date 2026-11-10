@@ -191,3 +191,7 @@ On top of the rule engine (`lib/verdict.ts`, which still drives saved cars and t
 ## Seller verification (`lib/seller-replies.ts`, `lib/seller-message.ts`)
 
 `sellerMessage()` writes the first message to the seller from what's unknown (VIN, title, liens, accidents, recalls, the model year's known issue and its bulletin) and always ends, for a private seller, with a photo of the VIN sticker next to a random three-word phrase (`proofPhrase()`, made in the browser). `checkReplies()` runs the message-relevant scam rules on what the seller wrote back and compares their story with the ad; findings are named `msg-<rule>` so `decide()` keeps the rule's severity and area but labels the evidence "The seller's messages". Everything runs in the browser; replies and chat screenshots are never sent or stored. Tests: `seller-replies.test.ts`, `seller-message.test.ts`.
+
+## My list (`lib/workspace/local.ts`, `/mine`)
+
+Visitors keep cars on their own device (localStorage key `vv-workspace-v1`); there's no account and no server copy. Every read, from storage or an imported file, goes through `parseWorkspace()`, which validates and caps each field and drops anything else, and everything is rendered as text. "Check it again" links to `/#listing=…`, which only fills the box. The owner's server-side My cars (Supabase) is separate and unchanged.
