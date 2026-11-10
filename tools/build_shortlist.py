@@ -3,7 +3,7 @@
 For each model in MODELS and each year in YEARS it asks NHTSA's complaints API
 how many owner complaints were filed, how many involved a crash, and the most
 common problem area, plus how many recalls it has and how many of those say
-"don't drive it / park it outside until fixed". Writes src/lib/shortlist/data.json, which the Shortlist
+"don't drive it" or "park it outside" until fixed. Writes src/lib/shortlist/data.json, which the Shortlist
 page reads (no API calls at page load).
 
 Usage (from the repo root):
@@ -76,8 +76,10 @@ def complaints(make: str, model: str, year: int) -> dict:
                 comps[part] += 1
     top = [{"component": k.title(), "count": v} for k, v in comps.most_common(3)]
     recalls = fetch(make, model, year, RECALLS_API)
-    park = sum(1 for x in recalls if x.get("parkIt") or x.get("parkOutSide"))
-    return {"year": year, "complaints": len(results), "crashes": crashes, "top": top, "recalls": len(recalls), "parkIt": park}
+    # NHTSA's two separate warnings: "don't drive it" and "park it outside" (fire risk) until fixed.
+    park_it = sum(1 for x in recalls if x.get("parkIt"))
+    park_outside = sum(1 for x in recalls if x.get("parkOutSide") and not x.get("parkIt"))
+    return {"year": year, "complaints": len(results), "crashes": crashes, "top": top, "recalls": len(recalls), "parkIt": park_it, "parkOutside": park_outside}
 
 
 def main() -> int:

@@ -88,7 +88,7 @@ export async function fetchPriceSources(car: PriceCar, opts: { skipPriceModel?: 
     forSaleNearby(car.year, make, model, car.zip),
   ]);
   if (p.status === "rejected") failed.push("MarketCheck Price");
-  if (s.status === "rejected") failed.push("recently sold listings");
+  if (s.status === "rejected") failed.push("recently ended listings");
   if (a.status === "rejected") failed.push("listings for sale");
   for (const r of [p, s, a]) if (r.status === "rejected") console.error("price source failed", r.reason instanceof Error ? r.reason.message : "unknown");
   const soldComps = s.status === "fulfilled" ? s.value : [];

@@ -14,6 +14,7 @@
 **Learned (2026-11-09)**
 - **Correction (2026-11-09, later):** the first build used "ES 350"/"RX 350", which NHTSA answers with nothing for most years (ES: 76 complaints in total). "ES350"/"RX350" give 258 and 501, plus 13 and 16 recalls. Check `api.nhtsa.gov/products/vehicle/models?modelYear=…&make=…&issueType=r` for the exact spelling.
 - The recalls API (`/recalls/recallsByVehicle`) uses the same names; `parkIt` / `parkOutSide` mark "don't drive / park outside until fixed" recalls, which the page lists under "careful" years.
+- **2026-11-10:** `parkIt` (don't drive) and `parkOutSide` (park outside: fire risk) are different warnings, so `data.json` now stores them separately (`parkIt`, `parkOutside`; a recall with both counts as don't drive). The page shows them as two tags and says not every car of the year is affected. An outside review flagged the old combined line.
 - NHTSA answers "no complaints" with HTTP 400 and `count: 0`; the tool treats that as zero. Other errors are retried 3 times.
 - Years with 0 complaints usually mean the model wasn't sold (HR-V before 2016) and are dropped. Very low counts (under 15% of the model's typical year, e.g. Camry 2014 with 14) are marked "not enough data", never "best".
 - Raw counts favour newer cars, so the page compares complaints per year on the road, within one model only. Counts also grow with sales, so models aren't compared with each other.

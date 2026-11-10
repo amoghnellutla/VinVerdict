@@ -113,17 +113,17 @@ export function valueCar(src: PriceSources, car: ValueInput): Valuation | null {
 
   if (src.predicted && src.predicted > 0) {
     const v = src.predicted * (1 - SOLD_HAGGLE);
-    sources.push({ name: "Sold-price model (MarketCheck)", value: Math.round(v), note: "Trained on dealer cars that sold in the last 3 months, for this VIN, miles and ZIP" });
+    sources.push({ name: "Price model (MarketCheck)", value: Math.round(v), note: "MarketCheck's estimate for this VIN, miles and ZIP, built from recent dealer listings; minus a small haggle margin" });
     weighted.push({ v, w: 0.4 });
   }
   if (src.sold) {
     const v = src.sold.value * (1 - SOLD_HAGGLE);
-    sources.push({ name: `Recently sold near ${src.zip}`, value: Math.round(v), note: `${src.sold.n} similar cars sold in the last 90 days, read at this car's miles${src.sold.extrapolated ? " (few sold with miles like this one)" : ""}` });
+    sources.push({ name: `Listings that ended near ${src.zip}`, value: Math.round(v), note: `${src.sold.n} similar listings within 100 miles ended in the last 90 days; their last advertised price (what the buyer paid isn't public), read at this car's miles${src.sold.extrapolated ? " (few with miles like this one)" : ""}` });
     weighted.push({ v, w: 0.4 * Math.min(1, src.sold.n / 15) * (src.sold.extrapolated ? 0.6 : 1) });
   }
   if (src.active) {
     const v = src.active.value * (1 - ASKING_GAP);
-    sources.push({ name: `For sale now near ${src.zip}`, value: Math.round(v), note: `${src.active.n} similar cars listed now, minus the usual ${Math.round(ASKING_GAP * 100)}% between asking and selling price` });
+    sources.push({ name: `For sale now near ${src.zip}`, value: Math.round(v), note: `${src.active.n} similar cars listed now within 100 miles (asking prices), minus the usual ${Math.round(ASKING_GAP * 100)}% between asking and selling price` });
     weighted.push({ v, w: 0.2 * Math.min(1, src.active.n / 10) * (src.active.extrapolated ? 0.6 : 1) });
   }
   const totalW = weighted.reduce((s, x) => s + x.w, 0);

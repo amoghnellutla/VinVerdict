@@ -23,9 +23,10 @@ export type ShortlistYear = {
   /** Too few complaints to judge (often a gap in NHTSA's data, or very few sold). Never counted as "best". */
   sparse: boolean;
   topArea: string | null;
-  /** NHTSA recalls for this model year, and how many say "don't drive / park outside until fixed". */
+  /** NHTSA recalls for this model year, how many say "don't drive it until fixed", and how many say "park it outside until fixed". */
   recalls: number;
   parkIt: number;
+  parkOutside: number;
   knownIssues: { title: string; url: string; label: string }[];
 };
 
@@ -37,7 +38,7 @@ export type ShortlistModel = {
   years: ShortlistYear[];
   /** Years to look at first: fewer complaints than usual and no known issue. */
   best: number[];
-  /** Years to be careful with: many complaints, a known issue, or a "park it" recall to confirm was fixed. */
+  /** Years to be careful with: many owner reports, a known issue, or a "don't drive" / "park outside" recall to confirm was fixed. */
   careful: number[];
 };
 
@@ -55,7 +56,7 @@ const median = (xs: number[]) => {
 };
 
 export function rateYears(
-  rows: { year: number; complaints: number; crashes: number; top: { component: string; count: number }[]; recalls?: number; parkIt?: number }[],
+  rows: { year: number; complaints: number; crashes: number; top: { component: string; count: number }[]; recalls?: number; parkIt?: number; parkOutside?: number }[],
   make: string,
   nhtsaModel: string,
   now = new Date(),
@@ -77,6 +78,7 @@ export function rateYears(
     topArea: r.top[0]?.component ?? null,
     recalls: r.recalls ?? 0,
     parkIt: r.parkIt ?? 0,
+    parkOutside: r.parkOutside ?? 0,
     knownIssues: KNOWN_ISSUES.filter((k) => k.make === make.toLowerCase())
       .filter((k) => Object.entries(k.fits).some(([m, [a, b]]) => m === key && r.year >= a && r.year <= b))
       .map((k) => ({ title: k.title, url: k.source.url, label: k.source.label })),
@@ -92,7 +94,7 @@ export function shortlist(now = new Date()): ShortlistModel[] {
       body: m.body,
       years,
       best: years.filter((y) => y.rating === "fewer" && !y.sparse && !y.knownIssues.length).map((y) => y.year),
-      careful: years.filter((y) => y.rating === "many" || y.knownIssues.length || y.parkIt > 0).map((y) => y.year),
+      careful: years.filter((y) => y.rating === "many" || y.knownIssues.length || y.parkIt > 0 || y.parkOutside > 0).map((y) => y.year),
     };
   });
 }

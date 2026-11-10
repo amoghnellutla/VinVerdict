@@ -55,7 +55,8 @@ export const KNOWN_ISSUES: KnownIssue[] = [
     fits: { accord: [2008, 2009] },
     displacementL: 2.4,
     title: "Rattle at cold start (VTC actuator)",
-    check: "Ask the seller not to start the car before you arrive. A loud rattle for about 2 seconds at a cold start means a worn VTC actuator.",
+    check:
+      "Ask the seller not to start the car before you arrive. A loud rattle for about 2 seconds at a cold start means a worn VTC actuator. (The bulletin covers every 2008 4-cylinder Accord but only early-built 2009s.)",
     source: { label: "Honda service bulletin 09-010", url: "https://static.nhtsa.gov/odi/tsbs/2012/SB-10041669-7570.pdf" },
   },
   {
@@ -64,8 +65,9 @@ export const KNOWN_ISSUES: KnownIssue[] = [
     fits: { accord: [2015, 2016], "cr-v": [2015, 2016] },
     displacementL: 2.4,
     title: "CVT slipping at highway speed (code P1890)",
-    check: "On the highway, watch for the RPM surging. Ask for proof Honda's CVT software update (16-053) was done.",
-    source: { label: "Honda service bulletin 16-057", url: "https://static.nhtsa.gov/odi/tsbs/2016/SB-10086144-2280.pdf" },
+    check:
+      "On the highway, watch for the RPM surging. Ask for proof Honda's CVT software update (campaign 16-053) was done; it's free, and a Honda dealer can check the VIN.",
+    source: { label: "Honda service bulletin 16-053", url: "https://static.nhtsa.gov/odi/tsbs/2016/SB-10086143-2280.pdf" },
   },
 ];
 

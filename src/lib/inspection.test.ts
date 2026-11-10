@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChecklist, checklistText, complaintChecks, knownIssuesFor, type CarForChecklist } from "./inspection";
+import { buildChecklist, checklistText, complaintChecks, KNOWN_ISSUES, knownIssuesFor, type CarForChecklist } from "./inspection";
 import { buyerProtection, njDealerWarranty } from "./protection";
 
 const car = (o: Partial<CarForChecklist>): CarForChecklist => ({
@@ -75,5 +75,41 @@ describe("buyerProtection", () => {
     expect(njDealerWarranty({ year: 2018, price: 15000, miles: 50000, now })).toBeNull(); // over 7 model years
     expect(njDealerWarranty({ year: 2022, price: 2500, miles: 50000, now })).toBeNull(); // under $3,000
     expect(njDealerWarranty({ year: 2022, price: 9000, miles: 120000, now })).toBeNull(); // over 100k
+  });
+});
+
+// Each citation was checked against the document itself (the NHTSA-hosted PDF's
+// "affected vehicles" list). Changing a source, or the years it's shown for,
+// means re-reading the document and updating this table on purpose.
+const VERIFIED: Record<string, { label: string; url: string; fits: Record<string, [number, number]> }> = {
+  "toyota-2az-oil": {
+    label: "Toyota warranty program ZE7",
+    url: "https://static.nhtsa.gov/odi/tsbs/2015/MC-10134468-9999.pdf",
+    fits: { camry: [2007, 2009], "camry solara": [2007, 2008], solara: [2007, 2008], corolla: [2009, 2011], "corolla matrix": [2009, 2013], matrix: [2009, 2013], rav4: [2006, 2008] },
+  },
+  "toyota-tacoma-frame": { label: "Toyota warranty program ZH6", url: "https://static.nhtsa.gov/odi/tsbs/2017/MC-10119399-9999.pdf", fits: { tacoma: [2005, 2010] } },
+  "honda-15t-oil-dilution": {
+    label: "Consumer Reports: Honda extends warranty",
+    url: "https://www.consumerreports.org/car-recalls-defects/honda-extends-warranty-on-troubled-turbo-engines",
+    fits: { civic: [2016, 2018], "cr-v": [2017, 2018] },
+  },
+  "honda-vtc-rattle": { label: "Honda service bulletin 09-010", url: "https://static.nhtsa.gov/odi/tsbs/2012/SB-10041669-7570.pdf", fits: { accord: [2008, 2009] } },
+  // 16-053 covers 2015–16 Accord L4 CVT and 2015–16 CR-V CVT. (16-057 is only a 2015 CR-V follow-up.)
+  "honda-cvt-p1890": { label: "Honda service bulletin 16-053", url: "https://static.nhtsa.gov/odi/tsbs/2016/SB-10086143-2280.pdf", fits: { accord: [2015, 2016], "cr-v": [2015, 2016] } },
+};
+
+describe("known-issue citations", () => {
+  it("every known issue cites the verified document for the verified years", () => {
+    expect(KNOWN_ISSUES.map((k) => k.id).sort()).toEqual(Object.keys(VERIFIED).sort());
+    for (const k of KNOWN_ISSUES) {
+      const v = VERIFIED[k.id];
+      expect({ id: k.id, label: k.source.label, url: k.source.url, fits: k.fits }).toEqual({ id: k.id, ...v });
+    }
+  });
+  it("a bulletin named in the advice matches the one cited", () => {
+    for (const k of KNOWN_ISSUES) {
+      const named = k.check.match(/\d{2}-\d{3}/g) ?? [];
+      for (const n of named) expect(k.source.label, `${k.id} mentions ${n}`).toContain(n);
+    }
   });
 });

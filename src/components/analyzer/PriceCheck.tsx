@@ -101,8 +101,8 @@ export function PriceCheck(props: Props) {
   const shown = selling ? sell?.privateV ?? null : v;
   const zipShown = zip.length === 5 ? zip : l.zip ?? null;
   const steps = [
-    ...(vinOk ? [`Where it's listed now (${guest ? "Auto.dev" : "Auto.dev, then MarketCheck"})`, "Every past listing of this VIN since 2015 (MarketCheck)"] : []),
-    `Similar cars sold and for sale ${zipShown ? `near ${zipShown}` : "near where it's listed"} (MarketCheck, Auto.dev)`,
+    ...(vinOk ? [`Where it's listed now (${guest ? "Auto.dev" : "Auto.dev, then MarketCheck"})`, "Past listings of this VIN that MarketCheck recorded since 2015"] : []),
+    `Similar cars listed now or recently ${zipShown ? `near ${zipShown}` : "near where it's listed"} (MarketCheck, Auto.dev)`,
   ];
 
   const form = (
@@ -118,8 +118,8 @@ export function PriceCheck(props: Props) {
       {!done && (
         <p className="max-w-2xl">
           {vinOk
-            ? "Looking this VIN up online: where it's listed now, every place it was listed before, and what similar cars near you sold for."
-            : "Compares this car with similar ones that sold or are for sale near you."}
+            ? "Looking this VIN up online: where it's listed now, the past listings MarketCheck recorded, and the advertised prices of similar cars near you."
+            : "Compares this car with the advertised prices of similar cars near you, listed now or recently ended."}
         </p>
       )}
       <input type="hidden" name="vin" value={vinOk ? l.vin ?? "" : ""} />
@@ -235,7 +235,7 @@ export function PriceCheck(props: Props) {
           {shown && !shown.unpriced && <Sources v={shown} />}
           {done.sources?.marketDays && (
             <p>
-              Similar cars near {done.sources.zip} sold in about <strong>{done.sources.marketDays} days</strong>
+              Similar listings near {done.sources.zip} ended after about <strong>{done.sources.marketDays} days</strong>
               {done.live?.daysOnMarket ? <>; this one has been listed for <strong>{done.live.daysOnMarket}</strong>.</> : "."}{" "}
               <span className="text-muted">
                 {selling ? "Priced inside the range, yours should sell in about that time." : "Cars that sit longer than usual have more room to negotiate."}
@@ -380,7 +380,7 @@ function SimilarCars({ comps }: { comps: Comp[] }) {
             <span className="min-w-0 flex-1">
               {[c.year, c.trim].filter(Boolean).join(" ")} · {c.miles.toLocaleString("en-US")} mi
               <span className="text-sm text-muted">
-                {" "}· {c.sold ? `sold${c.seen ? ` around ${c.seen}` : ""}` : "for sale now"}
+                {" "}· {c.sold ? `listing ended${c.seen ? ` around ${c.seen}` : ""}, last advertised` : "asking now"}
                 {c.city ? ` · ${c.city}${c.state ? `, ${c.state}` : ""}` : ""}
               </span>
             </span>

@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Why not just Google it?" };
 const ROWS: { q: string; search: string; chatbot: string; us: string }[] = [
   {
     q: "Is the VIN real, and is it this car?",
-    search: "No way to check it.",
+    search: "NHTSA's free decoder is a search away; you compare its answer with the ad yourself.",
     chatbot: "Can describe what a VIN is, but often gets the check-digit math or the decode wrong.",
     us: "Runs the federal check-digit math, decodes the VIN with NHTSA and compares year, make, model and gearbox with the ad.",
   },
@@ -16,7 +16,7 @@ const ROWS: { q: string; search: string; chatbot: string; us: string }[] = [
     q: "Where has this exact car been listed before?",
     search: "Sometimes, if you search the VIN and dig through old pages.",
     chatbot: "No access to listing data.",
-    us: "Every past listing of the VIN with dates, prices, miles and sellers. Flags odometer drops, quick dealer resales and price cuts.",
+    us: "The past listings of the VIN that MarketCheck recorded since 2015, with dates, prices, miles and sellers. Flags odometer drops, quick dealer resales and price cuts. None found doesn't mean none happened.",
   },
   {
     q: "Recalls and known problems for this year",
@@ -28,7 +28,7 @@ const ROWS: { q: string; search: string; chatbot: string; us: string }[] = [
     q: "Is the price fair where I live?",
     search: "Generic estimates you fill in by hand on each site.",
     chatbot: "A national ballpark at best.",
-    us: "Real cars that sold or are for sale near your ZIP, each linked, adjusted for accidents, seller type and miles, with an opening offer and a walk-away price.",
+    us: "Advertised prices of similar cars near your ZIP (listed now or recently ended), each linked, adjusted for accidents, seller type and miles, with an opening offer and a walk-away price. What buyers finally paid isn't public, so it's an estimate.",
   },
   {
     q: "Is the ad a scam?",

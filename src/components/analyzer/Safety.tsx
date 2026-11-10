@@ -11,7 +11,8 @@ export function Safety({ a }: { a: Analysis }) {
   if (!a.vehicle) return null;
   const { year, make, model } = a.vehicle;
   const key = a.nhtsaVehicle ?? a.vehicle;
-  const parkIt = a.recalls?.filter((r) => r.parkIt || r.parkOutside) ?? [];
+  const dontDrive = a.recalls?.filter((r) => r.parkIt) ?? [];
+  const parkOut = a.recalls?.filter((r) => r.parkOutside && !r.parkIt) ?? [];
   // The VIN decode wins over what the listing says, so say which one this is.
   const basis = a.decoded?.year && a.decoded.model ? "per the VIN" : "per the listing";
   const vin = a.vinCheck?.ok ? a.listing.vin : null;
@@ -33,12 +34,17 @@ export function Safety({ a }: { a: Analysis }) {
           ) : (
             <>
               <p className="mt-1 text-sm">
-                {a.recalls.length} for every {year} {model}.{" "}
-                <span className="text-muted">Open one for what&apos;s wrong and the free fix. Whether this car had it done is in &quot;Check it yourself&quot;.</span>
+                {a.recalls.length} on record for the {year} {model}. Not every car of that year is affected.{" "}
+                <span className="text-muted">Open one for what&apos;s wrong and the free fix. Whether this car is affected, and whether it was repaired, is in &quot;Check it yourself&quot;.</span>
               </p>
-              {parkIt.length > 0 && (
+              {dontDrive.length > 0 && (
                 <p className="mt-2 rounded-md bg-bad-soft px-3 py-2 text-sm text-bad">
-                  {parkIt.length} recall{parkIt.length > 1 ? "s say" : " says"} don&apos;t drive it, or don&apos;t park it near a building, until it&apos;s fixed.
+                  <strong>Don&apos;t drive:</strong> {dontDrive.length} recall{dontDrive.length > 1 ? "s say" : " says"} affected cars shouldn&apos;t be driven until repaired.
+                </p>
+              )}
+              {parkOut.length > 0 && (
+                <p className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
+                  <strong>Park outside:</strong> {parkOut.length} recall{parkOut.length > 1 ? "s say" : " says"} affected cars should be parked outside, away from buildings, until repaired (fire risk).
                 </p>
               )}
               <ul className="mt-2 divide-y divide-border border-y border-border">
@@ -145,7 +151,7 @@ function RecallRow({ r }: { r: Recall }) {
         <summary className="cursor-pointer">
           <span className="font-medium">{area(r.component)}</span>
           <span className="text-sm text-muted"> · {r.campaign}{r.reportDate ? ` · ${r.reportDate.slice(0, 4)}` : ""}</span>
-          {(r.parkIt || r.parkOutside) && <span className="tag ml-2 bg-bad-soft text-bad">{r.parkIt ? "Don't drive" : "Park outside"}</span>}
+          {r.parkIt ? <span className="tag ml-2 bg-bad-soft text-bad">Don&apos;t drive</span> : r.parkOutside ? <span className="tag ml-2 bg-warn-soft text-warn">Park outside</span> : null}
         </summary>
         <dl className="mt-2 space-y-2 text-sm">
           {r.summary && <Field label="What's wrong" text={r.summary} />}

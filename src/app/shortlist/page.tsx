@@ -18,7 +18,7 @@ export default function ShortlistPage({ searchParams }: PageProps<"/shortlist">)
     <>
       <PageHeader
         title="Shortlist"
-        description="Reliable everyday cars, and the model years owners complained about most. Set a budget and ZIP to get ready-made searches."
+        description="Everyday cars, and which model years owners reported the most problems with to NHTSA. Set a budget and ZIP to get ready-made searches."
       />
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         {searchParams.then((sp) => {
@@ -57,14 +57,16 @@ function List({ budget, zip, body }: { budget: number | null; zip: string | null
         <button type="submit" className="btn btn-primary">Update</button>
       </form>
 
-      <p className="mt-6 text-muted">
-        <span className="tag bg-good-soft text-good">Fewer complaints</span>{" "}
-        <span className="tag bg-bad-soft text-bad">Many complaints</span>{" "}
+      <h2 className="mt-8 text-xl">Reported owner-problem trends</h2>
+      <p className="mt-2 text-muted">
+        <span className="tag bg-good-soft text-good">Fewer owner reports</span>{" "}
+        <span className="tag bg-bad-soft text-bad">Many owner reports</span>{" "}
         <span className="tag bg-warn-soft text-warn">! Known issue</span>{" "}
         <span className="tag border border-dashed border-border-strong text-muted">Not enough data</span>{" "}
-        Based on owner complaints filed with NHTSA per year on the road, compared with other years of the same model (data from{" "}
-        {SHORTLIST_DATE}). Low numbers can also mean fewer cars sold. Hover a year for its complaint and recall counts; recalls are free to
-        fix at any dealer.
+        Owner complaints filed with NHTSA per year on the road, compared with other years of the same model (data from {SHORTLIST_DATE}).
+        This is a trend, not a reliability rating: counts also depend on how many were sold, and newer years have had less time for
+        problems to show. Hover a year for its complaint and recall counts. Safety recalls are repaired free at the brand&apos;s authorized
+        dealers; check the car&apos;s VIN on NHTSA to see whether its recalls were done.
       </p>
 
       <ul className="mt-6 space-y-10">
@@ -89,7 +91,7 @@ function List({ budget, zip, body }: { budget: number | null; zip: string | null
                 {m.years.map((y) => (
                   <li
                     key={y.year}
-                    title={`${y.year}: ${y.sparse ? "too few complaints on record to judge; " : ""}${y.complaints} complaints (${y.perYearOnRoad}/year on the road), ${y.recalls} recall${y.recalls === 1 ? "" : "s"}${y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}${y.knownIssues.length ? `. Known issue: ${y.knownIssues.map((k) => k.title).join("; ")}` : ""}`}
+                    title={`${y.year}: ${y.sparse ? "too few complaints on record to judge; " : ""}${y.complaints} owner reports (${y.perYearOnRoad}/year on the road), ${y.recalls} recall${y.recalls === 1 ? "" : "s"}${y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}${y.knownIssues.length ? `. Known issue: ${y.knownIssues.map((k) => k.title).join("; ")}` : ""}`}
                     className={`rounded border px-2 py-0.5 text-sm ${y.sparse ? "border-dashed border-border-strong text-muted" : YEAR_STYLE[y.rating]} ${y.knownIssues.length && y.rating !== "many" ? "border-warn/50 bg-warn-soft text-warn" : ""}`}
                   >
                     {y.year}
@@ -102,13 +104,20 @@ function List({ budget, zip, body }: { budget: number | null; zip: string | null
                   {careful.map((y) => (
                     <li key={y.year}>
                       <strong>{y.year}:</strong>{" "}
-                      {y.rating === "many" && <>{y.complaints.toLocaleString("en-US")} owner complaints{y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}. </>}
+                      {y.rating === "many" && <>{y.complaints.toLocaleString("en-US")} owner reports{y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}. </>}
                       {y.parkIt > 0 && (
                         <>
-                          {y.parkIt} recall{y.parkIt > 1 ? "s say" : " says"} don&apos;t drive it or park it outside until fixed: ask for proof the repair
-                          was done, or check the VIN on NHTSA.{" "}
+                          <span className="tag bg-bad-soft text-bad">Don&apos;t drive</span> {y.parkIt} recall{y.parkIt > 1 ? "s say" : " says"} not to
+                          drive the car until it&apos;s repaired.{" "}
                         </>
                       )}
+                      {y.parkOutside > 0 && (
+                        <>
+                          <span className="tag bg-warn-soft text-warn">Park outside</span> {y.parkOutside} recall{y.parkOutside > 1 ? "s say" : " says"} to
+                          park it outside, away from buildings, until repaired (fire risk).{" "}
+                        </>
+                      )}
+                      {(y.parkIt > 0 || y.parkOutside > 0) && <>Not every car of this year is affected: check the VIN on NHTSA or ask for proof of the repair. </>}
                       {y.knownIssues.map((k) => (
                         <span key={k.title}>
                           {k.title} (<ExternalLink href={k.url} className="link">{k.label}</ExternalLink>).{" "}

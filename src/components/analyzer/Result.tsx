@@ -405,7 +405,7 @@ function SellBox({ v, looking }: { v: Valuation | null; looking: boolean }) {
   const text = v?.unpriced
     ? "Severe damage can't be priced from listing data. Details below."
     : v
-      ? `Range ${fmt(v.low)}–${fmt(v.high)}, from similar cars that sold or are for sale near you.${v.assumesClean ? " Priced as a car with no accidents: set the history report below if it has any." : ""}`
+      ? `Estimated range ${fmt(v.low)}–${fmt(v.high)}, from the advertised prices of similar cars near you (listed now or recently ended).${v.assumesClean ? " Priced as a car with no accidents: set the history report below if it has any." : ""}`
       : "VinVerdict looks the VIN up online, then prices it from similar cars near you.";
   return (
     <section className="rise d1 rounded-lg border-l-4 border-l-accent bg-accent-soft px-5 py-5">

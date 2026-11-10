@@ -77,10 +77,10 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt, rep
     items.push({ what: `${history.length} past listings of this VIN (dates, prices, miles, sellers)`, from: `MarketCheck listing history${sites.length ? `, from ${sites.slice(0, 4).join(", ")}${sites.length > 4 ? "…" : ""}` : ""}`, links: [<a key="h" href="#listing-history" className="text-accent underline-offset-2 hover:underline">each listing is linked above</a>] });
   }
   if (sources && (sources.sold || sources.active || sources.predicted)) {
-    const parts = [sources.sold && `${sources.sold.n} recently sold`, sources.active && `${sources.active.n} for sale`].filter(Boolean).join(" and ");
+    const parts = [sources.sold && `${sources.sold.n} recently ended listings`, sources.active && `${sources.active.n} current listings`].filter(Boolean).join(" and ");
     items.push({
-      what: `Fair price: ${parts || "a price model"} similar cars near ${sources.zip}`,
-      from: [sources.sold && "MarketCheck (sold cars)", sources.active && "Auto.dev (cars for sale)", sources.predicted && "MarketCheck Price model"].filter(Boolean).join(", "),
+      what: `Estimated price range: ${parts || "a price model"} similar cars near ${sources.zip}`,
+      from: [sources.sold && "MarketCheck (ended listings, last advertised price)", sources.active && "Auto.dev (asking prices)", sources.predicted && "MarketCheck Price model"].filter(Boolean).join(", "),
       links: [<a key="p" href="#price-check" className="text-accent underline-offset-2 hover:underline">the closest ones are linked above</a>],
     });
   }

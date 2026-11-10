@@ -51,7 +51,7 @@ export function playData(): PlayData {
   if (lx.live?.accidentCount) cards.push(`Listing data shows ${lx.live.accidentCount} accident${lx.live.accidentCount > 1 ? "s" : ""}`);
   const first = L.price.history?.map((h) => h.firstSeen).filter((x): x is string => !!x).sort()[0];
   if (lx.history?.stints.length) cards.push(`Listed by ${lx.history.stints.length} sellers${first ? ` since ${first.slice(0, 4)}` : ""}`);
-  if (L.analysis.recalls) cards.push(`${L.analysis.recalls.length} recalls for every 2016 RX 350`);
+  if (L.analysis.recalls) cards.push(`${L.analysis.recalls.length} recalls on record for the 2016 RX 350`);
   const stars = L.analysis.ratings?.find((r) => r.overall)?.overall;
   if (stars) cards.push(`${stars} out of 5 stars in NHTSA crash tests`);
   if (L.analysis.complaints) cards.push(`${L.analysis.complaints.total} owner complaints filed with NHTSA`);
