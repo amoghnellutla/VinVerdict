@@ -1,0 +1,28 @@
+{
+  "note": "Real Autotrader page pasted by Amogh (2026-11-10); dealer phone removed. Answers read from the page by hand before running VinVerdict. A franchise dealer's 'Used 2025 Land Rover Range Rover SE' listed with '1 mi': a used car with almost no miles is usually a dealer-registered demo or loaner, or a placeholder the dealer never filled in, so the buyer should see the odometer (and a 1-mile figure would skew a price comparison). Traps: 'Land Rover' is a two-word make and 'Range Rover' a two-word model (the Range Rover Sport, Velar and Evoque are different cars); '308 mi away' before '1 mi'; 'Documentation Fee + $595' in the price box; '$2,000 below the previous asking price', '$1,624/mo.', '$23,000' down, '$92,694 amount financed'; 'Santorini Black Exterior / Ebony … Leather Seats'; no title or accident history on the page.",
+  "expect": {
+    "kind": "text",
+    "vin": "SALKP9E97SA339506",
+    "year": 2025,
+    "make": "Land Rover",
+    "model": "Range Rover",
+    "price": 114999,
+    "docFee": 595,
+    "miles": 1,
+    "transmission": "automatic",
+    "titleStatus": "unknown",
+    "accident": "unknown",
+    "exteriorColor": "black",
+    "ownerCount": null,
+    "sellerType": "dealer",
+    "distanceMiles": 308
+  },
+  "verdict": "clear",
+  "mustHit": ["far-away", "miles-near-zero"],
+  "mustNotHit": [
+    "no-price", "no-vin", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "shipping-only", "seller-remote",
+    "title-brand", "accident-reported", "mileage-low", "high-miles", "rushed", "lien", "manual", "odometer-unknown", "curbstoning", "no-inspection", "auction", "model-conflict"
+  ],
+  "scam": false,
+  "origin": "real"
+}

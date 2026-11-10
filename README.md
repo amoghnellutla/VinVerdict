@@ -144,27 +144,27 @@ These limits are deliberate. A tool that sounds sure when it isn't does more har
 | Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
 | --- | --- | --- | --- |
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
-| VinVerdict, tuning ads | 38 of 38 | 0 of 55 | 100% |
-| A keyword filter (payment app, shipping, deposit, away) | 33 of 38 | **25 of 55** | 57% |
+| VinVerdict, tuning ads | 38 of 38 | 0 of 56 | 100% |
+| A keyword filter (payment app, shipping, deposit, away) | 33 of 38 | **26 of 56** | 56% |
 | VinVerdict, **seller replies** (written before the first measurement) | 12 of 12 | 0 of 13 | 100% |
 | The keyword filter, same replies | 10 of 12 | **7 of 13** | 59% |
 | A **trained model** (naive Bayes), held-out ads | 12 of 12 | 0 of 13 | 100% |
-| The trained model, tuning ads (leave-one-out) | 29 of 38 | 4 of 55 | 88% |
+| The trained model, tuning ads (leave-one-out) | 28 of 38 | 4 of 56 | 88% |
 
 - **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads (20%)** to stop. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set, so the held-out number stays honest.
-- **Rules or a trained model?** A naive Bayes model is retrained on the labelled ads on every change and scored next to the rules ([`learned.ts`](src/lib/scam/eval/learned.ts)). It changes no answer. On held-out ads both are perfect; scored leave-one-out on the tuning ads it misses 9 scams and flags 4 honest ads, and the real pages added so far each cost it catches. The words it leans on most ("to you", "it to", "the car") show it's learning the writing style of the test ads, not scam patterns. It would only join the app by beating the rules on real held-out listings, and then only to add warnings.
+- **Rules or a trained model?** A naive Bayes model is retrained on the labelled ads on every change and scored next to the rules ([`learned.ts`](src/lib/scam/eval/learned.ts)). It changes no answer. On held-out ads both are perfect; scored leave-one-out on the tuning ads it misses 10 scams and flags 4 honest ads, and the real pages added so far each cost it catches. The words it leans on most ("to you", "it to", "the car") show it's learning the writing style of the test ads, not scam patterns. It would only join the app by beating the rules on real held-out listings, and then only to add warnings.
 - **The caveat:** most ads so far are written from published scam patterns. Real listings are being added and reported separately, and real-world numbers will be lower.
 
 **Listing parser.** Real page layouts (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`src/lib/listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong is a case:
 
 ```
-Listing corpus scorecard (30 cases)
-  accident     21/21    make         25/25    price         30/30
-  miles        27/27    model        25/25    titleStatus   17/17
-  sellerType   21/21    transmission 15/15    verdict       24/24
-  rules fired  32/32    false alarms avoided  99/99
-  ownerCount   14/14    exteriorColor 11/11   usage          5/5
-  kind          8/8     docFee        6/6     vin           12/12   distanceMiles 5/5
+Listing corpus scorecard (31 cases)
+  accident     22/22    make         26/26    price         31/31
+  miles        28/28    model        26/26    titleStatus   18/18
+  sellerType   22/22    transmission 16/16    verdict       25/25
+  rules fired  34/34    false alarms avoided 119/119
+  ownerCount   15/15    exteriorColor 12/12   usage          5/5
+  kind          9/9     docFee        7/7     vin           13/13   distanceMiles 6/6
 ```
 
 **The dataset.** Every labelled ad, pasted page and seller reply is in one file, [`dataset/vinverdict-labelled.jsonl`](dataset/) (about 140 rows, one JSON object per line, loadable with pandas), with a [description](dataset/README.md) of how it was labelled and its limits. A test fails if the file and the measurements drift apart. To grow it: `npm run add-case` adds a pasted listing (phone numbers and emails removed automatically), you fill in the right answers by hand, and `npm run retrain` retrains the model and refreshes the scorecard and the dataset.

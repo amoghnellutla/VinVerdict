@@ -42,6 +42,11 @@ describe("sellerMessage", () => {
     expect(sellerMessage({ ...base, hits })).toMatch(/name different models \(listed as a Renegade, described as a Cherokee\)\. Which is it\?/);
   });
 
+  it("asks about a used car listed with almost no miles (real case 31)", () => {
+    const hits = [{ id: "miles-near-zero", action: "info" as const, title: "Listed with only 1 mile", reason: "" }];
+    expect(sellerMessage({ ...base, hits })).toMatch(/It's listed with only 1 mile\. Is it a demo or loaner, and when did its factory warranty start\?/);
+  });
+
   it("makes three-word phrases from the word list", () => {
     let i = 0;
     const seq = [0, 24, 47];

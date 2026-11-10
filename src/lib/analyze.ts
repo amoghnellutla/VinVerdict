@@ -1,4 +1,5 @@
 import "server-only";
+import { makeName } from "@/lib/format";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { decodeVin, getComplaintSummary, getRecalls, getSafetyRatings, type VehicleKey } from "@/lib/nhtsa/client";
 import { nhtsaModelName, type ComplaintSummary, type DecodedVin, type Recall, type SafetyRating } from "@/lib/nhtsa/parse";
@@ -45,8 +46,6 @@ export type Analysis = {
 
 export type YearRow = { year: number; recalls: number | null; complaints: number | null; crashOrFire: number | null };
 
-const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
-
 export async function analyzeListing(text: string): Promise<Analysis> {
   const listing = parseListing(text);
   const notices: string[] = [];
@@ -64,7 +63,7 @@ export async function analyzeListing(text: string): Promise<Analysis> {
   }
 
   const year = decoded?.year ?? listing.year;
-  const make = decoded?.make ? titleCase(decoded.make) : listing.make;
+  const make = decoded?.make ? makeName(decoded.make) : listing.make;
   const model = decoded?.model ?? listing.model;
   const vehicle: VehicleKey | null = year && make && model ? { year, make, model } : null;
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { makeName } from "@/lib/format";
 import { analyzeListing, type Analysis } from "@/lib/analyze";
 import { currentUser } from "@/lib/auth/session";
 import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
@@ -28,7 +29,6 @@ export type AnalyzeState =
 
 const LIMIT_PER_MINUTE = 10;
 const GUEST_PER_MINUTE = 5;
-const cap = (s: string | null | undefined) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : null);
 
 /**
  * Server Action behind the "Check" button. Reachable by direct POST, so it
@@ -77,7 +77,7 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   let saveNote: string | null = null;
   const l = analysis.listing;
   const d = analysis.decoded;
-  const title = [d?.year ?? l.year, cap(d?.make) ?? l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || (l.vin ? `VIN ${l.vin}` : "Car");
+  const title = [d?.year ?? l.year, makeName(d?.make) ?? l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || (l.vin ? `VIN ${l.vin}` : "Car");
   // Look for the same phone before saving this car, so it doesn't match itself.
   const phoneMatches = l.sellerType !== "dealer" && l.kind !== "url" ? await findPhoneMatches(l.phones, l.vin, { title, price: l.price }) : [];
   if (l.kind !== "url") {
@@ -93,7 +93,7 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
       verdict: v.verdict,
       risk: v.risk,
       facts: {
-        year: d?.year ?? l.year, make: cap(d?.make) ?? l.make, model: d?.model ?? l.model, trim: d?.trim ?? null,
+        year: d?.year ?? l.year, make: makeName(d?.make) ?? l.make, model: d?.model ?? l.model, trim: d?.trim ?? null,
         seller: l.sellerType, accident: l.accident, title: l.titleStatus, owners: l.ownerCount, usage: l.usage, zip: l.zip,
         phones: l.phones,
         findings: [...v.hits].sort((x, y) => order[x.action] - order[y.action]).filter((h) => h.action !== "info").slice(0, 5).map((h) => h.title),

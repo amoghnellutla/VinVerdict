@@ -72,6 +72,8 @@ export function sellerMessage(m: MessageInput): string {
   }
   const conflict = m.hits.find((h) => h.id === "model-conflict");
   if (conflict) q.push(`The listing and your description name different models (${conflict.title[0].toLowerCase()}${conflict.title.slice(1)}). Which is it? Could you send a photo of the VIN on the dashboard?`);
+  const nearZero = m.hits.find((h) => h.id === "miles-near-zero");
+  if (nearZero) q.push(`It's ${nearZero.title[0].toLowerCase()}${nearZero.title.slice(1)}. Is it a demo or loaner, and when did its factory warranty start?`);
   if (has("auction")) q.push("Where was it bought at auction? Could you send the auction listing or its photos?");
   if (dealer) q.push("Could you send the Carfax or AutoCheck report, and the out-the-door price with every fee?");
   if (c.anyAccidents == null && !has("accident-reported") && !has("live-accident")) q.push("Has it been in any accident, even a small one?");

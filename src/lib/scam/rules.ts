@@ -261,6 +261,14 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
       "The seller says the odometer reading isn't the car's real mileage (TMU, not actual miles, or a broken odometer). Its wear and value can't be judged from the miles: price it well below similar cars and have it inspected.");
   }
 
+  // --- Almost no miles ---
+  // "Used 2025 Range Rover … 1 mi" (real case 31): usually a dealer-registered demo or loaner, or a
+  // placeholder the dealer never filled in. Good to know, not a warning.
+  if (l.miles !== null && l.miles < 100) {
+    add("miles-near-zero", "info", `Listed with only ${l.miles} mile${l.miles === 1 ? "" : "s"}`,
+      "Almost unused. On a used-car listing that usually means a dealer's registered demo or loaner, or a mileage the dealer never filled in. See the odometer yourself, and ask when the factory warranty started: on a demo it often runs from the day the dealer put it into service.");
+  }
+
   // --- Mileage sanity ---
   const year = l.year ?? decoded?.year ?? null;
   if (year && l.miles !== null) {

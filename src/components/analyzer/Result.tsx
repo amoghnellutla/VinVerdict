@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
+import { makeName } from "@/lib/format";
 import { priceCheckAction, type PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
@@ -498,7 +499,7 @@ function PrintButton() {
 function carName(a: Analysis): string {
   const l = a.listing;
   const d = a.decoded;
-  return [d?.year ?? l.year, d?.make ? cap(d.make.toLowerCase()) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || "car";
+  return [d?.year ?? l.year, d?.make ? makeName(d.make) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || "car";
 }
 
 /** What the result is about: the car's name as the title, then its asking price and miles. */
@@ -507,7 +508,7 @@ function CarLine({ a }: { a: Analysis }) {
   const name = carName(a);
   const facts = [
     l.price != null && { value: money(l.price), label: "asking" },
-    l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: "miles" },
+    l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: l.miles === 1 ? "mile" : "miles" },
   ].filter((x): x is { value: string; label: string } => !!x && !!x.value);
   return (
     <div className="rise min-w-0">

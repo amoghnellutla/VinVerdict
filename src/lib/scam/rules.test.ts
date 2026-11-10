@@ -164,3 +164,12 @@ describe("the seller's description names a different model (real case 30)", () =
     expect(ids(run("2016 Jeep Cherokee Latitude $11,000 80,000 miles. Make/Model: Jeep Grand Cherokee"))).toContain("model-conflict");
   });
 });
+
+describe("almost no miles (real case 31)", () => {
+  it("notes a used car listed with under 100 miles, as good-to-know only", () => {
+    const r = run("Used 2025 Land Rover Range Rover SE $114,999 1 mi VIN SALKP9E97SA339506");
+    const h = r.hits.find((x) => x.id === "miles-near-zero");
+    expect(h).toMatchObject({ action: "info", title: "Listed with only 1 mile" });
+    expect(ids(run(`${GOOD_TEXT}`, { decoded: DECODED }))).not.toContain("miles-near-zero");
+  });
+});

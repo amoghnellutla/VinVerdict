@@ -76,9 +76,18 @@ const MODELS: Record<string, string[]> = {
   Infiniti: ["Q50", "QX50", "QX60"],
   Mitsubishi: ["Outlander", "Mirage", "Eclipse Cross"],
   Porsche: ["911", "718", "Cayenne", "Macan", "Panamera", "Taycan"],
+  // Longest names first: "Range Rover Sport" must not read as "Range Rover" (real case 31).
+  "Land Rover": ["Range Rover Sport", "Range Rover Velar", "Range Rover Evoque", "Range Rover", "Discovery Sport", "Discovery", "Defender", "LR4", "LR3", "LR2"],
+  Jaguar: ["F-Pace", "E-Pace", "I-Pace", "F-Type", "XF", "XE", "XJ"],
+  Genesis: ["GV80", "GV70", "GV60", "G90", "G80", "G70"],
+  "Alfa Romeo": ["Giulia", "Stelvio", "Tonale"],
+  Maserati: ["Ghibli", "Levante", "Quattroporte", "Grecale"],
+  Chrysler: ["Pacifica", "300", "Voyager", "Town & Country"],
+  Fiat: ["500X", "500L", "500"],
+  Rivian: ["R1S", "R1T"],
 };
 /** Makes whose model names are matched only after the make is named. */
-const MODEL_NEEDS_MAKE = new Set(["Porsche", "BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Jeep", "Tesla", "GMC", "Dodge", "Volvo", "Buick", "Cadillac", "Infiniti", "Mitsubishi"]);
+const MODEL_NEEDS_MAKE = new Set(["Land Rover", "Jaguar", "Genesis", "Alfa Romeo", "Maserati", "Chrysler", "Fiat", "Rivian", "Porsche", "BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Jeep", "Tesla", "GMC", "Dodge", "Volvo", "Buick", "Cadillac", "Infiniti", "Mitsubishi"]);
 const MAKE_ALIASES: Record<string, string> = { chevy: "Chevrolet", vw: "Volkswagen", mercedes: "Mercedes-Benz", benz: "Mercedes-Benz" };
 
 const COLORS = ["black", "white", "silver", "gray", "grey", "blue", "red", "green", "brown", "beige", "gold", "tan", "orange", "yellow", "purple", "maroon", "burgundy", "charcoal", "pearl"];

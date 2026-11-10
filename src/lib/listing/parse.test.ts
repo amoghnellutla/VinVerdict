@@ -255,3 +255,16 @@ describe("rebuilt salvage titles, auction cars and links that aren't the listing
     expect(parseListing("Free report https://www.carfax.com/VehicleHistory/p/Report.cfx?vin=1 and https://www.cars.com/vehicledetail/123/").sourceHost).toBe("cars.com");
   });
 });
+
+describe("Land Rover and other two-word makes (real case 31)", () => {
+  it("reads the make and the right Range Rover", () => {
+    expect(parseListing("Used 2025 Land Rover Range Rover SE AWD $114,999")).toMatchObject({ make: "Land Rover", model: "Range Rover" });
+    expect(parseListing("2019 Land Rover Range Rover Sport HSE")).toMatchObject({ make: "Land Rover", model: "Range Rover Sport" });
+    expect(parseListing("2020 Land Rover Discovery Sport SE")).toMatchObject({ make: "Land Rover", model: "Discovery Sport" });
+    expect(parseListing("2018 Alfa Romeo Giulia Ti")).toMatchObject({ make: "Alfa Romeo", model: "Giulia" });
+    expect(parseListing("2022 Genesis GV70 2.5T")).toMatchObject({ make: "Genesis", model: "GV70" });
+  });
+  it("reads a 1-mile odometer exactly as listed", () => {
+    expect(parseListing("Used 2025 Land Rover Range Rover SE (308 mi away) 1 mi").miles).toBe(1);
+  });
+});
