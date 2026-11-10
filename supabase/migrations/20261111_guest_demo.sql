@@ -104,5 +104,6 @@ as $$
   where month = to_char(now() at time zone 'utc', 'YYYY-MM') and kind = 'price';
 $$;
 
-revoke all on function public.guest_month_usage() from public;
+-- Supabase grants new functions to anon by default, so revoke it by name too.
+revoke all on function public.guest_month_usage() from public, anon;
 grant execute on function public.guest_month_usage() to authenticated;
