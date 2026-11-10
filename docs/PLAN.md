@@ -14,6 +14,7 @@ Nov 8, 2026 · @the owner
 
 | Job | Already done well by | This app's role |
 | --- | --- | --- |
+| 2026-11-10 | **First real pasted page from Amogh (case 27, Autotrader, 2024 BMW X5 CPO).** Answers read from the page by hand, then VinVerdict run before any change: 12 of 15 fields right. Misses fixed: the footer menu's "For Sale By Owner" link made a dealer page read as a private seller; "Stock#:" wasn't a dealer sign (word-boundary bug); BMW wasn't a known make. Added common non-Japanese makes (BMW, Mercedes-Benz, Audi, VW, Jeep, Tesla, GMC, Dodge, Volvo, Buick, Cadillac, Infiniti, Mitsubishi), whose model names only count after the make; not Ram, Mini or Lincoln (plain words). Scam scorecard: 2 real ads, both honest, 0 false alarms; the keyword filter flags this one ("deposit", "delivery") |
 | 2026-11-10 | **Dev-tool advisory cleared.** Dependabot flagged minimatch 10.x (glob DoS, GHSA moderate) inside typescript-eslint, a lint-only tool that never ships. The newest typescript-eslint still asks for minimatch 10, so `package.json` overrides `minimatch@^10` to the patched 11.x. Lint, typecheck, tests and build unchanged; `npm audit` (all deps, not only shipped) now 0 |
 | Search many sites at once | AutoTempest | Don't copy it: link out to it |
 | Deal labels on dealer cars | CarGurus, AutoTrader (KBB) | Same idea, but one scorer for every source |

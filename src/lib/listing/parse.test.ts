@@ -204,3 +204,20 @@ describe("title and accident wording (probe 2026-11-10)", () => {
     expect(parseListing("no wrecks, garage kept").accident).toBe("none");
   });
 });
+
+describe("more makes, and Autotrader's footer menu (real case 27)", () => {
+  it("reads common non-Japanese makes and models when the make is named", () => {
+    expect(parseListing("Certified 2024 BMW X5 sDrive40i RWD $43,191")).toMatchObject({ make: "BMW", model: "X5" });
+    expect(parseListing("2019 Mercedes-Benz GLC 300 4MATIC $24,900")).toMatchObject({ make: "Mercedes-Benz", model: "GLC" });
+    expect(parseListing("2018 jeep grand cherokee limited")).toMatchObject({ make: "Jeep", model: "Grand Cherokee" });
+    expect(parseListing("2021 Tesla Model 3 long range")).toMatchObject({ make: "Tesla", model: "Model 3" });
+  });
+  it("doesn't take their model names as plain words", () => {
+    expect(parseListing("2017 Accord, compass display, model 3 years old tires").make).toBe("Honda");
+    expect(parseListing("built-in compass, 120k miles, $6,000").make).toBeNull();
+  });
+  it("doesn't read the footer's 'For Sale By Owner' link as a private seller", () => {
+    expect(parseListing("2024 BMW X5 $43,191 Stock#: R9T70371 Used Cars for Sale Certified Cars for Sale New Cars for Sale For Sale By Owner Car Deals").sellerType).toBe("dealer");
+    expect(parseListing("2015 Civic for sale by owner, $9,000").sellerType).toBe("private");
+  });
+});

@@ -1,0 +1,28 @@
+{
+  "note": "Real Autotrader page pasted by Amogh (Ctrl+A, 2026-11-10); dealer phone and street address removed. Answers read from the page by hand before running VinVerdict. Traps: 'Listing Price $43,191' + '$799 doc fee' = 'Total Price $43,990' (the car's price is $43,191); '2,141 mi away' before the odometer; '$1,640 below the expected price', '$558 below the previous asking price', '$601/mo.', '$8,638 down payment'; 'deposit the same day' (the dealer buying your car), 'View delivery details', 'Lane Departure Warning', 'Insurance Shopping?', 'Battery warranty'; nothing says the title is clean (Certified isn't a title statement); 20 similar cars from the same dealer with their own miles and prices.",
+  "expect": {
+    "kind": "text",
+    "vin": "5UX13EU05R9T70371",
+    "year": 2024,
+    "make": "BMW",
+    "model": "X5",
+    "price": 43191,
+    "docFee": 799,
+    "miles": 33703,
+    "transmission": "automatic",
+    "titleStatus": "unknown",
+    "accident": "none",
+    "exteriorColor": "black",
+    "ownerCount": 1,
+    "sellerType": "dealer",
+    "distanceMiles": 2141
+  },
+  "verdict": "clear",
+  "mustHit": ["far-away"],
+  "mustNotHit": [
+    "no-price", "no-vin", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "shipping-only", "seller-remote",
+    "accident-reported", "mileage-low", "high-miles", "auction", "title-brand", "rushed", "lien", "manual"
+  ],
+  "scam": false,
+  "origin": "real"
+}

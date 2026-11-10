@@ -59,8 +59,26 @@ const MODELS: Record<string, string[]> = {
   Nissan: ["Altima", "Sentra", "Maxima", "Versa", "Rogue", "Murano", "Pathfinder", "Kicks", "Leaf"],
   Ford: ["Fusion", "Focus", "Escape", "Explorer", "Edge", "F-150", "Mustang", "Bronco"],
   Chevrolet: ["Malibu", "Cruze", "Impala", "Equinox", "Traverse", "Silverado", "Bolt", "Trax"],
+  // Makes people paste even though the app is tuned for Toyota and Honda. Their model names
+  // only count after the make ("Model 3", "Compass" and "Sierra" are ordinary words alone).
+  // Not "Ram", "Mini" or "Lincoln": they're too common as plain words ("mini van", "Lincoln, NE").
+  BMW: ["3 Series", "5 Series", "7 Series", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "i4", "iX"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "S-Class", "CLA", "GLA", "GLB", "GLC", "GLE", "GLS"],
+  Audi: ["A3", "A4", "A5", "A6", "Q3", "Q5", "Q7", "Q8", "e-tron"],
+  Volkswagen: ["Jetta", "Passat", "Tiguan", "Atlas", "Golf", "Taos", "ID.4"],
+  Jeep: ["Grand Cherokee", "Cherokee", "Wrangler", "Compass", "Renegade", "Gladiator"],
+  Tesla: ["Model 3", "Model Y", "Model S", "Model X"],
+  GMC: ["Sierra", "Terrain", "Acadia", "Yukon"],
+  Dodge: ["Charger", "Challenger", "Durango", "Grand Caravan"],
+  Volvo: ["XC40", "XC60", "XC90", "S60"],
+  Buick: ["Encore", "Enclave", "Envision"],
+  Cadillac: ["Escalade", "XT4", "XT5", "XT6", "CT5"],
+  Infiniti: ["Q50", "QX50", "QX60"],
+  Mitsubishi: ["Outlander", "Mirage", "Eclipse Cross"],
 };
-const MAKE_ALIASES: Record<string, string> = { chevy: "Chevrolet", vw: "Volkswagen", volkswagen: "Volkswagen" };
+/** Makes whose model names are matched only after the make is named. */
+const MODEL_NEEDS_MAKE = new Set(["BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Jeep", "Tesla", "GMC", "Dodge", "Volvo", "Buick", "Cadillac", "Infiniti", "Mitsubishi"]);
+const MAKE_ALIASES: Record<string, string> = { chevy: "Chevrolet", vw: "Volkswagen", mercedes: "Mercedes-Benz", benz: "Mercedes-Benz" };
 
 const COLORS = ["black", "white", "silver", "gray", "grey", "blue", "red", "green", "brown", "beige", "gold", "tan", "orange", "yellow", "purple", "maroon", "burgundy", "charcoal", "pearl"];
 
@@ -112,6 +130,7 @@ function findMakeModel(text: string): { make: string | null; model: string | nul
   // No make named: a model name alone ("2017 accord") is enough.
   if (!best) {
     for (const [make, models] of Object.entries(MODELS)) {
+      if (MODEL_NEEDS_MAKE.has(make)) continue;
       for (const model of models) {
         if (model.length < 3) continue; // "ES", "IS" are too ambiguous alone
         const m = new RegExp(`\\b${model.toLowerCase().replace(/[-]/g, "[- ]?")}\\b`).exec(text);
@@ -306,13 +325,15 @@ const DEALER_ONLY_HOSTS = /(^|\.)(carmax|carvana|enterprisecarsales|hertzcarsale
 
 function findSellerType(text: string, host: string | null): SellerType {
   // Private sellers often say "no dealers", which contains the word "dealer".
-  // AutoTrader's menu says "Private Seller Cars" on every page, so skip that.
+  // AutoTrader's menu says "Private Seller Cars" on every page, so skip that, and its
+  // footer menu lists "... New Cars for Sale / For Sale By Owner / Car Deals".
+  text = text.replace(/\bcars for sale for sale by owner\b/g, "cars for sale");
   if (/\bno dealers\b|\bdealers,? (?:please )?(?:don'?t|do not|need not)\b|\bnot a dealer(?:ship)?\b|\b(?:for sale )?by owner\b|\bprivate (?:seller|party|sale)\b(?! cars)|\bfsbo\b/.test(text)) {
     return "private";
   }
   // "serviced at the dealer" or "bought it from the dealer" is a private seller talking.
   const t = text.replace(/\b(?:at|from|by|through) (?:the|a|my) (?:honda |toyota |local )?dealer(?:ship)?\b|\bdealer[- ](?:maintained|serviced|service records?|records)\b/g, " ");
-  if (/\b(dealer(?:ship)?|we finance|financing available|doc(?:umentation)? fee|stock ?(?:#|number|no\b)|certified pre-?owned|cpo|our inventory|warranty available|carmax|carvana|enterprise car sales|hertz car sales|echopark|autonation|processing fee|no-haggle price)\b/.test(t)) {
+  if (/\b(dealer(?:ship)?|we finance|financing available|doc(?:umentation)? fee|stock ?(?:#|number|no\b)|certified pre-?owned|cpo|our inventory|warranty available|carmax|carvana|enterprise car sales|hertz car sales|echopark|autonation|processing fee|no-haggle price)\b/.test(t) || /\bstock ?#/.test(t)) {
     return "dealer";
   }
   if (host && DEALER_ONLY_HOSTS.test(host)) return "dealer";
