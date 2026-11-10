@@ -96,7 +96,7 @@ function wls(X: number[][], y: number[], w: number[]): number[] | null {
 }
 
 export function estimateFromComps(all: Comp[], t: CompTarget): CompEstimate | null {
-  let comps = all.filter((c) => c.price >= 1_000 && c.price <= 300_000 && c.miles >= 0 && c.miles <= 500_000);
+  let comps = all.filter((c) => c.price >= 1_000 && c.price <= 1_000_000 && c.miles >= 0 && c.miles <= 500_000);
   if (t.year !== null) {
     const near = comps.filter((c) => c.year !== null && Math.abs(c.year - t.year!) <= 1);
     comps = near.length >= 6 ? near : comps.filter((c) => c.year === null || Math.abs(c.year - t.year!) <= 2);

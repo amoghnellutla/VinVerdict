@@ -221,3 +221,14 @@ describe("more makes, and Autotrader's footer menu (real case 27)", () => {
     expect(parseListing("2015 Civic for sale by owner, $9,000").sellerType).toBe("private");
   });
 });
+
+describe("expensive cars and dealer fees (real case 28)", () => {
+  it("reads a price over $250,000 instead of an option's price", () => {
+    expect(parseListing("2026 Porsche 911 Turbo S. Sport Tailpipes $630. Listing Price $435,640").price).toBe(435640);
+    expect(parseListing("Listing Price $1,250,000").price).toBeNull();
+  });
+  it("takes Autotrader's dealer-fee total when it shows one", () => {
+    expect(parseListing("Dealer Fee + $995 Electronic Filing Fee + $499 Dealer fees ($1,494) included.").docFee).toBe(1494);
+    expect(parseListing("Doc fee $499").docFee).toBe(499);
+  });
+});

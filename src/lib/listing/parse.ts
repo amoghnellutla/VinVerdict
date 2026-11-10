@@ -75,9 +75,10 @@ const MODELS: Record<string, string[]> = {
   Cadillac: ["Escalade", "XT4", "XT5", "XT6", "CT5"],
   Infiniti: ["Q50", "QX50", "QX60"],
   Mitsubishi: ["Outlander", "Mirage", "Eclipse Cross"],
+  Porsche: ["911", "718", "Cayenne", "Macan", "Panamera", "Taycan"],
 };
 /** Makes whose model names are matched only after the make is named. */
-const MODEL_NEEDS_MAKE = new Set(["BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Jeep", "Tesla", "GMC", "Dodge", "Volvo", "Buick", "Cadillac", "Infiniti", "Mitsubishi"]);
+const MODEL_NEEDS_MAKE = new Set(["Porsche", "BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Jeep", "Tesla", "GMC", "Dodge", "Volvo", "Buick", "Cadillac", "Infiniti", "Mitsubishi"]);
 const MAKE_ALIASES: Record<string, string> = { chevy: "Chevrolet", vw: "Volkswagen", mercedes: "Mercedes-Benz", benz: "Mercedes-Benz" };
 
 const COLORS = ["black", "white", "silver", "gray", "grey", "blue", "red", "green", "brown", "beige", "gold", "tan", "orange", "yellow", "purple", "maroon", "burgundy", "charcoal", "pearl"];
@@ -165,12 +166,16 @@ function findYear(text: string, makeAt: number): number | null {
 }
 
 function findDocFee(text: string): number | null {
+  const ok = (n: number) => n > 0 && n <= 3_000;
+  // Autotrader sums every dealer fee for you: "Dealer fees ($1,494) included" (a $995 dealer fee + a $499 e-filing fee).
+  const total = text.match(/\bdealer fees \(\$\s?(\d,\d{3}|\d{1,4})(?:\.\d{2})?\) included\b/);
+  if (total && ok(Number(total[1].replace(",", "")))) return Number(total[1].replace(",", ""));
   const m =
     text.match(/\bdoc(?:ument(?:ation|ary))?\.? fees?\b[^$\d]{0,12}\$?\s?(\d{1,4}(?:\.\d{2})?)\b/) ??
     text.match(/\$\s?(\d{1,4}(?:\.\d{2})?)\s+doc(?:ument(?:ation|ary))?\.? fees?\b/);
   if (!m) return null;
   const n = Number(m[1]);
-  return n > 0 && n <= 2_000 ? n : null;
+  return ok(n) && n <= 2_000 ? n : null;
 }
 
 // Amounts that are about the price but aren't the asking price:
@@ -181,7 +186,9 @@ const NOT_ASKING_BEFORE = /(?:\b(?:msrp|retail|original|list|market (?:value|pri
 const NOT_ASKING_AFTER = /^\s*\*?\s*(?:\/|per\b|a month|monthly|down|deposit|fee|doc|processing|below|under|above|over|off|less|price drop|drop|savings|to the bank|in (?:repairs|work)|refundable)/;
 
 function findPrice(text: string): number | null {
-  const ok = (n: number) => n >= 500 && n <= 250_000;
+  // Up to $1M (the same limit as the price check): exotic cars are real listings, and a cap that's too low makes an option's
+  // price ("$630") win instead (case 28, a $435,640 Porsche).
+  const ok = (n: number) => n >= 500 && n <= 1_000_000;
   const num = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b`;
   // 1) Labelled: "asking $9,000", "price: 9500", "internet price $25,495", "$9k obo"
   const labelRe = new RegExp(String.raw`\b(asking|price|priced at|selling for|for sale for)\b[:\s]*\$?\s*${num}`, "g");

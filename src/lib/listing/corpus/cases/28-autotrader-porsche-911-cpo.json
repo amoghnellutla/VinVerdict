@@ -1,0 +1,28 @@
+{
+  "note": "Real Autotrader page pasted by Amogh (Ctrl+A, 2026-11-10); dealer phone and street address removed. Answers read from the page by hand before running VinVerdict. Traps: the price is over $250,000 ('Listing Price $435,640'); two dealer fees ('Dealer Fee + $995', 'Electronic Filing Fee + $499', 'Dealer fees ($1,494) included'), so the fees on top of the price are $1,494; dozens of option prices ('$270,300', '$17,210'), 'MSRP$295,270', '$87,128 down payment', '$349,786 amount financed'; 'Odometer is 863 miles below market average!' and '850 mi away' next to the real 673 miles; similar cars with '2K mi', '101 mi', '3 mi'; 'Paint to Sample: Yachtingbluemetallic' ('Pts Yachting Blue Exterior'); 'CARFAX One-Owner'; 'Smoking Package'; a 1-year-old car with 673 miles is normal, not a rollback.",
+  "expect": {
+    "kind": "text",
+    "vin": "WP0AD2A9XTS265759",
+    "year": 2026,
+    "make": "Porsche",
+    "model": "911",
+    "price": 435640,
+    "docFee": 1494,
+    "miles": 673,
+    "transmission": "automatic",
+    "titleStatus": "unknown",
+    "accident": "none",
+    "exteriorColor": "blue",
+    "ownerCount": 1,
+    "sellerType": "dealer",
+    "distanceMiles": 850
+  },
+  "verdict": "clear",
+  "mustHit": ["far-away"],
+  "mustNotHit": [
+    "no-price", "no-vin", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "shipping-only", "seller-remote",
+    "accident-reported", "mileage-low", "high-miles", "auction", "title-brand", "rushed", "lien", "manual", "odometer-unknown"
+  ],
+  "scam": false,
+  "origin": "real"
+}

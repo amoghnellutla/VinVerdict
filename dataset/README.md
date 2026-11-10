@@ -30,7 +30,7 @@ df.groupby(["set", "label"]).size()
 ## Limits (read before using it)
 
 - **Most rows are synthetic**: written from published patterns, not collected from real scams. Real rows are marked `"origin": "real"` and are being added. Expect real-world results to be lower than results on this file.
-- **One author wrote the synthetic rows.** A model trained on them can learn the author's phrasing instead of scam patterns. VinVerdict's own trained model shows this: its top "scam words" include "will", "to you" and "the car".
+- **One author wrote the synthetic rows.** A model trained on them can learn the author's phrasing instead of scam patterns. VinVerdict's own trained model shows this: its top "scam words" are phrases like "to you" and "the car".
 - **US used-car listings only**, mostly Toyota and Honda, in English.
 - **Small:** about 140 rows. Fine for measuring, small for training.
 
