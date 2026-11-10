@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { saveProofAction } from "@/app/actions/cars";
 import { priceCheckAction, type PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
-import { accidentHistoryConfirmed, EMPTY_REPORT, type ReportAnswers } from "@/lib/history-report";
+import { savedProof, summarizeProof } from "@/lib/evidence/combine";
+import { accidentHistoryConfirmed, EMPTY_REPORT, mergeAnswers, type ReportAnswers } from "@/lib/history-report";
 import { recentMiles, summarizeHistory } from "@/lib/history/summary";
 import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
@@ -16,7 +18,8 @@ import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
 import { BuyingDay } from "./BuyingDay";
-import { CheckYourself } from "./CheckYourself";
+import { CarGallery } from "./CarGallery";
+import { CheckYourself, type Attached } from "./CheckYourself";
 import { Checklist } from "./Checklist";
 import { CostPerYear } from "./CostPerYear";
 import { HistoryReport } from "./HistoryReport";
@@ -25,6 +28,8 @@ import { ListingHistory } from "./ListingHistory";
 import { OutTheDoor } from "./OutTheDoor";
 import { PriceCheck, type Details } from "./PriceCheck";
 import { ReportSources } from "./ReportSources";
+import { RiskGauge } from "./RiskGauge";
+import { SectionNav } from "./SectionNav";
 import { RunningCost } from "./RunningCost";
 import { Safety } from "./Safety";
 import { SellerMessage } from "./SellerMessage";
@@ -65,7 +70,7 @@ const ACTION_STYLE: Record<RuleAction, { badge: string; label: string }> = {
   info: { badge: "bg-surface-muted text-muted", label: "Good to know" },
 };
 
-export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null }: {
+export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [] }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -74,9 +79,13 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   guest?: boolean;
   /** Demo example: a price check recorded earlier, shown instead of the live button. */
   recorded?: { price: PriceState; recordedAt: string } | null;
+  /** The listing screenshots the check was read from (local blob: previews), shown when there are no listing photos. */
+  shots?: string[];
 }) {
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
+  // Proof attached in "Check it yourself" (read on this device, never uploaded).
+  const [proofs, setProofs] = useState<Attached[]>([]);
   const [purpose, setPurpose] = useState<"buy" | "sell">("buy");
   const [details, setDetails] = useState<Details>({ miles: null, trim: null });
   const [liveState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
@@ -105,18 +114,35 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const trimUsed = vinOnly && details.trim !== null ? details.trim.trim() || null : known.trim;
   const m: Analysis = useMemo(() => ({ ...a, listing: { ...known.merged, miles: milesUsed } }), [a, known, milesUsed]);
 
+  const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
+  const proofSum = useMemo(() => summarizeProof(proofs, goodVin, known.merged.miles), [proofs, goodVin, known]);
+  // Your answers plus the proof: bad news wins (lib/history-report.ts).
+  const answers = useMemo(() => mergeAnswers(report, proofSum.report), [report, proofSum]);
+
+  // Owner: keep the findings with the saved car (labels only), a moment after the last change.
+  const [proofSaved, setProofSaved] = useState(false);
+  const proofTouched = useRef(false);
+  useEffect(() => {
+    if (!carId || (!proofs.length && !proofTouched.current)) return;
+    proofTouched.current = true;
+    const t = setTimeout(() => {
+      void saveProofAction(carId, JSON.stringify(savedProof(proofs, goodVin))).then((r) => setProofSaved(r.ok));
+    }, 800);
+    return () => clearTimeout(t);
+  }, [carId, proofs, goodVin]);
+
   const { result, valuation, sellV } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history, report }, checklist);
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: proofSum.hits }, checklist);
     if (!sources) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
     const srcs = revalue(sources, { year, miles: milesUsed, trim: trimUsed });
     // Accidents: the history report first, then the listing; a seller admitting one counts too.
     const accident: AccidentStatus = checklist.anyAccidents === true ? "reported" : l.accident;
-    const titleStatus: TitleStatus = report.title === "branded" ? "branded" : report.title === "clean" && l.titleStatus === "unknown" ? "clean" : l.titleStatus;
-    const usage: Usage = report.commercial ? "fleet" : l.usage;
+    const titleStatus: TitleStatus = answers.title === "branded" ? "branded" : answers.title === "clean" && l.titleStatus === "unknown" ? "clean" : l.titleStatus;
+    const usage: Usage = answers.commercial ? "fleet" : l.usage;
     const base: ValueInput = {
-      price: l.price, miles: milesUsed, sellerType: l.sellerType, accident, titleStatus, usage, damage: report.damage,
+      price: l.price, miles: milesUsed, sellerType: l.sellerType, accident, titleStatus, usage, damage: answers.damage,
       daysOnMarket: live?.daysOnMarket ?? history?.daysListed ?? null, highMiles: first.hits.some((h) => h.id === "high-miles"),
       priceCut: history?.priceCut ?? null,
     };
@@ -130,9 +156,9 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         }
       : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report, valuePct: valuation.pctUnder }, checklist) : first;
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: proofSum.hits, valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, report, milesUsed, trimUsed, done, vinOnly]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, milesUsed, trimUsed, done, vinOnly]);
 
   if (a.listing.kind === "url") {
     return <LinkOnly host={a.listing.sourceHost} />;
@@ -140,9 +166,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 
   const order: RuleAction[] = ["hide", "flag", "info"];
   const hits = [...result.hits].sort((x, y) => order.indexOf(x.action) - order.indexOf(y.action));
-  const confirmed = accidentHistoryConfirmed(m.listing, report);
+  const confirmed = accidentHistoryConfirmed(m.listing, answers);
   const v = result.verdict === "clear" && !confirmed ? (vinOnly && !live ? VIN_ONLY_CLEAR : UNCONFIRMED) : VERDICT[result.verdict];
-  const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
   const make = a.decoded?.make ?? a.listing.make;
   const recordedAt = recorded?.recordedAt ?? null;
 
@@ -164,45 +189,89 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       sell={sellV}
     />
   );
-  const historyReport = <HistoryReport value={report} onChange={setReport} live={live} vin={goodVin} selling={selling} />;
-  const sourcesList = <ReportSources a={m} hits={selling ? [] : hits} live={live} sources={sources} history={rawHistory} recordedAt={recordedAt} report={report} />;
+  const historyReport = (
+    <HistoryReport value={answers} onChange={(patch) => setReport((r) => ({ ...r, ...patch }))} from={proofSum.from} live={live} vin={goodVin} selling={selling} />
+  );
+  const checkYourself = (
+    <CheckYourself
+      vin={goodVin}
+      make={make}
+      live={live}
+      proofs={proofs}
+      onProofs={setProofs}
+      summary={proofSum}
+      savedNote={carId ? (proofSaved ? "The findings (not the images) are saved with this car in My cars." : "The findings (not the images) are saved with this car in My cars as you add them.") : null}
+    />
+  );
+  const sourcesList = <ReportSources a={m} hits={selling ? [] : hits} live={live} sources={sources} history={rawHistory} recordedAt={recordedAt} report={answers} proofs={proofs} />;
+
+  const photos = live?.photos?.length ? live.photos : shots;
+  const gaugeTone = result.verdict === "hide" ? "bad" : result.verdict === "clear" ? (confirmed ? "good" : "muted") : "warn";
+  const nav = selling
+    ? [
+        { id: "verdict", label: "Your car" },
+        { id: "history-report", label: "History report" },
+        { id: "price-check", label: "Value" },
+        ...(history ? [{ id: "listing-history", label: "Listings" }] : []),
+        { id: "safety", label: "Safety" },
+        { id: "check-yourself", label: "Proof" },
+        { id: "sources", label: "Sources" },
+      ]
+    : [
+        { id: "verdict", label: "Verdict" },
+        { id: "history-report", label: "History report" },
+        { id: "price-check", label: "Price" },
+        { id: "check-yourself", label: "Proof" },
+        { id: "safety", label: "Safety" },
+        { id: "costs", label: "Costs" },
+        { id: "sources", label: "Sources" },
+      ];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    <div className="reveal-children space-y-10">
+      <header id="verdict" className="space-y-5">
+        <div className="rise flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <CarLine a={m} />
           <span className="flex gap-4 text-sm print:hidden">
             <a href="#sources" className="link">Sources</a>
             <PrintButton />
           </span>
         </div>
+        {photos.length > 0 && (
+          <CarGallery
+            photos={photos}
+            label={carName(m)}
+            caption={live?.photos?.length ? `Photos from its listing${live.sellerName ? ` at ${live.sellerName}` : ""} (via ${live.source}).` : "Your screenshots, shown on this device only."}
+          />
+        )}
         {vinOnly && <PurposeToggle value={purpose} onChange={setPurpose} />}
 
         {selling ? (
           <SellBox v={sellV?.privateV ?? null} looking={!done} />
         ) : (
-          <>
-            <section className={`mt-3 rounded-md border-l-4 px-5 py-4 ${v.tone}`}>
-              <h2 className={`text-2xl sm:text-3xl ${v.title}`}>{v.label}</h2>
+          <section className={`rise d1 flex flex-col gap-4 rounded-lg border-l-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between ${v.tone}`}>
+            <div className="min-w-0">
+              <h2 className={`text-3xl sm:text-[2.6rem] ${v.title}`}>{v.label}</h2>
               <p className="mt-1 text-[1.05rem]">{v.text}</p>
               <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
               <p className="mt-2 text-sm text-muted">
-                Risk score {result.risk} out of 100 · every finding below names its source, and{" "}
-                <a href="#check-yourself" className="link">you can check the car yourself</a>
+                Every finding below names its source, and <a href="#check-yourself" className="link">you can check the car yourself</a>.
               </p>
-            </section>
-
-            {hits.length > 0 && (
-              <ul className="mt-6 divide-y divide-border">
-                {hits.map((h) => (
-                  <HitRow key={h.id} hit={h} vin={goodVin} />
-                ))}
-              </ul>
-            )}
-          </>
+            </div>
+            <RiskGauge risk={result.risk} tone={gaugeTone} />
+          </section>
         )}
-      </div>
+      </header>
+
+      <SectionNav items={nav} />
+
+      {!selling && hits.length > 0 && (
+        <ul className="-mt-4 divide-y divide-border">
+          {hits.map((h, i) => (
+            <HitRow key={h.id} hit={h} vin={goodVin} delay={i} />
+          ))}
+        </ul>
+      )}
 
       {historyReport}
       {priceCheck}
@@ -212,18 +281,20 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         <>
           <Facts a={a} live={live} />
           <Safety a={m} />
-          <CheckYourself vin={goodVin} make={make} />
+          {checkYourself}
           {sourcesList}
         </>
       ) : (
         <>
-          <CheckYourself vin={goodVin} make={make} />
+          {checkYourself}
           <BuyerProtection a={m} />
           <Facts a={a} live={live} />
           {/* key: start the calculator again with the live price once it arrives */}
-          <OutTheDoor key={live ? "live" : "pasted"} a={m} />
-          <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} />
-          <RunningCost a={m} />
+          <div id="costs" className="space-y-10">
+            <OutTheDoor key={live ? "live" : "pasted"} a={m} />
+            <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} />
+            <RunningCost a={m} />
+          </div>
           <Safety a={m} />
           <InspectionList a={m} />
           <Checklist value={checklist} onChange={setChecklist}>
@@ -264,7 +335,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 function PurposeToggle({ value, onChange }: { value: "buy" | "sell"; onChange: (v: "buy" | "sell") => void }) {
   const opts: ["buy" | "sell", string][] = [["buy", "I'm thinking of buying it"], ["sell", "It's mine: what's it worth?"]];
   return (
-    <fieldset className="mt-3 flex flex-wrap gap-1.5 print:hidden">
+    <fieldset className="flex flex-wrap gap-1.5 print:hidden">
       <legend className="sr-only">Buying or selling</legend>
       {opts.map(([v, label]) => (
         <label
@@ -290,8 +361,8 @@ function SellBox({ v, looking }: { v: Valuation | null; looking: boolean }) {
       ? `Range ${fmt(v.low)}–${fmt(v.high)}, from similar cars that sold or are for sale near you.${v.assumesClean ? " Priced as a car with no accidents: set the history report below if it has any." : ""}`
       : "VinVerdict looks the VIN up online, then prices it from similar cars near you.";
   return (
-    <section className="mt-3 rounded-md border-l-4 border-l-accent bg-accent-soft px-5 py-4">
-      <h2 className="nums text-2xl sm:text-3xl">{title}</h2>
+    <section className="rise d1 rounded-lg border-l-4 border-l-accent bg-accent-soft px-5 py-5">
+      <h2 className="nums text-3xl sm:text-[2.6rem]">{title}</h2>
       <p className="mt-1 text-[1.05rem]">{text}</p>
     </section>
   );
@@ -318,13 +389,13 @@ function Summary({ hits, valuation, price, walkAway }: { hits: RuleHit[]; valuat
   );
 }
 
-function HitRow({ hit, vin }: { hit: RuleHit; vin: string | null }) {
+function HitRow({ hit, vin, delay = 0 }: { hit: RuleHit; vin: string | null; delay?: number }) {
   const s = ACTION_STYLE[hit.action];
   const ref = RULE_SOURCE[hit.id];
   const here = ON_PAGE[hit.id];
   const decode = (hit.id === "vin-mismatch" || hit.id === "vin-decode-warning") && vin;
   return (
-    <li className="grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
+    <li className={`rise grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4 ${delay < 6 ? `d${delay + 1}` : ""}`}>
       <span className={`tag h-fit w-fit ${s.badge}`}>{s.label}</span>
       <div>
         <p className="font-semibold">{hit.title}</p>

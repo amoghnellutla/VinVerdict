@@ -5,7 +5,9 @@ import { AAA_MAINTENANCE } from "@/lib/costs/running";
 import type { HistoryRecord } from "@/lib/history/parse";
 import type { LiveListing } from "@/lib/live/parse";
 import type { RuleHit } from "@/lib/scam/rules";
+import { SOURCE_NAME } from "@/lib/evidence/parse";
 import { DAMAGE_LABEL, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
+import type { Attached } from "./CheckYourself";
 import { raw, REF, RULE_SOURCE, SOURCES_CHECKED, type SourceRef } from "@/lib/sources";
 import type { PriceSources } from "@/lib/value/estimate";
 
@@ -17,15 +19,17 @@ type Props = {
   history: HistoryRecord[] | null;
   /** Demo example: when its data was recorded. */
   recordedAt: string | null;
-  /** What the person read on the vehicle history report. */
+  /** What the person read on the vehicle history report, merged with attached proof. */
   report: ReportAnswers;
+  /** Screenshots and pasted reports the person attached. */
+  proofs: Attached[];
 };
 
 /**
  * Every source behind this result, numbered, with a link to check each one.
  * Government data links go to the exact public request VinVerdict made.
  */
-export function ReportSources({ a, hits, live, sources, history, recordedAt, report }: Props) {
+export function ReportSources({ a, hits, live, sources, history, recordedAt, report, proofs }: Props) {
   const key = a.nhtsaVehicle ?? a.vehicle;
   const vin = a.vinCheck?.ok ? a.listing.vin : null;
   const when = recordedAt ? `recorded ${recordedAt}` : a.checkedAt ? `checked ${a.checkedAt}` : "checked today";
@@ -85,10 +89,18 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt, rep
   items.push({
     what: answered.length ? `Accident and title history: ${answered.join(", ").toLowerCase()}` : "Accident and title history: not confirmed",
     from: answered.length
-      ? "What you recorded from the vehicle history report (Carfax or AutoCheck), which VinVerdict can't open itself"
+      ? "What you recorded, or read from proof you attached (Carfax, AutoCheck), which VinVerdict can't open itself"
       : "No free source has it. Listing feeds aren't history reports, so their \"no accidents\" isn't used",
     links: live?.carfaxUrl ? [<ExternalLink key="cf" href={live.carfaxUrl}>the dealer&apos;s free Carfax report</ExternalLink>] : [],
   });
+
+  if (proofs.length) {
+    items.push({
+      what: `Proof you attached: ${proofs.map((p) => `${SOURCE_NAME[p.read.source] === "Unrecognized" ? "an item" : SOURCE_NAME[p.read.source]} (${p.thumb ? "screenshot" : "pasted text"})`).join(", ")}`,
+      from: "Read on your device; the findings are listed under Check it yourself",
+      links: [<a key="pf" href="#check-yourself" className="text-accent underline-offset-2 hover:underline">see what each one showed</a>],
+    });
+  }
 
   // The official guidance behind each warning shown, once each.
   const guidance = new Map<string, SourceRef>();

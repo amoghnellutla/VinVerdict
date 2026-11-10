@@ -50,3 +50,20 @@ export function accidentHistoryConfirmed(listing: ParsedListing, report: ReportA
   if (report.damage !== "unknown") return true;
   return listing.accident !== "unknown" && listing.sellerType === "dealer";
 }
+
+const SEVERITY: Damage[] = ["unknown", "none", "minor", "moderate", "severe"];
+
+/**
+ * Your answers plus what attached proof shows. Bad news wins: the worse
+ * damage, a branded title, commercial use. To undo something a report
+ * shows, remove that report.
+ */
+export function mergeAnswers(mine: ReportAnswers, proof: Partial<ReportAnswers>): ReportAnswers {
+  const d = proof.damage ?? "unknown";
+  const damage = SEVERITY.indexOf(d) > SEVERITY.indexOf(mine.damage) ? d : mine.damage;
+  const titles = [mine.title, proof.title ?? "unknown"];
+  const title: ReportTitle = titles.includes("branded") ? "branded" : titles.includes("clean") ? "clean" : "unknown";
+  const uses = [mine.commercial, proof.commercial ?? null];
+  const commercial = uses.includes(true) ? true : uses.includes(false) ? false : null;
+  return { damage, title, commercial };
+}

@@ -73,6 +73,27 @@ async function Car({ id }: { id: number }) {
         </section>
       )}
 
+      {f.proof && f.proof.items.length > 0 && (
+        <section className="border-t border-border pt-8">
+          <h2 className="section-title">Proof you checked</h2>
+          <p className="-mt-2 mb-3 text-sm text-muted">Read from the screenshots and reports you attached, saved {shortDate(f.proof.savedAt)}. The images themselves were never uploaded.</p>
+          <ul className="space-y-3">
+            {f.proof.items.map((p, i) => (
+              <li key={i}>
+                <p className="font-semibold">{p.source}</p>
+                <ul className="mt-1 space-y-0.5 text-sm">
+                  {p.findings.map((x) => (
+                    <li key={x.label} className={x.status === "bad" ? "text-bad" : x.status === "warn" ? "text-warn" : x.status === "good" ? "text-good" : "text-muted"}>
+                      {x.status === "good" ? "✓ " : x.status === "bad" ? "✕ " : "· "}{x.label}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="border-t border-border pt-8">
         <h2 className="section-title">Price history</h2>
         {change && (

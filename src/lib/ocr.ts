@@ -48,7 +48,8 @@ async function prepare(file: File): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
-export async function readScreenshots(files: File[], onProgress: (p: OcrProgress) => void): Promise<string> {
+/** Read each image on the device; one text per image, in order. */
+export async function readEachScreenshot(files: File[], onProgress: (p: OcrProgress) => void): Promise<string[]> {
   const { createWorker } = await import("tesseract.js");
   let current = 0;
   const worker = await createWorker("eng", 1, {
@@ -65,8 +66,12 @@ export async function readScreenshots(files: File[], onProgress: (p: OcrProgress
       const { data } = await worker.recognize(await prepare(files[i]));
       texts.push(data.text);
     }
-    return cleanOcrText(texts.join("\n\n"));
+    return texts;
   } finally {
     await worker.terminate();
   }
+}
+
+export async function readScreenshots(files: File[], onProgress: (p: OcrProgress) => void): Promise<string> {
+  return cleanOcrText((await readEachScreenshot(files, onProgress)).join("\n\n"));
 }

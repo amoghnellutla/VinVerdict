@@ -26,6 +26,8 @@ export type VerdictInput = {
   phoneMatches?: { title: string }[];
   /** What the vehicle history report says, as recorded on the page. */
   report?: ReportAnswers;
+  /** Warnings from proof the person attached (lib/evidence/combine.ts). */
+  proofHits?: RuleHit[];
 };
 
 export function buildVerdict(a: VerdictInput, sellerAnswers: SellerChecklist, now?: Date): ScamResult {
@@ -96,6 +98,8 @@ export function buildVerdict(a: VerdictInput, sellerAnswers: SellerChecklist, no
       reason: `This seller's number is also on ${n === 1 ? "another car" : `${n} other cars`} you checked (${a.phoneMatches.map((m) => m.title).slice(0, 3).join(", ")}). A "private" seller with several cars is often an unlicensed dealer (curbstoner). Ask how many cars they're selling, and check the title is in their name.`,
     });
   }
+
+  hits = [...hits, ...(a.proofHits ?? [])];
 
   if (a.listing.kind === "vin") {
     // A bare VIN is a car lookup, not a listing: a missing price isn't a red

@@ -48,6 +48,13 @@ export const ON_PAGE: Record<string, { name: string; anchor: string }> = {
   "report-damage": { name: "the history report you checked", anchor: "#history-report" },
   "report-title": { name: "the history report you checked", anchor: "#history-report" },
   "report-commercial": { name: "the history report you checked", anchor: "#history-report" },
+  "proof-reports-differ": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-stolen": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-total-loss": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-auction": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-odometer": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-open-recalls": { name: "the proof you attached", anchor: "#check-yourself" },
+  "proof-miles-lower": { name: "the proof you attached", anchor: "#check-yourself" },
 };
 
 /** The official guidance behind each scam/safety rule (src/lib/scam/rules.ts ids). */
@@ -94,7 +101,15 @@ export const raw = {
 
 // ---------- "Check it yourself": free outside checks for one VIN ----------
 
-export type VerifyLink = { name: string; href: string; what: string; cost: string; vinInLink: boolean };
+export type VerifyLink = {
+  name: string;
+  href: string;
+  what: string;
+  cost: string;
+  vinInLink: boolean;
+  /** The proof row a screenshot of this check goes in (null: nothing to attach). */
+  kind: "nhtsa" | "maker" | "nicb" | "nmvtis" | "google" | null;
+};
 
 /** Maker's own recall/warranty lookup (pages checked 2026-11-09). */
 const MAKER_RECALLS: Record<string, SourceRef> = {
@@ -112,6 +127,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "Recalls that haven't been fixed on this exact car. The list on this page covers every car of this model and year.",
       cost: "Free, official",
       vinInLink: false,
+      kind: "nhtsa",
     },
     {
       name: "NICB VINCheck",
@@ -119,6 +135,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "Reported stolen, or written off by an insurer (salvage or total loss).",
       cost: "Free",
       vinInLink: false,
+      kind: "nicb",
     },
     {
       name: "Search the VIN on Google",
@@ -126,6 +143,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "Old listings and auction pages. Photos from a salvage auction show damage a seller won't mention.",
       cost: "Free",
       vinInLink: true,
+      kind: "google",
     },
     {
       name: "NMVTIS title history",
@@ -133,6 +151,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "Title brands (salvage, flood, junk) and odometer readings from state DMV records, through approved providers.",
       cost: "A few dollars",
       vinInLink: false,
+      kind: "nmvtis",
     },
     {
       name: "NHTSA VIN decode (raw data)",
@@ -140,6 +159,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "The government's own decode of this VIN, the same answer VinVerdict compares with the listing.",
       cost: "Free, official",
       vinInLink: true,
+      kind: null,
     },
   ];
   const maker = make ? MAKER_RECALLS[make.toLowerCase()] : undefined;
@@ -150,6 +170,7 @@ export function verifyLinks(vin: string, make: string | null): VerifyLink[] {
       what: "The maker's own record of open recalls and service campaigns for this VIN.",
       cost: "Free, official",
       vinInLink: false,
+      kind: "maker",
     });
   }
   return links;

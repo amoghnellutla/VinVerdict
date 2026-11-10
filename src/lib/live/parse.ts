@@ -40,7 +40,21 @@ export type LiveListing = {
   daysOnMarket: number | null;
   /** Set when the listing has ended: the source returned its last stored copy. */
   removedAt: string | null;
+  /** Listing photos, only from PHOTO_HOST (the page's CSP allows that host alone). */
+  photos?: string[];
 };
+
+/** Auto.dev's photo host; numbered photos follow "{VIN}-{n}.jpg". Old listings' photos expire, so the page hides any that fail. */
+export const PHOTO_HOST = "retail.photos.vin";
+const MAX_PHOTOS = 12;
+
+export function listingPhotos(primary: unknown, count: unknown, vin: string): string[] {
+  const first = safeHttpsUrl(primary);
+  if (!first || new URL(first).hostname !== PHOTO_HOST) return [];
+  const n = Math.min(MAX_PHOTOS, Math.max(1, Number(count) || 1));
+  const base = `https://${PHOTO_HOST}/${encodeURIComponent(vin.toUpperCase())}`;
+  return [first, ...Array.from({ length: n - 1 }, (_, i) => `${base}-${i + 2}.jpg`)].filter((u, i, all) => all.indexOf(u) === i);
+}
 
 type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj | null => (v && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : null);
@@ -116,6 +130,7 @@ export function parseAutoDevListing(body: unknown, vin: string): LiveListing | n
     cleanTitle: null,
     daysOnMarket: null,
     removedAt: str(d.removedAt),
+    photos: listingPhotos(r.primaryImage, r.photoCount, vin),
   };
 }
 

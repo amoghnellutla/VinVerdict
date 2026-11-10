@@ -18,7 +18,7 @@ export function Safety({ a }: { a: Analysis }) {
   const sameBuild = sameBuildCount(a.complaints, vin);
 
   return (
-    <section className="border-t border-border pt-8">
+    <section className="border-t border-border pt-8" id="safety">
       <h2 className="section-title">Recalls and safety: {year} {make} {model} ({basis})</h2>
 
       <div className="grid gap-8 lg:grid-cols-[3fr_2fr]">

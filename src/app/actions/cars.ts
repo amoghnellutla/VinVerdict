@@ -3,7 +3,8 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/session";
-import { deleteCar, getCars, recordPrice } from "@/lib/cars/store";
+import { deleteCar, getCars, recordPrice, saveProof } from "@/lib/cars/store";
+import { parseSavedProof } from "@/lib/evidence/validate";
 import { clientIp } from "@/lib/client-ip";
 import { lookupLiveListing } from "@/lib/live/client";
 import { rateLimit } from "@/lib/rate-limit";
@@ -56,4 +57,16 @@ export async function recheckPriceAction(_prev: CarActionState, form: FormData):
   if (before && l.price < before) return { status: "done", message: `Price dropped by $${(before - l.price).toLocaleString("en-US")} to $${l.price.toLocaleString("en-US")}.` };
   if (before && l.price > before) return { status: "done", message: `Price went up to $${l.price.toLocaleString("en-US")}.` };
   return { status: "done", message: `Same price: $${l.price.toLocaleString("en-US")}.` };
+}
+
+/** Keep the findings from proof the owner attached with a saved car (labels only). */
+export async function saveProofAction(id: number, payload: string): Promise<{ ok: boolean }> {
+  if (!(await currentUser())) return { ok: false };
+  if (!Number.isSafeInteger(id) || id <= 0) return { ok: false };
+  const ip = await clientIp();
+  if (!rateLimit(`proof:${ip}`, 20, 60_000)) return { ok: false };
+  const items = parseSavedProof(payload);
+  if (!items) return { ok: false };
+  const r = await saveProof(id, items);
+  return { ok: r.ok };
 }

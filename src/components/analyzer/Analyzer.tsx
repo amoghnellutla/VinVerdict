@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent, type DragEvent } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent, type DragEvent, type ReactNode } from "react";
 import { analyzeAction, type AnalyzeState } from "@/app/actions/analyze";
 import { readListingHash } from "@/lib/bookmarklet";
 import { EXAMPLES, loadExample, type DemoData, type ExampleId } from "@/lib/demo/examples";
@@ -20,9 +20,25 @@ const subscribeCoarse = (cb: () => void) => {
 };
 const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => false);
 
-/** Paste box + results for the "Check a listing" page. `guest` = demo visitor (no login). */
-export function Analyzer({ guest = false }: { guest?: boolean }) {
+/**
+ * Paste box + results for the "Check a listing" page. `guest` = demo visitor (no login).
+ * `intro` (the page's headline and pitch) shows until a result does; then the
+ * page belongs to the result and the box shrinks to "Check another car".
+ */
+export function Analyzer({ guest = false, intro = null }: { guest?: boolean; intro?: ReactNode }) {
   const [state, formAction, pending] = useActionState(analyzeAction, initial);
+  // Listing screenshots the current check was read from (local previews for the result).
+  const [shots, setShots] = useState<string[]>([]);
+  const shotsRef = useRef<string[]>([]);
+  const setShotUrls = (next: string[]) => {
+    shotsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    shotsRef.current = next;
+    setShots(next);
+  };
+  useEffect(() => () => shotsRef.current.forEach((u) => URL.revokeObjectURL(u)), []);
+  // "Start over" hides the current result until the next check.
+  const [hiddenId, setHiddenId] = useState<number | null>(null);
+  const [showBox, setShowBox] = useState(false);
   // Controlled so the text survives React's automatic form reset after submit.
   const [text, setText] = useState("");
   const [pasteNote, setPasteNote] = useState<string | null>(null);
@@ -43,9 +59,10 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
   }
 
   /** Fill the box and run the check straight away. */
-  function check(listing: string) {
+  function check(listing: string, fromShots: string[] = []) {
     const t = listing.trim().slice(0, MAX_LISTING_CHARS);
     if (!t) return;
+    setShotUrls(fromShots);
     setText(t);
     setPasteNote(null);
     setExample(null);
@@ -88,7 +105,7 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
         setPasteNote("Couldn't read any text in those screenshots. Make sure the price, details and description are in the shots, not just photos.");
         return;
       }
-      check(read);
+      check(read, files.map((f) => URL.createObjectURL(f)));
       if (skipped) setPasteNote(`Read ${files.length} screenshots; skipped ${skipped} (only images, up to ${MAX_SCREENSHOTS}).`);
     } catch (err) {
       console.error("screenshot reading failed", err);
@@ -131,6 +148,23 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
   }, []);
 
   const busy = pending || ocr !== null;
+  const done = state.status === "done" && state.id !== hiddenId ? state : null;
+  const showing = example !== null || done !== null;
+
+  // A new result scrolls into view.
+  const doneId = state.status === "done" ? state.id : null;
+  useEffect(() => {
+    if (doneId) requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [doneId]);
+
+  function startOver() {
+    setExample(null);
+    if (state.status === "done") setHiddenId(state.id);
+    setShotUrls([]);
+    setText("");
+    setShowBox(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   // Dropping screenshot files anywhere on the box reads them.
   const [dragging, setDragging] = useState(false);
@@ -150,18 +184,37 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
 
   return (
     <>
-      {guest && <Examples onOpen={openExample} loading={exampleLoading} current={example?.id ?? null} />}
+      {/* The intro's sample check opens its example (data-example on the server-rendered card). */}
+      {!showing && (
+        <div
+          onClick={(e) => {
+            const id = (e.target as HTMLElement).closest("[data-example]")?.getAttribute("data-example");
+            if (id && EXAMPLES.some((x) => x.id === id)) void openExample(id as ExampleId);
+          }}
+        >
+          {intro}
+        </div>
+      )}
+      {!showing && guest && <Examples onOpen={openExample} loading={exampleLoading} />}
+      {showing && (
+        <div className="fade-in mb-4 flex flex-wrap items-baseline justify-between gap-3 print:hidden">
+          <h2 className="text-xl">Check another car</h2>
+          <button type="button" onClick={startOver} className="link text-sm">
+            {guest ? "Back to the start and the examples" : "Start over"}
+          </button>
+        </div>
+      )}
       <form
         action={formAction}
         // A new check replaces any open example.
         onSubmit={() => setExample(null)}
-        className={`card ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
+        className={`card print:hidden ${showing ? "sm:py-4" : "rise d2"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
         {/* Computer: copy the whole page. Phone (touch screen): screenshots, since apps have no "select all". */}
-        <ol className="space-y-3 text-[1.05rem] pointer-coarse:hidden">
+        <ol className={`space-y-3 text-[1.05rem] pointer-coarse:hidden ${showing ? "hidden" : ""}`}>
           <li className="flex gap-3">
             <Step n={1} />
             <span>
@@ -173,7 +226,7 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
             <span>Come back here and press the button.</span>
           </li>
         </ol>
-        <ol className="hidden space-y-3 text-[1.05rem] pointer-coarse:block">
+        <ol className={`hidden space-y-3 text-[1.05rem] ${showing ? "" : "pointer-coarse:block"}`}>
           <li className="flex gap-3">
             <Step n={1} />
             <span>Take screenshots of the listing: the title and price, the details, and the seller&apos;s description.</span>
@@ -183,7 +236,7 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
             <span>Press <strong>Read screenshots</strong> and pick them. They&apos;re read on your phone, not uploaded.</span>
           </li>
         </ol>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className={`${showing ? "" : "mt-5"} flex flex-col gap-3 sm:flex-row sm:items-center`}>
           <button type="button" onClick={pasteAndCheck} disabled={busy} className={`btn ${touch ? "btn-secondary order-2" : "btn-primary"} py-3 text-base sm:px-8`}>
             {pending ? "Checking…" : "Paste & check"}
           </button>
@@ -191,6 +244,11 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
             {ocr ? ocrLabel(ocr) : "Read screenshots"}
             <input type="file" accept="image/*" multiple onChange={onScreenshots} disabled={busy} className="sr-only" />
           </label>
+          {showing && (
+            <button type="button" className="link text-sm sm:ml-2" onClick={() => setShowBox((x) => !x)}>
+              {showBox ? "Hide the box" : "Paste text or a VIN instead"}
+            </button>
+          )}
         </div>
         {ocr?.loading && ocr.image === 1 && (
           <p className="mt-2 text-sm text-muted">The first time, the reader downloads about 7 MB. After that it&apos;s quick.</p>
@@ -209,7 +267,7 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
           </p>
         )}
 
-        <div className="mt-6 border-t border-border pt-5">
+        <div className={`mt-6 border-t border-border pt-5 ${showing && !showBox ? "hidden" : ""}`}>
           <label htmlFor="listing" className="font-semibold">
             Or paste it yourself
           </label>
@@ -235,11 +293,13 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
         </div>
       </form>
 
-      <div className="mt-4 pointer-coarse:hidden print:hidden">
-        <Bookmarklet />
-      </div>
+      {!showing && (
+        <div className="mt-4 pointer-coarse:hidden print:hidden">
+          <Bookmarklet />
+        </div>
+      )}
 
-      <div id="result" aria-live="polite" className="mt-12 scroll-mt-6 print:mt-0">
+      <div id="result" aria-live="polite" className={`${showing ? "mt-10" : "mt-12"} scroll-mt-6 print:mt-0`}>
         {example && (
           <Result
             key={`example-${example.id}`}
@@ -255,8 +315,8 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
           </p>
         )}
         {/* key resets the checklist answers for each new analysis */}
-        {!example && state.status === "done" && (
-          <Result key={state.id} analysis={state.analysis} carId={state.carId} saveNote={state.saveNote} phoneMatches={state.phoneMatches} guest={state.guest} />
+        {!example && done && (
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} />
         )}
       </div>
     </>
@@ -264,19 +324,36 @@ export function Analyzer({ guest = false }: { guest?: boolean }) {
 }
 
 /** Demo: five real checks recorded earlier, one click each (no server call, no API quota). */
-function Examples({ onOpen, loading, current }: { onOpen: (id: ExampleId) => void; loading: ExampleId | null; current: ExampleId | null }) {
+function Examples({ onOpen, loading }: { onOpen: (id: ExampleId) => void; loading: ExampleId | null }) {
+  const [featured, ...rest] = EXAMPLES;
   return (
-    <section className="mb-8 print:hidden" aria-labelledby="examples-title">
-      <h2 id="examples-title" className="section-title">Try an example</h2>
-      <p className="-mt-2 mb-4 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data. One click, no sign-up.</p>
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {EXAMPLES.map((e) => (
-          <li key={e.id}>
+    <section className="mb-10 print:hidden" aria-labelledby="examples-title">
+      <h2 id="examples-title" className="section-title rise">Try an example</h2>
+      <p className="rise d1 -mt-2 mb-5 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data. One click, no sign-up.</p>
+      <button
+        type="button"
+        onClick={() => onOpen(featured.id)}
+        className="rise d2 group lift grid w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-transform duration-300 hover:-translate-y-0.5 sm:grid-cols-[1.1fr_1fr]"
+      >
+        {featured.photo && (
+          // Real listing photo (allowed host only, see lib/csp.ts).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={featured.photo} alt="" referrerPolicy="no-referrer" className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+        )}
+        <span className="flex flex-col justify-center gap-1 p-5">
+          <span className="text-sm font-semibold text-accent">{featured.site}</span>
+          <span className="font-serif text-2xl font-semibold">{loading === featured.id ? "Opening…" : featured.title}</span>
+          <span className="text-[0.95rem]">{featured.shows}</span>
+          <span className="mt-2 text-sm font-semibold text-accent">Open the full check →</span>
+        </span>
+      </button>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+        {rest.map((e, i) => (
+          <li key={e.id} className={`rise d${Math.min(6, i + 3)}`}>
             <button
               type="button"
               onClick={() => onOpen(e.id)}
-              aria-pressed={current === e.id}
-              className={`h-full w-full rounded-md border px-4 py-3 text-left transition-colors hover:border-accent ${current === e.id ? "border-accent bg-accent-soft" : "border-border bg-surface"}`}
+              className="h-full w-full rounded-lg border border-border bg-surface px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 hover:border-accent"
             >
               <span className="block font-semibold">{loading === e.id ? "Opening…" : e.title}</span>
               <span className="block text-sm text-muted">{e.site}</span>

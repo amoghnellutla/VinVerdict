@@ -5,8 +5,12 @@ import { DAMAGE_LABEL, TITLE_LABEL, type Damage, type ReportAnswers, type Report
 import type { LiveListing } from "@/lib/live/parse";
 
 type Props = {
+  /** Your answers merged with attached proof (what the verdict uses). */
   value: ReportAnswers;
-  onChange: (next: ReportAnswers) => void;
+  /** Changes your own answers only. */
+  onChange: (patch: Partial<ReportAnswers>) => void;
+  /** Which answers attached proof settled, and from where ("AutoCheck"). */
+  from: Partial<Record<keyof ReportAnswers, string>>;
   live: LiveListing | null;
   vin: string | null;
   /** Selling your own car: same questions, worded for the owner. */
@@ -22,8 +26,9 @@ const TITLES: ReportTitle[] = ["unknown", "clean", "branded"];
  * allow automated access), and listing feeds aren't history reports, so the
  * verdict and the price wait for what the person reads there.
  */
-export function HistoryReport({ value, onChange, live, vin, selling }: Props) {
-  const set = (patch: Partial<ReportAnswers>) => onChange({ ...value, ...patch });
+export function HistoryReport({ value, onChange, from, live, vin, selling }: Props) {
+  const set = onChange;
+  const fromNote = (k: keyof ReportAnswers) => (from[k] ? `From your ${from[k]} proof. Remove it under Check it yourself to change this.` : null);
   return (
     <section className="border-t border-border pt-8" id="history-report">
       <h2 className="section-title">{selling ? "Your car's history report" : "What does the history report say?"}</h2>
@@ -52,8 +57,9 @@ export function HistoryReport({ value, onChange, live, vin, selling }: Props) {
           </p>
         )}
         <p className="text-sm text-muted">
-          VinVerdict can&apos;t open these reports for you: Carfax and AutoCheck have no free API and don&apos;t allow automated access. Until you
-          answer, the result says the history isn&apos;t confirmed.
+          VinVerdict can&apos;t open these reports for you: Carfax and AutoCheck have no free API and don&apos;t allow automated access. Add a
+          screenshot or the report&apos;s text under <a href="#check-yourself" className="link">Check it yourself</a> and it fills these in, or
+          pick them yourself. Until then, the result says the history isn&apos;t confirmed.
         </p>
       </div>
 
@@ -63,25 +69,28 @@ export function HistoryReport({ value, onChange, live, vin, selling }: Props) {
           options={DAMAGES.map((d) => [d, DAMAGE_LABEL[d]])}
           value={value.damage}
           onPick={(damage) => set({ damage: damage as Damage })}
+          note={fromNote("damage")}
         />
         <Choice
           legend="Title"
           options={TITLES.map((t) => [t, TITLE_LABEL[t]])}
           value={value.title}
           onPick={(title) => set({ title: title as ReportTitle })}
+          note={fromNote("title")}
         />
         <Choice
           legend="Rental, fleet or commercial use"
           options={[["unknown", "Not checked yet"], ["no", "No"], ["yes", "Yes"]]}
           value={value.commercial === null ? "unknown" : value.commercial ? "yes" : "no"}
           onPick={(v) => set({ commercial: v === "unknown" ? null : v === "yes" })}
+          note={fromNote("commercial")}
         />
       </div>
     </section>
   );
 }
 
-function Choice({ legend, options, value, onPick }: { legend: string; options: [string, string][]; value: string; onPick: (v: string) => void }) {
+function Choice({ legend, options, value, onPick, note }: { legend: string; options: [string, string][]; value: string; onPick: (v: string) => void; note: string | null }) {
   return (
     <fieldset>
       <legend className="text-sm font-semibold">{legend}</legend>
@@ -98,6 +107,7 @@ function Choice({ legend, options, value, onPick }: { legend: string; options: [
           </label>
         ))}
       </div>
+      {note && <p className="mt-1 text-sm text-accent">{note}</p>}
     </fieldset>
   );
 }

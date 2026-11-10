@@ -114,3 +114,17 @@ describe("merging a live listing into the check", () => {
     expect(m).toMatchObject({ price: 9800, miles: 183500, accident: "none" });
   });
 });
+
+describe("listing photos", () => {
+  it("keeps only Auto.dev's photo host and numbers the rest", async () => {
+    const { listingPhotos } = await import("./parse");
+    expect(listingPhotos("https://retail.photos.vin/2T2BZMCA2GC041915-1.jpg", 3, "2t2bzmca2gc041915")).toEqual([
+      "https://retail.photos.vin/2T2BZMCA2GC041915-1.jpg",
+      "https://retail.photos.vin/2T2BZMCA2GC041915-2.jpg",
+      "https://retail.photos.vin/2T2BZMCA2GC041915-3.jpg",
+    ]);
+    expect(listingPhotos("https://evil.example/x.jpg", 3, "2T2BZMCA2GC041915")).toEqual([]);
+    expect(listingPhotos("javascript:alert(1)", 3, "2T2BZMCA2GC041915")).toEqual([]);
+    expect(listingPhotos("https://retail.photos.vin/X-1.jpg", 999, "2T2BZMCA2GC041915")).toHaveLength(12);
+  });
+});

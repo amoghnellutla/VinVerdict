@@ -13,7 +13,8 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     // Dev only: React's dev tools need eval.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data:",
+    // Listing photos come from Auto.dev's photo host only (lib/live/parse.ts PHOTO_HOST).
+    "img-src 'self' blob: data: https://retail.photos.vin",
     "font-src 'self'",
     "connect-src 'self'",
     // The on-device screenshot reader runs in a worker from /ocr/ (its own CSP: next.config.ts).

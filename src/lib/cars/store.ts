@@ -1,4 +1,5 @@
 import "server-only";
+import type { SavedProof } from "@/lib/evidence/combine";
 import type { SavedHistory } from "@/lib/history/summary";
 import { createSupabase } from "@/lib/supabase/server";
 import type { DealLabel } from "@/lib/value/estimate";
@@ -33,6 +34,8 @@ export type CarFacts = {
   phones?: string[];
   /** What the VIN's listing history showed at the last price check. */
   history?: SavedHistory;
+  /** Findings from proof the owner attached (labels only: no images or report text). */
+  proof?: { savedAt: string; items: SavedProof };
 };
 
 export type PhoneMatch = { id: number; title: string; price: number | null };
@@ -163,6 +166,22 @@ export async function saveValue(
     const { error } = await db.from("checked_cars").update({ fair_low: v.fairLow, fair_high: v.fairHigh, deal_label: v.dealLabel, facts, updated_at: new Date().toISOString() }).eq("id", id);
     if (error) return fail(error);
     if (live?.price) await addPrice(id, live.price, live.source);
+    return { ok: true, value: true };
+  } catch (err) {
+    return fail({ message: err instanceof Error ? err.message : "unknown" });
+  }
+}
+
+/** Keep the latest proof findings with the car (replaces the previous set). */
+export async function saveProof(id: number, items: SavedProof): Promise<Result<true>> {
+  const db = await createSupabase();
+  try {
+    const cur = await db.from("checked_cars").select("facts").eq("id", id).maybeSingle();
+    if (cur.error) return fail(cur.error);
+    if (!cur.data) return { ok: false, error: "failed" };
+    const facts: CarFacts = { ...((cur.data.facts as CarFacts) ?? {}), proof: { savedAt: new Date().toISOString(), items } };
+    const { error } = await db.from("checked_cars").update({ facts, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) return fail(error);
     return { ok: true, value: true };
   } catch (err) {
     return fail({ message: err instanceof Error ? err.message : "unknown" });

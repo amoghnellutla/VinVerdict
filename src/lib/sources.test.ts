@@ -14,6 +14,7 @@ describe("sources", () => {
       ...ruleIds("live/merge.ts", /id: "([a-z-]+)"/g),
       ...ruleIds("history/summary.ts", /id: "([a-z-]+)"/g),
       ...ruleIds("verdict.ts", /id: "([a-z-]+)"/g),
+      ...ruleIds("evidence/combine.ts", /id: "([a-z-]+)"/g),
     ]);
     for (const id of [...Object.keys(RULE_SOURCE), ...Object.keys(ON_PAGE)]) expect(ids, id).toContain(id);
     for (const r of Object.values(REF)) expect(r.href).toMatch(/^https:\/\//);
