@@ -330,8 +330,12 @@ function SimilarCars({ comps }: { comps: Comp[] }) {
       <p className="text-sm text-muted">The closest matches by year and miles. Their prices are before any accident or seller adjustment.</p>
       <ul className="nums mt-2 divide-y divide-border border-y border-border">
         {list.map((c, i) => (
-          <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-4 py-2">
-            <span>
+          <li key={i} className="flex items-center justify-between gap-x-4 py-2">
+            {c.photos?.[0] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={c.photos[0]} alt="" width={64} height={40} loading="lazy" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = "none")} className="h-10 w-16 shrink-0 rounded object-cover" />
+            )}
+            <span className="min-w-0 flex-1">
               {[c.year, c.trim].filter(Boolean).join(" ")} · {c.miles.toLocaleString("en-US")} mi
               <span className="text-sm text-muted">
                 {" "}· {c.sold ? `sold${c.seen ? ` around ${c.seen}` : ""}` : "for sale now"}

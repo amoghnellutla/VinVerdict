@@ -24,6 +24,9 @@ export type Comp = {
   daysOnMarket: number | null;
   /** When it was last seen listed (sold comps) as an ISO date. */
   seen: string | null;
+  /** For-sale comps from Auto.dev: the car's VIN and listing photos (Auto.dev's photo host only). */
+  vin?: string | null;
+  photos?: string[];
 };
 
 export type CompTarget = { year: number | null; miles: number | null; trim: string | null };

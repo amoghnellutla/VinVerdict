@@ -174,3 +174,17 @@ describe("days to sell", () => {
     expect(valueCar(src, { ...car, daysOnMarket: 40 })!.offer!.reasons.join(" ")).not.toMatch(/days/);
   });
 });
+
+describe("findSameCar", () => {
+  it("finds one close match, and nothing when it's ambiguous or far", async () => {
+    const { findSameCar } = await import("./samecar");
+    const { parseListing } = await import("@/lib/listing/parse");
+    const comp = (vin: string, price: number, miles: number, year = 2017): Comp => ({ price, miles, year, trim: null, sellerType: "dealer", sold: false, url: null, city: null, state: null, daysOnMarket: null, seen: null, vin, photos: [] });
+    const listing = parseListing("2017 Honda Accord EX-L, 98,000 miles, $13,900. Private seller.");
+    const a = comp("1HGCR2F8XHA000123", 14_100, 98_400);
+    expect(findSameCar(listing, 2017, [a, comp("1HGCR2F80HA111111", 12_000, 60_000)])?.comp.vin).toBe("1HGCR2F8XHA000123");
+    expect(findSameCar(listing, 2017, [a, comp("1HGCR2F80HA222222", 13_800, 97_500)])).toBeNull(); // two close: ambiguous
+    expect(findSameCar(listing, 2017, [comp("1HGCR2F80HA333333", 13_900, 98_000, 2018)])).toBeNull(); // other year
+    expect(findSameCar(listing, 2017, [comp("1HGCR2F80HA444444", 16_000, 98_000)])).toBeNull(); // price too far
+  });
+});

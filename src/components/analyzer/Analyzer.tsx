@@ -6,6 +6,8 @@ import { readListingHash } from "@/lib/bookmarklet";
 import { EXAMPLES, loadExample, type DemoData, type ExampleId } from "@/lib/demo/examples";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { MAX_SCREENSHOTS, pickImages, readScreenshots, type OcrProgress } from "@/lib/ocr";
+import { HomePlay } from "@/components/play/HomePlay";
+import type { PlayData } from "@/lib/demo/play";
 import { Bookmarklet } from "./Bookmarklet";
 import { Result } from "./Result";
 
@@ -25,7 +27,7 @@ const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchM
  * `intro` (the page's headline and pitch) shows until a result does; then the
  * page belongs to the result and the box shrinks to "Check another car".
  */
-export function Analyzer({ guest = false, intro = null, outro = null }: { guest?: boolean; intro?: ReactNode; outro?: ReactNode }) {
+export function Analyzer({ guest = false, intro = null, outro = null, play = null }: { guest?: boolean; intro?: ReactNode; outro?: ReactNode; play?: PlayData | null }) {
   const [state, formAction, pending] = useActionState(analyzeAction, initial);
   // Listing screenshots the current check was read from (local previews for the result).
   const [shots, setShots] = useState<string[]>([]);
@@ -193,6 +195,7 @@ export function Analyzer({ guest = false, intro = null, outro = null }: { guest?
           }}
         >
           {intro}
+          {play && <HomePlay data={play} onCheck={(vin) => check(vin)} onOpenExample={(id) => void openExample(id)} />}
         </div>
       )}
       {showing && (
@@ -207,7 +210,7 @@ export function Analyzer({ guest = false, intro = null, outro = null }: { guest?
         action={formAction}
         // A new check replaces any open example.
         onSubmit={() => setExample(null)}
-        className={`card print:hidden ${showing ? "sm:py-4" : ""} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
+        className={`card print:hidden ${showing ? "sm:py-4" : "mt-12"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
@@ -317,7 +320,7 @@ export function Analyzer({ guest = false, intro = null, outro = null }: { guest?
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (
-          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} />
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} />
         )}
       </div>
     </>

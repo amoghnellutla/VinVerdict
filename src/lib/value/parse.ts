@@ -3,7 +3,7 @@
  * listing facts only, https links only.
  */
 
-import { safeHttpsUrl } from "@/lib/live/parse";
+import { listingPhotos, safeHttpsUrl } from "@/lib/live/parse";
 import type { Comp } from "./comps";
 
 type Obj = Record<string, unknown>;
@@ -52,6 +52,7 @@ export function parseAutoDevComps(body: unknown): Comp[] {
     const price = num(r?.price);
     const miles = num(r?.miles);
     if (!r || !price || miles === null) continue;
+    const vin = str(x.vin)?.toUpperCase() ?? null;
     out.push({
       price, miles,
       year: num(v.year), trim: str(v.trim),
@@ -61,6 +62,8 @@ export function parseAutoDevComps(body: unknown): Comp[] {
       city: str(r.city), state: str(r.state),
       daysOnMarket: null,
       seen: null,
+      vin: vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(vin) ? vin : null,
+      photos: vin ? listingPhotos(r.primaryImage, r.photoCount, vin) : [],
     });
   }
   return out;

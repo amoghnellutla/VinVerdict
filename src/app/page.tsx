@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Analyzer } from "@/components/analyzer/Analyzer";
-import { VinDecode } from "@/components/VinDecode";
-import camry from "@/lib/demo/data/camry.json";
-import type { DemoData } from "@/lib/demo/examples";
 import { currentUser } from "@/lib/auth/session";
+import { playData } from "@/lib/demo/play";
 
 export default function CheckListingPage() {
   return (
-    <Suspense fallback={<Analyzer guest intro={<GuestIntro />} outro={<Points />} />}>
+    <Suspense fallback={<Analyzer guest intro={<GuestIntro />} outro={<Points />} play={playData()} />}>
       <ForViewer />
     </Suspense>
   );
@@ -32,27 +30,14 @@ function Headline() {
   );
 }
 
-/** The demo's opening: the question, then a real VIN taking itself apart. */
+/** The demo's opening: the question, then three ways to play with it (components/play). */
 function GuestIntro() {
-  const d = camry as unknown as DemoData;
-  const vin = d.analysis.listing.vin!;
   return (
     <div className="print:hidden">
-      <section className="mb-12">
-        <Headline />
-        <div className="mt-10 rounded-xl border border-border bg-surface px-5 pt-6 pb-5 sm:px-8 sm:pt-8">
-          <VinDecode vin={vin} decoded={d.analysis.decoded} animate />
-          <p className="mt-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-t border-border pt-4 text-sm text-muted">
-            <span>A real 2021 Camry from AutoTrader. Its VIN, decoded by NHTSA, is where every check starts.</span>
-            <button type="button" data-example="camry" className="link font-semibold">
-              Open this car&apos;s check
-            </button>
-          </p>
-        </div>
-        <p className="mt-4 text-sm text-muted">
-          Demo, no sign-up. Nothing you paste is saved. <Link href="/security" className="link">How it&apos;s secured</Link>
-        </p>
-      </section>
+      <Headline />
+      <p className="rise d2 mt-4 text-sm text-muted">
+        Demo, no sign-up. Nothing you paste is saved. <Link href="/security" className="link">How it&apos;s secured</Link>
+      </p>
     </div>
   );
 }
@@ -86,6 +71,6 @@ function OwnerIntro() {
 /** Owner (two-step login) gets the full app; anyone else gets the demo. */
 async function ForViewer() {
   const owner = await currentUser();
-  if (owner) return <Analyzer intro={<OwnerIntro />} />;
-  return <Analyzer guest intro={<GuestIntro />} outro={<Points />} />;
+  if (owner) return <Analyzer intro={<OwnerIntro />} play={playData()} />;
+  return <Analyzer guest intro={<GuestIntro />} outro={<Points />} play={playData()} />;
 }

@@ -46,6 +46,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 | `/compare` | 2–4 saved cars side by side, best value per row in green | Built (needs the SQL setup) |
 | `/car/[id]` | One saved car: findings, price history, "check for a price drop", "check it again", remove | Built (needs the SQL setup) |
 | `/settings` | Home ZIP (this device) and setup status (tables, keys, usage) | Built |
+| `/` (before a check) | The headline, then three switchable playground designs (`components/play/`): decode any VIN (NHTSA, free, `actions/decode.ts`), spot the scam in a practice ad, flip through the real Lexus as a photo deck. Then the paste box, examples and points | Built |
 | `/why` | Honest comparison with a search engine and an AI chatbot, question by question, plus what VinVerdict can't do. Public | Built |
 | `/share` | Android Share target: hands shared text to the checker | Built |
 | `/login` | Email + password login. The only page open without a login (plus the app manifest and icons) | Built |
@@ -91,6 +92,8 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
 | `shortlist/shortlist.ts` + `data.json` | Model years rated by NHTSA complaints per year on the road vs the model's typical year; recall counts and "park it" recalls per year; known-issue years from `inspection.ts`. Data built by `tools/build_shortlist.py` | No |
 | `search-links.ts` | Pre-filled AutoTempest and Facebook Marketplace searches | No |
 | `evidence/parse.ts`, `evidence/combine.ts`, `evidence/validate.ts` | Proof from "Check it yourself": `readProof` sorts a screenshot's OCR text or pasted text to its check (Carfax, AutoCheck, NICB, NHTSA/maker recalls, NMVTIS, auction) and reads only clear phrases (damage level, title brand, owners, use, last odometer, open recalls, theft/total loss). `summarizeProof` ignores other VINs, lets the worse report win, adds warnings and rates each check. `validate.ts` checks the owner's saved findings on the server (labels only) | No |
+| `value/samecar.ts` | "This may be the same car": one close match (same year, price within 3%/$300, miles within 1,500) among the for-sale comps that carry a VIN and photos; none when ambiguous | No |
+| `demo/play.ts`, `demo/scam-ad.ts` | The home playground's facts, worked out from the recorded examples with the live-check code, and the practice scam ad (each flagged phrase checked against the real rules by a test) | No |
 | `history-report.ts` | What the vehicle history report (Carfax/AutoCheck) says, as recorded by the person: damage level, title, commercial use. `accidentHistoryConfirmed` decides whether "No red flags found" is allowed (report answered, or a dealer listing's history box). Feeds never count: see `live/merge.ts` | No |
 | `seller-message.ts` | Builds the message to send the seller from the findings and the checklist answers still open (up to 7 questions) | No |
 | `sources.ts` | Where every claim comes from: `REF` (official guidance pages: FBI IC3, FTC, NICB, NMVTIS, NHTSA, FHWA, 49 CFR 565; checked 2026-11-09), `RULE_SOURCE` (which page backs each warning; a test makes sure every id is a real rule), `raw` (the exact public NHTSA / FuelEconomy.gov request behind a number, so anyone can compare) and `verifyLinks` (NHTSA and maker recall lookups, NICB VINCheck, a Google search for the VIN, NMVTIS) | No |

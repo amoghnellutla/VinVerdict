@@ -19,7 +19,9 @@ import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
 import { BuyingDay } from "./BuyingDay";
 import { VinDecode } from "@/components/VinDecode";
+import { findSameCar } from "@/lib/value/samecar";
 import { CarGallery } from "./CarGallery";
+import { SameCarCard } from "./SameCar";
 import { CheckYourself, type Attached } from "./CheckYourself";
 import { Checklist } from "./Checklist";
 import { CostPerYear } from "./CostPerYear";
@@ -71,7 +73,7 @@ const ACTION_STYLE: Record<RuleAction, { badge: string; label: string }> = {
   info: { badge: "bg-surface-muted text-muted", label: "Good to know" },
 };
 
-export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [] }: {
+export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -82,6 +84,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   recorded?: { price: PriceState; recordedAt: string } | null;
   /** The listing screenshots the check was read from (local blob: previews), shown when there are no listing photos. */
   shots?: string[];
+  /** Start a new check for a VIN (from "This may be the same car"). */
+  onCheckVin?: ((vin: string) => void) | null;
 }) {
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
@@ -89,6 +93,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const [proofs, setProofs] = useState<Attached[]>([]);
   const [purpose, setPurpose] = useState<"buy" | "sell">("buy");
   const [details, setDetails] = useState<Details>({ miles: null, trim: null });
+  // Photos of a likely same car, shown only when the person asks.
+  const [matchPhotos, setMatchPhotos] = useState(false);
   const [liveState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
   const priceState = recorded?.price ?? liveState;
   const done = priceState.status === "done" ? priceState : null;
@@ -206,7 +212,9 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   );
   const sourcesList = <ReportSources a={m} hits={selling ? [] : hits} live={live} sources={sources} history={rawHistory} recordedAt={recordedAt} report={answers} proofs={proofs} />;
 
-  const photos = live?.photos?.length ? live.photos : shots;
+  // A pasted ad without a VIN: one close match among the dealer cars for sale nearby (no extra lookup).
+  const sameCar = !goodVin && !selling && sources?.comps ? findSameCar(m.listing, a.decoded?.year ?? m.listing.year, sources.comps.active) : null;
+  const photos = live?.photos?.length ? live.photos : matchPhotos && sameCar?.comp.photos?.length ? sameCar.comp.photos : shots;
   const gaugeTone = result.verdict === "hide" ? "bad" : result.verdict === "clear" ? (confirmed ? "good" : "muted") : "warn";
   const nav = selling
     ? [
@@ -243,7 +251,13 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
           <CarGallery
             photos={photos}
             label={carName(m)}
-            caption={live?.photos?.length ? `Photos from its listing${live.sellerName ? ` at ${live.sellerName}` : ""} (via ${live.source}).` : "Your screenshots, shown on this device only."}
+            caption={
+              live?.photos?.length
+                ? `Photos from its listing${live.sellerName ? ` at ${live.sellerName}` : ""} (via ${live.source}).`
+                : matchPhotos && sameCar
+                  ? "Photos of the likely same car at a dealer (via Auto.dev). Confirm with the seller that it's the same car."
+                  : "Your screenshots, shown on this device only."
+            }
           />
         )}
         {vinOnly && <PurposeToggle value={purpose} onChange={setPurpose} />}
@@ -266,6 +280,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       </header>
 
       <SectionNav items={nav} />
+
+      {sameCar && <SameCarCard match={sameCar} onCheckVin={onCheckVin} onUsePhotos={() => setMatchPhotos((x) => !x)} usingPhotos={matchPhotos} />}
 
       {!selling && hits.length > 0 && (
         <ul className="-mt-4 divide-y divide-border">
