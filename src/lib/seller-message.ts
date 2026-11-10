@@ -14,9 +14,26 @@ export type MessageInput = {
   recallCount: number | null;
   /** NHTSA's most-reported problem area for this model year, e.g. "POWER TRAIN". */
   topComplaint: string | null;
+  /** Known problems for this model year, with the maker's document that covers them. */
+  knownIssues?: { title: string; label: string }[];
+  /** A random phrase for the "photo with a note" check (proves they have the car right now). */
+  phrase?: string | null;
 };
 
-const MAX_QUESTIONS = 7;
+const MAX_QUESTIONS = 8;
+
+// Short, common, easy to write by hand and hard to have ready in advance.
+const WORDS = [
+  "maple", "river", "orange", "tiger", "pencil", "harbor", "violet", "rocket", "garden", "silver", "falcon", "candle",
+  "meadow", "copper", "lemon", "anchor", "breeze", "cactus", "dolphin", "ember", "forest", "glacier", "hammer", "island",
+  "jasmine", "kettle", "ladder", "marble", "nickel", "olive", "pepper", "quartz", "raven", "saddle", "tulip", "umbrella",
+  "velvet", "walnut", "yellow", "zebra", "basket", "cobalt", "desert", "feather", "ginger", "honey", "igloo", "jungle",
+];
+
+/** Three random words, e.g. "copper tulip harbor". Pass a random source in tests. */
+export function proofPhrase(random: () => number = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32): string {
+  return Array.from({ length: 3 }, () => WORDS[Math.floor(random() * WORDS.length)]).join(" ");
+}
 
 export function sellerMessage(m: MessageInput): string {
   const l = m.listing;
@@ -26,6 +43,9 @@ export function sellerMessage(m: MessageInput): string {
   const q: string[] = [];
 
   if (!l.vin || has("vin-invalid")) q.push("What's the full VIN? I'd like to run the free recall and title checks.");
+  for (const k of (m.knownIssues ?? []).slice(0, 2)) {
+    q.push(`This model year has a known issue (${k.title.toLowerCase()}, covered by ${k.label}). Was it fixed, and do you have the record?`);
+  }
   if (has("history-miles-lower") || has("history-rollback") || has("live-miles-lower") || has("mileage-low")) {
     q.push("An earlier listing of this car showed different miles. Could you send a photo of the odometer today?");
   }
@@ -38,13 +58,21 @@ export function sellerMessage(m: MessageInput): string {
   if (m.topComplaint) q.push(`Any problems with the ${m.topComplaint.toLowerCase()}? It's the most reported issue for this year.`);
   if (c.allowsInspection == null) q.push("Can my mechanic do a pre-purchase inspection before I buy?");
   q.push("Do you have the service records?");
-  if (!dealer) q.push("Could you send a photo of the VIN sticker on the driver's door, next to a note with today's date?");
+  // A private seller's photo of the VIN next to a note shows they have the car right now. Never cut.
+  const photo = dealer
+    ? []
+    : [
+        m.phrase
+          ? `Could you send a photo of the VIN sticker on the driver's door, next to a handwritten note saying "${m.phrase}"?`
+          : "Could you send a photo of the VIN sticker on the driver's door, next to a note with today's date?",
+      ];
+  const asked = [...q.slice(0, MAX_QUESTIONS - photo.length), ...photo];
 
   const priced = l.price ? ` listed at $${l.price.toLocaleString("en-US")}` : "";
   return [
     `Hi, I'm interested in your ${m.carName}${priced}. Before I come to see it, could you tell me:`,
     "",
-    ...q.slice(0, MAX_QUESTIONS).map((x, i) => `${i + 1}. ${x}`),
+    ...asked.map((x, i) => `${i + 1}. ${x}`),
     "",
     "Thanks!",
   ].join("\n");

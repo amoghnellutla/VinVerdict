@@ -38,7 +38,7 @@ describe("sources", () => {
 });
 
 describe("sellerMessage", () => {
-  it("asks a private seller for what's missing, and stops at 7 questions", () => {
+  it("asks a private seller for what's missing, stops at 8 questions, and keeps the photo check", () => {
     const listing = parseListing("2017 Honda Accord EX-L, 98,000 miles, $14,500. Private seller.");
     const text = sellerMessage({
       carName: "2017 Honda Accord EX-L", listing, hits: [{ id: "no-vin", action: "hide", title: "No VIN", reason: "" }],
@@ -48,7 +48,8 @@ describe("sellerMessage", () => {
     expect(text).toContain("1. What's the full VIN?");
     expect(text).toContain("Is the title in your name");
     expect(text).toContain("There are 3 for this model and year");
-    expect(text.match(/^\d\. /gm)).toHaveLength(7);
+    expect(text.match(/^\d\. /gm)).toHaveLength(8);
+    expect(text).toMatch(/^8\. Could you send a photo of the VIN sticker/m);
   });
 
   it("skips questions the buyer already answered", () => {

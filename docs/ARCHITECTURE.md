@@ -187,3 +187,7 @@ On top of the rule engine (`lib/verdict.ts`, which still drives saved cars and t
 ## Measuring the scam warnings (`lib/scam/eval/`)
 
 `cases.json` (tuning) and `holdout.json` (never used to tune) hold labelled ads; corpus cases with a `scam` label join the tuning set. `evaluate.ts` runs each through the real parser, rules and `decide()`; an ad counts as flagged when the answer is "Stop" because of the listing or the payment. It also scores a keyword filter as a baseline. `eval.test.ts` prints the scorecard and fails if `scorecard.json` (rendered by `/accuracy`) doesn't match the code; refresh it with `UPDATE_SCORECARD=1 npx vitest run src/lib/scam/eval`. A held-out ad that leads to a rule change moves to `cases.json` and is replaced, so the held-out number stays honest.
+
+## Seller verification (`lib/seller-replies.ts`, `lib/seller-message.ts`)
+
+`sellerMessage()` writes the first message to the seller from what's unknown (VIN, title, liens, accidents, recalls, the model year's known issue and its bulletin) and always ends, for a private seller, with a photo of the VIN sticker next to a random three-word phrase (`proofPhrase()`, made in the browser). `checkReplies()` runs the message-relevant scam rules on what the seller wrote back and compares their story with the ad; findings are named `msg-<rule>` so `decide()` keeps the rule's severity and area but labels the evidence "The seller's messages". Everything runs in the browser; replies and chat screenshots are never sent or stored. Tests: `seller-replies.test.ts`, `seller-message.test.ts`.

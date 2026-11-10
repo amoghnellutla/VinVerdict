@@ -25,7 +25,7 @@ import type { DealLabel } from "@/lib/value/estimate";
 
 export type Severity = "stop" | "verify" | "note";
 export type Area = "listing" | "car" | "price" | "deal";
-export type Evidence = "ad" | "ad-or-seller" | "record" | "feed" | "report" | "proof" | "estimate" | "saved" | "unknown";
+export type Evidence = "ad" | "ad-or-seller" | "messages" | "record" | "feed" | "report" | "proof" | "estimate" | "saved" | "unknown";
 export type Level = "stop" | "verify" | "investigate" | "thin";
 export type AreaStatus = "stop" | "verify" | "ok" | "unchecked";
 
@@ -39,6 +39,7 @@ export const AREA_LABEL: Record<Area, string> = {
 export const EVIDENCE_LABEL: Record<Evidence, string> = {
   ad: "In the ad",
   "ad-or-seller": "In the ad or the seller's answer",
+  messages: "The seller's messages",
   record: "Official record",
   feed: "Listing data",
   report: "Your history report",
@@ -58,7 +59,7 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
 const STOP = new Set([
   "pay-gift-card", "pay-wire", "pay-app-upfront", "deposit-first", "shipping-only", "seller-remote",
   "no-inspection", "title-brand", "report-title", "vin-invalid", "vin-mismatch", "too-good-plus-flags",
-  "auction", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
+  "auction", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
 ]);
 /** Facts worth knowing that say nothing bad about the seller or the car. */
 const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown"]);
@@ -71,7 +72,8 @@ const AREA: Record<string, Area> = {
   "no-price": "listing", "far-away": "listing", "vin-invalid": "listing", "vin-mismatch": "listing",
   "live-cloned": "listing", "live-dealer-too": "listing", "live-price-differs": "listing", "live-ended": "listing",
   "history-two-sellers": "listing", "vin-only": "listing",
-  // What shape is the car in?
+  // What shape is the car in? (story-*: the seller's messages contradict the ad)
+  "story-miles": "car", "story-title": "car", "story-accident": "car",
   "accident-reported": "car", "accident-unknown": "car", "live-accident": "car", "report-damage": "car",
   "report-commercial": "car", fleet: "car", "title-brand": "car", "report-title": "car", "title-washing": "car",
   auction: "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
@@ -87,7 +89,11 @@ const AREA: Record<string, Area> = {
 /** Rules that can fire from the ad's words or from the seller's answer to a checklist question. */
 const AD_OR_SELLER = new Set(["curbstoning", "lien", "no-inspection", "accident-reported", "seller-remote"]);
 
+/** Findings from the seller's messages are named "msg-<rule>": the same rule, different evidence. */
+const baseId = (id: string) => id.replace(/^msg-/, "");
+
 export function evidenceOf(id: string): Evidence {
+  if (id.startsWith("msg-")) return "messages";
   if (id.startsWith("history-") || id.startsWith("live-")) return "feed";
   if (id.startsWith("report-")) return "report";
   if (id.startsWith("proof-")) return "proof";
@@ -99,7 +105,8 @@ export function evidenceOf(id: string): Evidence {
   return "ad";
 }
 
-export function severityOf(id: string, damage: Damage = "unknown"): Severity {
+export function severityOf(raw: string, damage: Damage = "unknown"): Severity {
+  const id = baseId(raw);
   // A history report's damage: severe (structural, airbags) is a stop; a repaired minor or moderate one is a price and inspection question.
   if (id === "report-damage") return damage === "severe" ? "stop" : "verify";
   if (STOP.has(id)) return "stop";
@@ -108,7 +115,7 @@ export function severityOf(id: string, damage: Damage = "unknown"): Severity {
 }
 
 export function areaOf(id: string): Area {
-  return AREA[id] ?? "listing";
+  return AREA[baseId(id)] ?? "listing";
 }
 
 export type Finding = RuleHit & { severity: Severity; area: Area; evidence: Evidence };
@@ -236,7 +243,7 @@ export function decide(d: DecisionInput): Decision {
   if (c.allowsInspection == null) ask.push("Will they allow a mechanic's inspection?");
   if (c.meetsInPersonLocally == null) ask.push("Can you meet in person, locally?");
   const dw = worst("deal");
-  const payWarning = findings.find((f) => f.id.startsWith("pay-") && f.severity === "stop");
+  const payWarning = findings.find((f) => baseId(f.id).startsWith("pay-") && f.severity === "stop");
   const deal: AreaRow = {
     area: "deal",
     status: payWarning ? "stop" : dw ? dw.severity as AreaStatus : ask.length === 0 ? "ok" : "unchecked",
@@ -260,7 +267,10 @@ export function decide(d: DecisionInput): Decision {
   if (stops.length) {
     level = "stop";
     title = "Stop: serious warning";
-    text = stops.some((f) => f.area === "listing" || f.area === "deal")
+    const scamStops = stops.filter((f) => f.area === "listing" || f.area === "deal");
+    text = scamStops.length && scamStops.every((f) => f.evidence === "messages")
+      ? "The seller's messages show a known scam pattern. Don't send any money or deposit. See the warnings below."
+      : scamStops.length
       ? "This ad shows a known scam pattern. Don't send any money or deposit. See the warnings below."
       : "There's a serious problem with the car itself. See the warnings below before going any further.";
   } else if (d.kind !== "vin" && !d.hasVin && !d.hasPrice) {

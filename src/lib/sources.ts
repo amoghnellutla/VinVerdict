@@ -28,6 +28,7 @@ export const REF = {
   fhwa: { name: "FHWA: average miles driven per year", href: "https://www.fhwa.dot.gov/ohim/onh00/bar8.htm" },
   vinRule: { name: "49 CFR Part 565: the federal VIN standard", href: "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-V/part-565" },
   nhtsaRecalls: { name: "NHTSA recall lookup", href: "https://www.nhtsa.gov/recalls" },
+  ftcFakeDealer: { name: "FTC: scammers are spoofing car dealership websites (Sept 2026)", href: "https://consumer.ftc.gov/consumer-alerts/2026/09/scammers-are-spoofing-car-dealership-websites-what-you-need-know" },
   cargurusAccident: { name: "CarGurus study (2012): a past accident lowers value about 3–12%", href: "https://www.cargurus.com/press/20121213.html" },
 } satisfies Record<string, SourceRef>;
 

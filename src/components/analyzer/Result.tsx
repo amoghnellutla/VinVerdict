@@ -37,6 +37,11 @@ import { RunningCost } from "./RunningCost";
 import { Safety } from "./Safety";
 import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
+import { SellerReplies } from "./SellerReplies";
+import { DealerCheck } from "./DealerCheck";
+import { checkReplies } from "@/lib/seller-replies";
+import { proofPhrase } from "@/lib/seller-message";
+import { knownIssuesFor } from "@/lib/inspection";
 import { VerdictCard } from "./VerdictCard";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
@@ -106,6 +111,21 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const trimUsed = vinOnly && details.trim !== null ? details.trim.trim() || null : known.trim;
   const m: Analysis = useMemo(() => ({ ...a, listing: { ...known.merged, miles: milesUsed } }), [a, known, milesUsed]);
 
+  // What the seller wrote back (checked on this device), and a random phrase for their "photo with a note".
+  const [replies, setReplies] = useState("");
+  const [phrase] = useState(() => proofPhrase());
+  const replyHits = useMemo(() => checkReplies(replies, a.listing), [replies, a.listing]);
+  const knownIssues = useMemo(
+    () =>
+      knownIssuesFor({
+        year: a.vehicle?.year ?? null, make: a.vehicle?.make ?? null, model: a.vehicle?.model ?? null,
+        displacementL: a.decoded?.displacementL ?? null,
+        cvt: /cvt|continuously variable/i.test(a.decoded?.transmission ?? "") || /\bcvt\b/i.test(a.text),
+        complaintAreas: [],
+      }).map((k) => ({ title: k.title, label: k.source.label })),
+    [a],
+  );
+
   const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
   const proofSum = useMemo(() => summarizeProof(proofs, goodVin, known.merged.miles), [proofs, goodVin, known]);
   // Your answers plus the proof: bad news wins (lib/history-report.ts).
@@ -124,7 +144,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   }, [carId, proofs, goodVin]);
 
   const { result, valuation, sellV } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: proofSum.hits }, checklist);
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits] }, checklist);
     if (!sources) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
@@ -148,9 +168,9 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         }
       : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: proofSum.hits, valuePct: valuation.pctUnder }, checklist) : first;
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits], valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, milesUsed, trimUsed, done, vinOnly]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly]);
 
   if (a.listing.kind === "url") {
     return <LinkOnly host={a.listing.sourceHost} />;
@@ -321,7 +341,11 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
                       checklist={checklist}
                       recallCount={a.recalls?.length ?? null}
                       topComplaint={a.complaints?.topComponents[0]?.component ?? null}
+                      knownIssues={knownIssues}
+                      phrase={phrase}
                     />
+                    <SellerReplies value={replies} onChange={setReplies} hits={replyHits} />
+                    {m.listing.sellerType === "dealer" && <DealerCheck name={live?.sellerName ?? null} />}
                   </Checklist>
                 ),
               },
