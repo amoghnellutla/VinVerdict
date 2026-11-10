@@ -1,126 +1,144 @@
 # VinVerdict
 
-**A free second opinion before you buy a used car.** Paste a Facebook Marketplace, Craigslist or dealer listing (or just a VIN) and VinVerdict tells you whether the ad shows scam warning signs, what the car is really worth near you, what's known to go wrong with that model year, and exactly what to check next. Every fact links to the record it came from.
+**A free second opinion before you buy a used car.** Paste a Facebook Marketplace, Craigslist or dealer listing (or just a VIN). VinVerdict tells you whether the ad shows scam warning signs, what the car is likely worth near you, what's known to go wrong with that model year, and exactly what to check next. Every fact links to the record it came from, and it never claims to know more than its evidence shows.
 
-**Try it:** https://vinverdict.vercel.app (no sign-up)
+[![CI](https://github.com/amoghnellutla/VinVerdict/actions/workflows/ci.yml/badge.svg)](https://github.com/amoghnellutla/VinVerdict/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/amoghnellutla/VinVerdict/actions/workflows/codeql.yml/badge.svg)](https://github.com/amoghnellutla/VinVerdict/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![VinVerdict home page: paste a listing to check it](docs/images/home.png)
+**Try it free, no sign-up: https://vinverdict.vercel.app**
+
+![VinVerdict: paste a listing to check it](docs/images/home.png)
 
 ---
 
 ## Contents
 
+- [Why it exists](#why-it-exists)
 - [What it does](#what-it-does)
 - [How to use it](#how-to-use-it)
 - [What it won't do](#what-it-wont-do)
-- [Where the data comes from](#where-the-data-comes-from)
-- [How it works](#how-it-works)
 - [Accuracy](#accuracy)
+- [How it works](#how-it-works)
 - [Security and privacy](#security-and-privacy)
 - [Run it yourself](#run-it-yourself)
 - [Help improve it](#help-improve-it)
 
 ---
 
+## Why it exists
+
+Used-car marketplaces are full of listings that look perfect: a clean car, a great price, a friendly story. Some are real bargains. Many are scams: the "deployed soldier" whose car is "with a shipping company", the deposit by Zelle "to hold it", the cloned dealer website. A low price alone can't tell you which is which, and no single search can either.
+
+VinVerdict brings the separate checks a careful buyer would do into one place:
+- read the ad;
+- check the VIN against federal records;
+- compare the price with similar cars;
+- look up recalls and known problems;
+- read the seller's replies for scam patterns;
+- spell out what's still unknown.
+
+It's built around one rule: **every warning answers three questions. What is the evidence? Does it apply to this car? What should you do next?**
+
 ## What it does
 
-| You want to know… | VinVerdict checks… |
-| --- | --- |
-| **Should I go see it?** | One next step (Stop, Verify before going further, Worth investigating, or Not enough information) and four checks behind it: can you trust the listing, what shape is the car in, is the price right, is it safe to pay. Each shows what's still unknown. |
-| **Is this ad a scam?** | 50+ checks on the ad's own words and data, each tied to FBI, FTC or NICB guidance: gift-card or payment-app deposits, "I'm deployed, it's at a shipping company", a price far below similar cars, a VIN that doesn't match the ad, a title not in the seller's name, and more. |
-| **Is the VIN real, and is it this car?** | The check digit, then NHTSA's decoder, compared with the year, make, model and gearbox in the ad. |
-| **Has this car been listed before?** | Past listings of the VIN that MarketCheck recorded since 2015: dates, prices, miles and sellers. It flags odometer drops, quick dealer resales and price cuts. |
-| **Is the price fair here?** | Advertised prices of similar cars near your ZIP (listed now, or recently ended), each linked, adjusted for miles, seller type and reported damage. You get an opening offer and a walk-away price. |
-| **What goes wrong with this model year?** | NHTSA recalls (including "don't drive" and "park outside" warnings), crash-test stars, owner complaints, and known issues backed by the maker's own service bulletins. |
-| **What will it cost me?** | The out-the-door price with your state's tax and fees, plus fuel (EPA ratings) and upkeep per year. |
-| **What should I check myself?** | Links to the free official checks (NHTSA recall lookup, NICB theft/salvage check, NMVTIS), with the VIN ready to copy. Attach a screenshot or paste a Carfax or AutoCheck report, and VinVerdict reads it, files it under the right check and updates the verdict. |
+### 1. A clear next step, with the evidence behind it
 
-![A scam example: the verdict and the warning signs, each with its source](docs/images/scam.png)
+![A scam listing: Stop, with the four checks behind it](docs/images/verdict-scam.png)
+
+Every check ends in one of four answers. It never says "safe":
+
+| Answer | When |
+| --- | --- |
+| **Stop: serious warning** | A known scam pattern (gift cards, a deposit before viewing, a shipping-only story, a seller who's away) or a serious problem with the car (a branded title, an odometer rollback) |
+| **Verify before going further** | Something to check with the seller or in person: a reported accident, a title not in the seller's name, a price far below similar cars |
+| **Worth investigating** | Nothing wrong found in what was checked, with a list of what's still unknown |
+| **Not enough information** | No VIN and no price to go on |
+
+Behind it are four checks: **Listing trust, Car condition, Price, Ready to pay.** Each has a status (Warning, Check, OK so far, Not checked) and a "still unknown" list. Every finding says where its evidence comes from: *in the ad*, *official record*, *listing data*, *estimate*, *the seller's messages*, or *proof you attached*.
+
+<img src="docs/images/verdict-unknowns.png" alt="What's still unknown for a listing that looks fine" width="640">
+
+### 2. Checks the ad, the car and the seller
+
+- **Scam patterns:** 50+ checks on the ad's words, each tied to FBI, FTC or NICB guidance, and context-aware. "Send $200 by Zelle to hold it" is a warning; "I don't take Zelle, cash in person" isn't. [Measured](#accuracy).
+- **The VIN:** the federal check digit, then NHTSA's decoder, compared with the year, make, model and gearbox in the ad.
+- **Where the car has been listed:** past listings of the VIN that MarketCheck recorded since 2015, with prices, miles and sellers. Flags odometer drops, quick resales and price cuts.
+- **Recalls and known problems:**
+  - NHTSA recalls, with "don't drive" and "park outside" warnings shown separately;
+  - crash-test stars and owner complaints;
+  - known issues, each backed by the maker's own service bulletin.
+- **What the seller says:** paste the seller's replies or chat screenshots. They're read on your device and checked for deposit requests, shipping stories, refused inspections, and stories that change from the ad (miles, title, accidents). Each catch quotes the line and suggests a safe reply.
+
+![Checking the seller's replies](docs/images/seller-replies.png)
+
+- **Proof you collect:** attach a Carfax, AutoCheck or NICB result (a screenshot or pasted text). VinVerdict reads it, files it under the right check, and updates the verdict. Bad news always wins.
+- **Photos:** reverse-search the listing's photos (Google Lens, Bing) to see whether they appear in an older or faraway ad.
+- **Fake dealer sites:** a short check based on the FTC's September 2026 alert on cloned dealer websites.
+
+### 3. Helps you decide and negotiate
+
+- **Price:** an estimated range from the advertised prices of similar cars near your ZIP, listed now or recently ended. It's adjusted for miles, seller type and reported damage, and comes with an opening offer and a walk-away price. It's always labelled an estimate: what buyers finally paid isn't public. When the free lookups run out, **compare it yourself**: type a few similar asking prices and get an honest comparison.
+- **What it'll cost:** out-the-door price with your state's tax and fees, plus fuel (EPA) and upkeep per year.
+- **Before you buy:**
+  - a ready-to-send message for the seller, with the model year's known issue by its bulletin number, and a photo check with a random phrase only someone holding the car can provide;
+  - an inspection list for your mechanic;
+  - buying-day steps.
+- **My list:** save cars on your own device (no account) and compare them side by side, with notes. Export and import the list. It warns when two saved ads may be the same car.
+
+![Comparing saved cars side by side](docs/images/compare.png)
 
 ## How to use it
 
 **On a computer**
-1. Open the listing (Facebook Marketplace, Craigslist, Autotrader, Cars.com, a dealer's site…).
+1. Open the listing (Facebook Marketplace, Craigslist, Autotrader, Cars.com, a dealer's site).
 2. Press **Ctrl+A** then **Ctrl+C** (Mac: **Cmd+A**, **Cmd+C**) to copy the whole page.
 3. Go to https://vinverdict.vercel.app, click the box, press **Ctrl+V**, then **Paste & check**.
-4. Read the verdict, then open the tabs: **Price**, **Check it yourself**, **Safety**, **Costs**, **Before you buy**.
+4. Read the verdict, then work through the tabs: Price, Check it yourself, Photos, Safety, Costs, Before you buy.
 
-Tip: drag the **bookmark button** on the home page to your bookmarks bar. On any listing page, click it to send that page to VinVerdict in one step.
+Tip: drag the **bookmark button** on the home page to your bookmarks bar, then click it on any listing to send the page in one step.
 
 **On a phone** (apps like Facebook have no "select all")
-1. Take screenshots of the listing: the title and price, the details, and the seller's description.
-2. On VinVerdict, tap **Read screenshots** and pick them. They're read on your phone and never uploaded.
+1. Screenshot the listing: the title and price, the details, and the seller's description.
+2. On VinVerdict, tap **Read screenshots** and pick them. They're read on your phone, never uploaded.
+3. On Android, you can also install VinVerdict (browser menu → Install, or Add to Home screen). It then appears in the **Share** menu for listings.
 
-**Only have a VIN?** Paste the 17-character VIN. VinVerdict decodes it, looks for where it's listed now and before, and prices it.
+**Only have a VIN?** Paste the 17 characters. VinVerdict decodes it, finds where it's listed now and before, and prices it.
 
-**Selling instead of buying?** After a VIN lookup, choose **It's mine: what's it worth?** to see what it's worth to a private buyer or a dealer.
+**Selling instead?** After a VIN lookup, choose **It's mine: what's it worth?**
 
-![A VIN-only lookup: the car, its listing history and photos](docs/images/vin-lookup.png)
-
-![The price check: confirm the details, see the estimated range, and get an opening offer and a walk-away price](docs/images/price.png)
-
-<img src="docs/images/phone.png" alt="VinVerdict on a phone" width="300">
+<p>
+  <img src="docs/images/phone.png" alt="VinVerdict on a phone" width="260">
+  &nbsp;
+  <img src="docs/images/phone-verdict.png" alt="A verdict on a phone" width="260">
+</p>
 
 ## What it won't do
 
 These limits are deliberate. A tool that sounds sure when it isn't does more harm than one that says "not checked".
 
-- **It never says a car is safe.** The best answer is "worth investigating", with a list of what's still unknown.
-- **It never says a car is clean.** Listing feeds often miss accidents that Carfax or AutoCheck show, so a feed's "0 accidents" or owner count never clears a car. Only a history report you attach can, and missing data always shows as **not checked**.
-- **Prices are estimates.** What a buyer finally paid isn't public. Prices come from what similar cars were advertised for, and the page says so.
-- **Recalls are for the model year.** Not every car of that year is affected. Whether this car was repaired is only in NHTSA's and the maker's VIN lookups, which are linked.
-- **It doesn't replace a mechanic** or an in-person title check. Every report ends with an inspection list for that model year.
-- **It doesn't scrape Facebook or Craigslist,** and it never fetches a link you paste. You choose what to share.
-
-## Where the data comes from
-
-| Source | What for | Cost |
-| --- | --- | --- |
-| [NHTSA vPIC](https://vpic.nhtsa.dot.gov/api/) | VIN decode | Free, no key |
-| [NHTSA recalls, complaints, NCAP](https://www.nhtsa.gov/nhtsa-datasets-and-apis) | Recalls, owner complaints, crash-test stars | Free, no key |
-| [FuelEconomy.gov](https://www.fueleconomy.gov/feg/ws/) | EPA mpg for running costs | Free, no key |
-| [MarketCheck](https://www.marketcheck.com/apis) | Similar listings, listing history of a VIN | Free plan (500 calls/month) |
-| [Auto.dev](https://www.auto.dev/) | Where a VIN is listed now, similar listings, photos | Free plan (1,000 calls/month) |
-| Honda/Toyota service bulletins (hosted by NHTSA) | Known model-year issues | Free; each one read and pinned by a test |
-| FBI IC3, FTC, NICB guidance | The scam warning signs | Free |
-
-Because the listing APIs are on free plans, the public site rations live price lookups: 2 per visitor per day, a few for everyone together, with a monthly cap. Ordinary checks are limited only to stop abuse: 30 per visitor per day.
-
-## How it works
-
-```mermaid
-flowchart LR
-  A[Listing text, screenshots or VIN] --> B[Parse on the server<br/>price, miles, VIN, seller, claims]
-  S[Screenshots] -->|read on the device<br/>tesseract.js| A
-  B --> C[Rules<br/>50+ checks, each with a source]
-  B --> D[NHTSA<br/>decode, recalls, complaints, crash tests]
-  B --> E[Listing APIs, on request<br/>similar cars, VIN history]
-  C & D & E --> F[Verdict and next steps<br/>computed in the browser]
-  P[Proof you attach:<br/>Carfax, AutoCheck, NICB] --> F
-```
-
-- **Stack:** Next.js 16 (App Router, React 19, TypeScript, Tailwind) on Vercel's free plan, Supabase (auth and database, free plan), Cloudflare Turnstile.
-- **Design decisions:**
-  - **Rules, not a language model, make the calls.** Every warning is a deterministic rule with a named source, so the same listing always gets the same answer, it can be tested against real listings, and it costs nothing per check.
-  - **Bad news only from feeds.** Listing data can add a warning (an accident, a price cut, an odometer drop) but can never remove one.
-  - **Screenshots stay on the device.** Text is read in the browser (self-hosted tesseract.js), which protects privacy and costs nothing.
-  - **The verdict runs in the browser,** so answering a seller question or attaching a report updates it instantly, with no extra server calls.
-  - **Quota is spent only on request.** Paid lookups sit behind a button, are cached for a day and are counted, and visitors can never use the owner's monthly reserve.
-- **More detail:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains every module; [docs/PLAN.md](docs/PLAN.md) has the scope, rules and full change log.
+- **It never says a car is safe.** The best answer is "worth investigating", with what's still unknown.
+- **It never clears a car's history from listing data.** Feeds often miss accidents that Carfax or AutoCheck show, so a feed's "0 accidents" never counts as a clean history. Only a report you attach can.
+- **Prices are estimates from advertised prices,** never presented as sale prices.
+- **Recalls are for the model year.** Whether this car is affected or repaired is only in NHTSA's and the maker's VIN lookups, which are linked.
+- **It doesn't replace a mechanic** or seeing the title in person.
+- **It doesn't scrape Facebook or Craigslist,** and never fetches a link you paste. You choose what to share.
 
 ## Accuracy
 
-**Measured, not claimed.** The full write-up, including what isn't tested yet, is on the site's [How accurate is it?](https://vinverdict.vercel.app/accuracy) page.
+**Measured, not claimed.** The full write-up, including what isn't tested yet, is at [How accurate is it?](https://vinverdict.vercel.app/accuracy)
 
-**Scam warnings.** Every ad in [`src/lib/scam/eval/`](src/lib/scam/eval/) is labelled by hand. Some show a known scam pattern (FBI, FTC, NICB). The rest are honest ads that use the same words innocently: "no deposits", "I don't take Zelle", "I'm stationed at the base, come see it". A warning counts when VinVerdict says **Stop** because of the listing or the payment.
+![The accuracy page](docs/images/accuracy.png)
+
+**Scam warnings.** Every ad in [`src/lib/scam/eval/`](src/lib/scam/eval/) is labelled by hand. Some show a known scam pattern. The rest are honest ads that use the same words innocently: "no deposits", "I don't take Zelle", "I'm stationed at the base, come see it". A warning counts when VinVerdict says **Stop** because of the listing or the payment.
 
 | Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
 | --- | --- | --- | --- |
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
 | VinVerdict, tuning ads | 28 of 28 | 0 of 46 | 100% |
-| A keyword filter (payment app / shipping / deposit / away) | 27 of 28 | **19 of 46** | 59% |
+| A keyword filter (payment app, shipping, deposit, away) | 27 of 28 | **19 of 46** | 59% |
 
-- **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads to stop (20%)**. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set.
+- **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads (20%)** to stop. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set, so the held-out number stays honest.
 - **The caveat:** most ads so far are written from published scam patterns. Real listings are being added and reported separately, and real-world numbers will be lower.
 
 **Listing parser.** Real page layouts (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`src/lib/listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong is a case:
@@ -135,33 +153,65 @@ Listing corpus scorecard (26 cases)
   kind          4/4     docFee        2/2     sourceHost     2/2    distanceMiles 1/1
 ```
 
-**Sources.** Every known model-year problem cites the maker's bulletin it was checked against. A test fails if a bulletin number or year range changes. It was added after an outside review found the 2015–16 Accord/CR-V CVT warning citing the wrong bulletin.
+**Sources.** Every known model-year problem cites the maker's bulletin it was checked against, and a test fails if a bulletin number or year range changes. The test was added after an outside review found the 2015–16 Accord/CR-V CVT warning citing the wrong bulletin.
 
-All of this runs offline on every push ([CI](.github/workflows/ci.yml)); the published scorecard can't go stale, because the build fails if it doesn't match the code.
+All of this runs offline on every push ([CI](.github/workflows/ci.yml)). The published scorecard can't go stale: the build fails if it doesn't match the code.
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Listing text, screenshots or VIN] --> B[Parse<br/>price, miles, VIN, seller, claims]
+  S[Screenshots] -->|read on the device<br/>tesseract.js| A
+  B --> C[Rules<br/>50+ checks, each with a source]
+  B --> D[NHTSA<br/>decode, recalls, complaints, crash tests]
+  B --> E[Listing APIs, on request<br/>similar cars, VIN history]
+  R[Seller's replies<br/>checked on the device] --> F
+  P[Proof you attach<br/>Carfax, AutoCheck, NICB] --> F
+  C & D & E --> F[Decision<br/>severity, evidence, 4 areas, next step]
+  F --> G[Result<br/>verdict, still unknown, what to do]
+```
+
+**Design decisions**
+
+- **Rules make the calls, not a language model.** Every warning is a deterministic rule with a named source. The same listing always gets the same answer, it can be measured against labelled ads, and it costs nothing per check.
+- **Evidence has a type.** A finding is labelled by where it came from: the ad, an official record, listing data, an estimate, the seller's messages, or the buyer's own proof. "No title issue in the records checked" is never shown as "title verified clean".
+- **Listing feeds can only add bad news.** An accident, a price cut or an odometer drop from a feed adds a warning; a feed's "0 accidents" never removes one.
+- **Private by default.** Screenshots, chat messages and My list stay on the visitor's device. The verdict is computed in the browser, so answering a question updates it instantly with no server call.
+- **$0 to run.**
+  - Free government data (NHTSA, FuelEconomy.gov), free-plan listing APIs and free hosting.
+  - Paid lookups sit behind a button, are cached for a day and are counted.
+  - Visitors get a daily ration, enforced in the database, and the owner keeps a monthly reserve.
+  - When the free lookups run out, everything else still works, including the manual price comparison.
+
+**Stack:** Next.js 16 (App Router, React 19, TypeScript, Tailwind CSS 4) on Vercel, Supabase (Postgres with row-level security, Auth with TOTP), Cloudflare Turnstile, tesseract.js, Vitest. More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Scope and change log: [docs/PLAN.md](docs/PLAN.md).
 
 ## Security and privacy
 
-- **No data kept from visitors.** Visitor checks aren't stored; screenshots never leave the device; visitor IPs are kept only as a salted one-way hash for rate limits, for two days.
-- **Hardened like a real app:**
-  - strict nonce-based Content-Security-Policy;
-  - server-only keys;
-  - input validation on every server action;
+- **Nothing kept from visitors.**
+  - Checks aren't stored.
+  - Screenshots and chat messages never leave the device.
+  - Visitor IPs are kept only as a salted one-way hash for rate limits, for two days.
+- **Hardened like a production app:**
+  - a strict nonce-based Content-Security-Policy;
+  - server-only API keys;
+  - validation on every server action;
   - two-step login and row-level security for the owner's saved cars;
   - Cloudflare Turnstile and database-enforced limits on paid lookups.
 - **Tested as an attacker would:**
-  - script injection;
-  - malicious image files (SVG with script, polyglots, a decompression bomb);
+  - script injection through listings, proof text, imported lists and URLs;
+  - malicious image files (SVG with script, polyglot PNG, a decompression bomb);
   - CSRF;
   - login brute force;
-  - simultaneous request bursts;
+  - simultaneous request bursts against the limits;
   - inputs built to freeze the parser.
-- **Automated:** CodeQL scanning and Dependabot.
+- **Automated:** CodeQL scanning, Dependabot and secret scanning with push protection.
 
-Details: [SECURITY.md](SECURITY.md) and the site's [How it's secured](https://vinverdict.vercel.app/security) page. Found a problem? Please [report it privately](https://github.com/amoghnellutla/VinVerdict/security/advisories/new).
+Details: [SECURITY.md](SECURITY.md) and [How it's secured](https://vinverdict.vercel.app/security). Found a problem? Please [report it privately](https://github.com/amoghnellutla/VinVerdict/security/advisories/new).
 
 ## Run it yourself
 
-**You need:** Node.js 20.9 or newer (22 recommended), a free Supabase project, and free listing-API keys only if you want price and history lookups.
+**You need:** Node.js 20.9 or newer (22 recommended) and a free Supabase project. Listing-API keys are only needed for the price and history lookups.
 
 ```bash
 git clone https://github.com/amoghnellutla/VinVerdict.git
@@ -179,38 +229,43 @@ npm run dev                    # http://localhost:3000
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | The "I'm human" check on public price lookups | [Cloudflare Turnstile](https://dash.cloudflare.com/sign-up) (free) |
 | `GUEST_HASH_SALT` | Hashing visitor IPs for rate limits | Any 64 random hex characters |
 
-Without the listing-API keys, everything except the price and history lookups still works: parsing, scam rules, NHTSA data, costs and inspection lists. Step-by-step setup, including the database tables (`supabase/migrations/`, run once in the Supabase SQL editor), is in [docs/SETUP.md](docs/SETUP.md).
-
-**Commands**
+Without the listing-API keys, everything except the price and history lookups still works. Step-by-step setup, including the database tables (`supabase/migrations/`, run once in the Supabase SQL editor), is in [docs/SETUP.md](docs/SETUP.md).
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Local site with hot reload |
-| `npm test` | All tests, offline, with the accuracy scorecard (no API calls) |
+| `npm test` | All tests, offline, with the parser and scam scorecards (no API calls) |
+| `UPDATE_SCORECARD=1 npx vitest run src/lib/scam/eval` | Refresh the published scam scorecard after changing rules or cases |
 | `npm run lint` / `npx tsc --noEmit` | Lint / type-check |
 | `npm run build` then `npm start` | Production build, run locally |
 
 **Project layout**
 
 ```
-src/app/          pages (home, shortlist, security, owner pages) and server actions
-src/components/   the result page and shared UI
-src/lib/listing/  listing parser + the accuracy corpus
-src/lib/scam/     warning-sign rules
-src/lib/value/    price estimate
-src/lib/nhtsa/    NHTSA client and parsing
-src/lib/evidence/ reading attached Carfax / AutoCheck / NICB proof
-supabase/         database tables and limits (SQL, row-level security on every table)
-tools/            Python scripts for data refreshes (e.g. the Shortlist from NHTSA)
+src/app/            pages (home, My list, accuracy, shortlist, security, owner pages) and server actions
+src/components/     the result page and shared UI
+src/lib/decision.ts the buyer's decision: severity, evidence, four areas, next step
+src/lib/scam/       warning-sign rules, and eval/ (labelled ads + scorecard)
+src/lib/listing/    listing parser and its accuracy corpus
+src/lib/value/      price estimate and the manual comparison
+src/lib/nhtsa/      NHTSA client and parsing
+src/lib/evidence/   reading attached Carfax / AutoCheck / NICB proof
+src/lib/workspace/  My list (device storage, validated import/export)
+supabase/           database tables and limits (SQL, row-level security on every table)
+tools/              Python scripts for data refreshes (e.g. the Shortlist from NHTSA)
 ```
 
 ## Help improve it
 
 **Suggestions are very welcome.** The most useful thing you can send is a listing VinVerdict got wrong.
 
-- **[It got a listing wrong](https://github.com/amoghnellutla/VinVerdict/issues/new?template=wrong-answer.yml)**: a wrong price, miles or year, a missed scam sign, or a false alarm. Paste the listing text with phone numbers and names removed. It becomes a test case, so the mistake can't come back.
+- **[It got a listing wrong](https://github.com/amoghnellutla/VinVerdict/issues/new?template=wrong-answer.yml)**: a wrong price, miles or year, a missed scam sign, or a false alarm. Paste the listing with phone numbers and names removed. It becomes a test case, so the mistake can't come back.
 - **[Suggest an improvement](https://github.com/amoghnellutla/VinVerdict/issues/new?template=idea.yml)**: a check it should do, something confusing, or a free official data source it should use.
-- **Pull requests:** open an issue first for anything big. Keep `npm test` and `npm run lint` green, add a corpus case for parser fixes, and link a source for any new fact. Every fact on a result must link to where it came from.
+- **Pull requests:**
+  - Open an issue first for anything big.
+  - Keep `npm test` and `npm run lint` green.
+  - Add a corpus or scam case for a rule or parser fix.
+  - Link a source for any new fact: every fact on a result must link to where it came from.
 
 ## License
 
