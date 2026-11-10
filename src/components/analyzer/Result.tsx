@@ -39,6 +39,7 @@ import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
 import { SellerReplies } from "./SellerReplies";
 import { SaveToList } from "./SaveToList";
+import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
 import { DealerCheck } from "./DealerCheck";
 import { checkReplies } from "@/lib/seller-replies";
@@ -247,6 +248,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         { id: "history-report", label: "History report" },
         { id: "price-check", label: "Price" },
         { id: "check-yourself", label: "Check it yourself" },
+        { id: "photo-check", label: "Photos" },
         { id: "safety", label: "Safety" },
         { id: "costs", label: "Costs" },
         { id: "before-you-buy", label: "Before you buy" },
@@ -331,6 +333,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       ) : (
         <>
           {checkYourself}
+          {/* Listing photos with a public address can be reverse-searched; screenshots stay on the device, so those get the steps instead. */}
+          <PhotoCheck photos={live?.photos ?? []} dealer={m.listing.sellerType === "dealer"} />
           <BuyerProtection a={m} />
           <Facts a={a} live={live} />
           <SectionTabs

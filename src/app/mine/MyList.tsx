@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import { AREA_LABEL, type AreaStatus, type Level } from "@/lib/decision";
-import { importFile, load, merge, parseWorkspace, remove, save, setNote, WORKSPACE_KEY, type SavedCar } from "@/lib/workspace/local";
+import { importFile, load, maybeSameCar, merge, parseWorkspace, remove, save, setNote, WORKSPACE_KEY, type SavedCar } from "@/lib/workspace/local";
 
 const LEVEL_TAG: Record<Level, string> = {
   stop: "bg-bad-soft text-bad",
@@ -108,6 +108,12 @@ export function MyList() {
       </div>
       {message && <p role="status" className="mt-2 text-sm">{message}</p>}
 
+      {maybeSameCar(cars).map(({ a, b, why }) => (
+        <p key={`${a.id}-${b.id}`} className="mt-4 max-w-2xl rounded-md bg-warn-soft px-4 py-3 text-sm">
+          <strong>Possibly the same car twice ({why}):</strong> {a.title} at {usd(a.price)} and at {usd(b.price)}. Cross-posted cars are common, but a different
+          price, seller or story for the same car is worth asking about. Compare the photos and the VINs.
+        </p>
+      ))}
       {comparing.length >= 2 && <Compare cars={comparing} />}
       {cars.length >= 2 && comparing.length < 2 && <p className="mt-6 text-sm text-muted">Tick two to five cars to compare them side by side.</p>}
 

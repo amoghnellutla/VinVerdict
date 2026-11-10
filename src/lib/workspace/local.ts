@@ -133,6 +133,31 @@ export function merge(current: Workspace, incoming: Workspace): Workspace {
   return { version: 1, cars: [...current.cars, ...incoming.cars.filter((c) => !ids.has(c.id))].slice(0, MAX_CARS) };
 }
 
+/**
+ * Saved ads that may be the same car: the same model and year, and miles within
+ * 2% (or the same VIN). Relisted and cross-posted cars are common and not proof
+ * of anything, but a different price, seller or story for the same car is worth
+ * asking about.
+ */
+export function maybeSameCar(cars: SavedCar[]): { a: SavedCar; b: SavedCar; why: string }[] {
+  const out: { a: SavedCar; b: SavedCar; why: string }[] = [];
+  for (let i = 0; i < cars.length; i++) {
+    for (let j = i + 1; j < cars.length; j++) {
+      const a = cars[i];
+      const b = cars[j];
+      if (a.vin && b.vin && a.vin === b.vin) {
+        out.push({ a, b, why: "same VIN" });
+      } else if (
+        a.title.toLowerCase() === b.title.toLowerCase() && a.miles && b.miles &&
+        Math.abs(a.miles - b.miles) <= Math.max(500, a.miles * 0.02)
+      ) {
+        out.push({ a, b, why: `same model, ${a.miles.toLocaleString("en-US")} vs ${b.miles.toLocaleString("en-US")} miles` });
+      }
+    }
+  }
+  return out;
+}
+
 // ----- Browser storage (wrapped: private windows and blocked storage throw) -----
 
 export function load(): Workspace {

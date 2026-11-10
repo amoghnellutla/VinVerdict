@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carId, importFile, MAX_CARS, merge, parseCar, parseWorkspace, remove, setNote, upsert, type SavedCar, type Workspace } from "./local";
+import { carId, importFile, MAX_CARS, maybeSameCar, merge, parseCar, parseWorkspace, remove, setNote, upsert, type SavedCar, type Workspace } from "./local";
 
 const car = (o: Partial<SavedCar> = {}): SavedCar => ({
   id: "vin-1hgcr2f8xha000123", savedAt: "2026-11-10T08:00:00.000Z", title: "2017 Honda Accord EX-L", text: "2017 Honda Accord EX-L $9,000",
@@ -51,6 +51,16 @@ describe("workspace", () => {
     const current = upsert(empty, car({ note: "mine" }));
     const merged = merge(current, parseWorkspace({ cars: [car({ note: "theirs" }), car({ id: "ad-9", vin: null })] }));
     expect(merged.cars.map((c) => c.note)).toEqual(["mine", ""]);
+  });
+
+  it("spots saved ads that may be the same car", () => {
+    const a = car({ id: "ad-a", vin: null, miles: 98000 });
+    const b = car({ id: "ad-b", vin: null, miles: 98900, price: 7500 });
+    const c = car({ id: "ad-c", vin: null, miles: 120000 });
+    const pairs = maybeSameCar([a, b, c]);
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0]).toMatchObject({ a: { id: "ad-a" }, b: { id: "ad-b" }, why: "same model, 98,000 vs 98,900 miles" });
+    expect(maybeSameCar([car({ id: "x-1", title: "2017 Honda Accord EX-L" }), car({ id: "x-2", title: "2018 Honda Accord EX-L", vin: null })])).toEqual([]);
   });
 
   it("gives a car a stable id from its VIN, or from what was pasted", () => {
