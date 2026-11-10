@@ -18,6 +18,7 @@ import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
 import { BuyingDay } from "./BuyingDay";
+import { VinDecode } from "@/components/VinDecode";
 import { CarGallery } from "./CarGallery";
 import { CheckYourself, type Attached } from "./CheckYourself";
 import { Checklist } from "./Checklist";
@@ -228,15 +229,16 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       ];
 
   return (
-    <div className="reveal-children space-y-10">
+    <div className="space-y-10">
       <header id="verdict" className="space-y-5">
-        <div className="rise flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <CarLine a={m} />
-          <span className="flex gap-4 text-sm print:hidden">
+          <span className="flex gap-4 pt-2 text-sm print:hidden">
             <a href="#sources" className="link">Sources</a>
             <PrintButton />
           </span>
         </div>
+        {goodVin && a.decoded && <VinDecode vin={goodVin} decoded={a.decoded} size="sm" />}
         {photos.length > 0 && (
           <CarGallery
             photos={photos}
@@ -251,7 +253,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         ) : (
           <section className={`rise d1 flex flex-col gap-4 rounded-lg border-l-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between ${v.tone}`}>
             <div className="min-w-0">
-              <h2 className={`text-3xl sm:text-[2.6rem] ${v.title}`}>{v.label}</h2>
+              <h2 className={`text-[2.2rem] font-extrabold tracking-tight sm:text-[2.9rem] ${v.title}`}>{v.label}</h2>
               <p className="mt-1 text-[1.05rem]">{v.text}</p>
               <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
               <p className="mt-2 text-sm text-muted">
@@ -267,8 +269,8 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 
       {!selling && hits.length > 0 && (
         <ul className="-mt-4 divide-y divide-border">
-          {hits.map((h, i) => (
-            <HitRow key={h.id} hit={h} vin={goodVin} delay={i} />
+          {hits.map((h) => (
+            <HitRow key={h.id} hit={h} vin={goodVin} />
           ))}
         </ul>
       )}
@@ -362,7 +364,7 @@ function SellBox({ v, looking }: { v: Valuation | null; looking: boolean }) {
       : "VinVerdict looks the VIN up online, then prices it from similar cars near you.";
   return (
     <section className="rise d1 rounded-lg border-l-4 border-l-accent bg-accent-soft px-5 py-5">
-      <h2 className="nums text-3xl sm:text-[2.6rem]">{title}</h2>
+      <h2 className="nums text-[2.2rem] font-extrabold tracking-tight sm:text-[2.9rem]">{title}</h2>
       <p className="mt-1 text-[1.05rem]">{text}</p>
     </section>
   );
@@ -389,13 +391,13 @@ function Summary({ hits, valuation, price, walkAway }: { hits: RuleHit[]; valuat
   );
 }
 
-function HitRow({ hit, vin, delay = 0 }: { hit: RuleHit; vin: string | null; delay?: number }) {
+function HitRow({ hit, vin }: { hit: RuleHit; vin: string | null }) {
   const s = ACTION_STYLE[hit.action];
   const ref = RULE_SOURCE[hit.id];
   const here = ON_PAGE[hit.id];
   const decode = (hit.id === "vin-mismatch" || hit.id === "vin-decode-warning") && vin;
   return (
-    <li className={`rise grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4 ${delay < 6 ? `d${delay + 1}` : ""}`}>
+    <li className="grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
       <span className={`tag h-fit w-fit ${s.badge}`}>{s.label}</span>
       <div>
         <p className="font-semibold">{hit.title}</p>
@@ -439,12 +441,28 @@ function carName(a: Analysis): string {
   return [d?.year ?? l.year, d?.make ? cap(d.make.toLowerCase()) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || "car";
 }
 
-/** "2021 Toyota Camry LE · $9,900 · 183,086 mi": what the result is about, in one line. */
+/** What the result is about: the car's name as the title, then its asking price and miles. */
 function CarLine({ a }: { a: Analysis }) {
   const l = a.listing;
   const name = carName(a);
-  const parts = [name === "car" ? "This car" : name, money(l.price), miles(l.miles)].filter(Boolean);
-  return <p className="nums text-lg font-semibold">{parts.join(" · ")}</p>;
+  const facts = [
+    l.price != null && { value: money(l.price), label: "asking" },
+    l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: "miles" },
+  ].filter((x): x is { value: string; label: string } => !!x && !!x.value);
+  return (
+    <div className="rise min-w-0">
+      <h1 className="text-[2rem] leading-tight sm:text-[2.6rem]">{name === "car" ? "This car" : name}</h1>
+      {facts.length > 0 && (
+        <p className="nums mt-1 flex flex-wrap gap-x-6 text-lg">
+          {facts.map((f) => (
+            <span key={f.label}>
+              <strong className="font-bold">{f.value}</strong> <span className="text-muted">{f.label}</span>
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
 }
 
 const USAGE_LABEL = { personal: "Personal", fleet: "Fleet / commercial", rental: "Rental", unknown: null } as const;

@@ -25,7 +25,7 @@ const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchM
  * `intro` (the page's headline and pitch) shows until a result does; then the
  * page belongs to the result and the box shrinks to "Check another car".
  */
-export function Analyzer({ guest = false, intro = null }: { guest?: boolean; intro?: ReactNode }) {
+export function Analyzer({ guest = false, intro = null, outro = null }: { guest?: boolean; intro?: ReactNode; outro?: ReactNode }) {
   const [state, formAction, pending] = useActionState(analyzeAction, initial);
   // Listing screenshots the current check was read from (local previews for the result).
   const [shots, setShots] = useState<string[]>([]);
@@ -195,10 +195,9 @@ export function Analyzer({ guest = false, intro = null }: { guest?: boolean; int
           {intro}
         </div>
       )}
-      {!showing && guest && <Examples onOpen={openExample} loading={exampleLoading} />}
       {showing && (
         <div className="fade-in mb-4 flex flex-wrap items-baseline justify-between gap-3 print:hidden">
-          <h2 className="text-xl">Check another car</h2>
+          <p className="text-lg font-bold">Check another car</p>
           <button type="button" onClick={startOver} className="link text-sm">
             {guest ? "Back to the start and the examples" : "Start over"}
           </button>
@@ -208,7 +207,7 @@ export function Analyzer({ guest = false, intro = null }: { guest?: boolean; int
         action={formAction}
         // A new check replaces any open example.
         onSubmit={() => setExample(null)}
-        className={`card print:hidden ${showing ? "sm:py-4" : "rise d2"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
+        className={`card print:hidden ${showing ? "sm:py-4" : ""} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
@@ -298,6 +297,8 @@ export function Analyzer({ guest = false, intro = null }: { guest?: boolean; int
           <Bookmarklet />
         </div>
       )}
+      {!showing && guest && <Examples onOpen={openExample} loading={exampleLoading} />}
+      {!showing && outro}
 
       <div id="result" aria-live="polite" className={`${showing ? "mt-10" : "mt-12"} scroll-mt-6 print:mt-0`}>
         {example && (
@@ -327,33 +328,32 @@ export function Analyzer({ guest = false, intro = null }: { guest?: boolean; int
 function Examples({ onOpen, loading }: { onOpen: (id: ExampleId) => void; loading: ExampleId | null }) {
   const [featured, ...rest] = EXAMPLES;
   return (
-    <section className="mb-10 print:hidden" aria-labelledby="examples-title">
-      <h2 id="examples-title" className="section-title rise">Try an example</h2>
-      <p className="rise d1 -mt-2 mb-5 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data. One click, no sign-up.</p>
+    <section className="mt-14 print:hidden" aria-labelledby="examples-title">
+      <h2 id="examples-title" className="section-title">Or open an example</h2>
+      <p className="-mt-2 mb-5 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data.</p>
       <button
         type="button"
         onClick={() => onOpen(featured.id)}
-        className="rise d2 group lift grid w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-transform duration-300 hover:-translate-y-0.5 sm:grid-cols-[1.1fr_1fr]"
+        className="group grid w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-colors hover:border-accent sm:grid-cols-[1.1fr_1fr]"
       >
         {featured.photo && (
           // Real listing photo (allowed host only, see lib/csp.ts).
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={featured.photo} alt="" referrerPolicy="no-referrer" className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+          <img src={featured.photo} alt="" width={640} height={400} referrerPolicy="no-referrer" className="aspect-[16/10] h-full w-full object-cover" />
         )}
         <span className="flex flex-col justify-center gap-1 p-5">
           <span className="text-sm font-semibold text-accent">{featured.site}</span>
-          <span className="font-serif text-2xl font-semibold">{loading === featured.id ? "Opening…" : featured.title}</span>
+          <span className="text-2xl font-bold tracking-tight">{loading === featured.id ? "Opening…" : featured.title}</span>
           <span className="text-[0.95rem]">{featured.shows}</span>
-          <span className="mt-2 text-sm font-semibold text-accent">Open the full check →</span>
         </span>
       </button>
       <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-        {rest.map((e, i) => (
-          <li key={e.id} className={`rise d${Math.min(6, i + 3)}`}>
+        {rest.map((e) => (
+          <li key={e.id}>
             <button
               type="button"
               onClick={() => onOpen(e.id)}
-              className="h-full w-full rounded-lg border border-border bg-surface px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 hover:border-accent"
+              className="h-full w-full rounded-lg border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-accent"
             >
               <span className="block font-semibold">{loading === e.id ? "Opening…" : e.title}</span>
               <span className="block text-sm text-muted">{e.site}</span>

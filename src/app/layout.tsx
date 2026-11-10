@@ -1,17 +1,27 @@
-import type { Metadata } from "next";
-import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Overpass, Overpass_Mono } from "next/font/google";
 import { connection } from "next/server";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
 // Self-hosted at build time by next/font: no requests to Google from the browser.
-const body = Source_Sans_3({ variable: "--font-body", subsets: ["latin"] });
-const heading = Source_Serif_4({ variable: "--font-heading", subsets: ["latin"], weight: ["600", "700"] });
+// Overpass is the open version of Highway Gothic, the lettering on US road signs:
+// one family for everything. Overpass Mono only for VINs (fixed-width, like a VIN plate).
+const body = Overpass({ variable: "--font-body", subsets: ["latin"] });
+const mono = Overpass_Mono({ variable: "--font-vin", subsets: ["latin"], weight: ["400", "600", "700"] });
 
 export const metadata: Metadata = {
   title: { default: "VinVerdict", template: "%s · VinVerdict" },
   description: "Paste a used-car listing and see if it's a fair price, a good car and a safe deal.",
+};
+
+// Browser chrome matches the page: title paper by day, asphalt by night.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eff2ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#14191d" },
+  ],
 };
 
 // Every page renders per request, so each gets the fresh CSP nonce from the
@@ -22,10 +32,13 @@ export const instant = false;
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   await connection();
   return (
-    <html lang="en" className={`${body.variable} ${heading.variable} h-full antialiased`}>
+    <html lang="en" className={`${body.variable} ${mono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <a href="#main" className="sr-only rounded-md bg-surface px-3 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">
+          Skip to content
+        </a>
         <Nav />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:py-14">{children}</main>
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 outline-none sm:py-14">{children}</main>
         <footer className="border-t border-border">
           <div className="mx-auto max-w-3xl space-y-2 px-4 py-8 text-sm text-muted">
             <p>

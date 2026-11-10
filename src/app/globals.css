@@ -1,50 +1,54 @@
 @import "tailwindcss";
 
+
 /*
- * VinVerdict look: a calm, editorial page. Warm paper background, ink text,
- * one deep-green accent; red/amber/green only for verdicts. Serif headings
- * (Source Serif 4), a readable sans for everything else (Source Sans 3).
- * Light by default, dark follows the OS setting.
+ * VinVerdict look, from the car world's own documents and signs:
+ *   - "title paper": a cool, faintly green off-white, like a vehicle title or
+ *     inspection form, with white sheets on top;
+ *   - asphalt ink for text;
+ *   - road-sign blue (US guide/info signs) as the one accent for actions and links;
+ *   - red, amber and green only for verdicts, like a traffic light.
+ * Type: Overpass (Highway Gothic's open version) for everything; Overpass Mono for VINs.
  */
 :root {
-  --background: #faf8f4;
+  --background: #eff2ee;
   --surface: #ffffff;
-  --surface-muted: #f3efe7;
-  --foreground: #1c1b19;
-  --muted: #5f5a52;
-  --border: #e4ded3;
-  --border-strong: #cfc7b8;
-  --accent: #1e5b3a;
-  --accent-hover: #174a2f;
+  --surface-muted: #e4e9e3;
+  --foreground: #1a2228;
+  --muted: #56616a;
+  --border: #d3dad2;
+  --border-strong: #b4beb5;
+  --accent: #1f4ea3;
+  --accent-hover: #183e84;
   --accent-foreground: #ffffff;
-  --accent-soft: #e7f0e9;
-  --good: #1f6f3f;
-  --good-soft: #e5f2e8;
-  --warn: #8a5300;
-  --warn-soft: #fbf0dc;
-  --bad: #a8261b;
-  --bad-soft: #fbe9e6;
+  --accent-soft: #e3eaf7;
+  --good: #1d7343;
+  --good-soft: #e1f1e6;
+  --warn: #935700;
+  --warn-soft: #fbefd9;
+  --bad: #b3261e;
+  --bad-soft: #fbe8e6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #161512;
-    --surface: #1e1d1a;
-    --surface-muted: #262420;
-    --foreground: #ece8e0;
-    --muted: #aaa397;
-    --border: #34312b;
-    --border-strong: #4a463e;
-    --accent: #86c79f;
-    --accent-hover: #a2d6b5;
-    --accent-foreground: #10241a;
-    --accent-soft: #1f3327;
-    --good: #86c79f;
-    --good-soft: #1d2f23;
-    --warn: #e6b45c;
+    --background: #14191d;
+    --surface: #1b2126;
+    --surface-muted: #232a30;
+    --foreground: #e6ebe7;
+    --muted: #a3adb4;
+    --border: #2f383f;
+    --border-strong: #46515a;
+    --accent: #8db0f2;
+    --accent-hover: #aac5f6;
+    --accent-foreground: #0f1d36;
+    --accent-soft: #1d2a40;
+    --good: #7fcf9c;
+    --good-soft: #17301f;
+    --warn: #e9b65f;
     --warn-soft: #33281a;
-    --bad: #f0907f;
-    --bad-soft: #3a211d;
+    --bad: #f39184;
+    --bad-soft: #3b201d;
   }
 }
 
@@ -67,12 +71,19 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
   --font-sans: var(--font-body), system-ui, sans-serif;
-  --font-serif: var(--font-heading), Georgia, serif;
-  --font-mono: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  /* Headings use the same family as the text, heavier and tighter (see h1–h3). */
+  --font-serif: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-vin), ui-monospace, "Cascadia Mono", Menlo, monospace;
 }
 
 html {
   font-size: 106.25%; /* 17px body text */
+  text-size-adjust: 100%;
+  /* Native controls and scrollbars follow the theme. */
+  color-scheme: light dark;
+  /* Keyboard focus and anchor jumps clear the result page's sticky section bar. */
+  scroll-padding-top: 4rem;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -86,10 +97,15 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--font-heading), Georgia, serif;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 /* Prices and miles line up in tables and lists. */
@@ -125,9 +141,10 @@ a {
   }
 
   .section-title {
-    font-family: var(--font-heading), Georgia, serif;
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
     margin-bottom: 0.75rem;
   }
 
@@ -142,8 +159,13 @@ a {
     font-weight: 600;
     line-height: 1.2;
     border: 1px solid transparent;
-    transition: background-color 120ms, border-color 120ms, color 120ms;
+    transition: background-color 120ms, border-color 120ms, color 120ms, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
     cursor: pointer;
+    touch-action: manipulation;
+  }
+  /* A press answers the finger: a slight squeeze, released quickly. */
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .btn:disabled {
     opacity: 0.55;
@@ -236,6 +258,10 @@ a {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
+@keyframes vin-in {
+  from { opacity: 0; transform: translateY(0.25em); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
 @keyframes fade {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -258,14 +284,16 @@ a {
   .fade-in {
     animation: fade 0.6s ease both;
   }
-  /* Sections rise in as they scroll into view (browsers with scroll-driven animations). */
-  @supports (animation-timeline: view()) {
-    .reveal,
-    .reveal-children > :not(nav) {
-      animation: rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 35%;
-    }
+  /* The VIN decoding in, once, on the home page: characters type in, then their meanings appear. */
+  .vin-char {
+    animation: vin-in 0.32s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .vin-note {
+    animation: rise 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .vin-rule {
+    transform-origin: left;
+    animation: grow-x 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
   }
 }
 
