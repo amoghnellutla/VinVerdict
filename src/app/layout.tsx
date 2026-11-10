@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Overpass, Overpass_Mono } from "next/font/google";
 import { connection } from "next/server";
 import Link from "next/link";
+import { BackgroundFx } from "@/components/BackgroundFx";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
@@ -16,12 +17,9 @@ export const metadata: Metadata = {
   description: "Paste a used-car listing and see if it's a fair price, a good car and a safe deal.",
 };
 
-// Browser chrome matches the page: title paper by day, asphalt by night.
+// Browser chrome matches the black page.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eff2ee" },
-    { media: "(prefers-color-scheme: dark)", color: "#14191d" },
-  ],
+  themeColor: "#000000",
 };
 
 // Every page renders per request, so each gets the fresh CSP nonce from the
@@ -34,6 +32,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${body.variable} ${mono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <BackgroundFx />
         <a href="#main" className="sr-only rounded-md bg-surface px-3 py-2 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">
           Skip to content
         </a>

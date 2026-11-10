@@ -12,7 +12,7 @@ const EXIT_MS = 240;
  * the top card away (it follows the pointer 1:1 and can be caught again),
  * click it, or use the buttons and arrow keys.
  */
-export function PhotoDeck({ photos, cards, verdict, onOpen }: { photos: string[]; cards: string[]; verdict: string; onOpen: () => void }) {
+export function PhotoDeck({ photos, cards, verdict, onOpen, onCheckOwn }: { photos: string[]; cards: string[]; verdict: string; onOpen: () => void; onCheckOwn: () => void }) {
   const total = cards.length + 1; // the last card is the verdict
   const [at, setAt] = useState(0);
   const [dx, setDx] = useState(0);
@@ -149,10 +149,13 @@ export function PhotoDeck({ photos, cards, verdict, onOpen }: { photos: string[]
             </button>
           ) : (
             <>
-              <button type="button" className="btn btn-primary" onClick={onOpen}>
+              <button type="button" className="btn btn-primary" onClick={onCheckOwn}>
+                Now check your own listing
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={onOpen}>
                 Open its full check
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setAt(0)}>
+              <button type="button" className="link text-sm" onClick={() => setAt(0)}>
                 Start over
               </button>
             </>

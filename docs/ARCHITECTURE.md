@@ -46,7 +46,7 @@ API keys exist only on the server. The browser never talks to MarketCheck or Aut
 | `/compare` | 2–4 saved cars side by side, best value per row in green | Built (needs the SQL setup) |
 | `/car/[id]` | One saved car: findings, price history, "check for a price drop", "check it again", remove | Built (needs the SQL setup) |
 | `/settings` | Home ZIP (this device) and setup status (tables, keys, usage) | Built |
-| `/` (before a check) | The headline, then three switchable playground designs (`components/play/`): decode any VIN (NHTSA, free, `actions/decode.ts`), spot the scam in a practice ad, flip through the real Lexus as a photo deck. Then the paste box, examples and points | Built |
+| `/` (before a check) | The headline and the paste box first, then "No listing handy? Try one of these": three switchable playground designs (`components/play/`): decode any VIN (NHTSA, free, `actions/decode.ts`), spot the scam in a practice ad, flip through the real Lexus as a photo deck. Then the paste box, examples and points | Built |
 | `/why` | Honest comparison with a search engine and an AI chatbot, question by question, plus what VinVerdict can't do. Public | Built |
 | `/share` | Android Share target: hands shared text to the checker | Built |
 | `/login` | Email + password login. The only page open without a login (plus the app manifest and icons) | Built |

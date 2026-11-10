@@ -2,54 +2,33 @@
 
 
 /*
- * VinVerdict look, from the car world's own documents and signs:
- *   - "title paper": a cool, faintly green off-white, like a vehicle title or
- *     inspection form, with white sheets on top;
- *   - asphalt ink for text;
- *   - road-sign blue (US guide/info signs) as the one accent for actions and links;
- *   - red, amber and green only for verdicts, like a traffic light.
- * Type: Overpass (Highway Gothic's open version) for everything; Overpass Mono for VINs.
+ * VinVerdict look: night driving. Solid black road, and a "headlight" that
+ * follows the pointer across a faint grid of stamped dots (VIN-plate
+ * texture; components/BackgroundFx.tsx). Lettering is Overpass (Highway
+ * Gothic's open version), VINs in Overpass Mono. Road-sign blue is the one
+ * accent; red, amber and green only for verdicts, like a traffic light.
+ * Dark only, by request; print switches to paper (see @media print).
  */
 :root {
-  --background: #eff2ee;
-  --surface: #ffffff;
-  --surface-muted: #e4e9e3;
-  --foreground: #1a2228;
-  --muted: #56616a;
-  --border: #d3dad2;
-  --border-strong: #b4beb5;
-  --accent: #1f4ea3;
-  --accent-hover: #183e84;
-  --accent-foreground: #ffffff;
-  --accent-soft: #e3eaf7;
-  --good: #1d7343;
-  --good-soft: #e1f1e6;
-  --warn: #935700;
-  --warn-soft: #fbefd9;
-  --bad: #b3261e;
-  --bad-soft: #fbe8e6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14191d;
-    --surface: #1b2126;
-    --surface-muted: #232a30;
-    --foreground: #e6ebe7;
-    --muted: #a3adb4;
-    --border: #2f383f;
-    --border-strong: #46515a;
-    --accent: #8db0f2;
-    --accent-hover: #aac5f6;
-    --accent-foreground: #0f1d36;
-    --accent-soft: #1d2a40;
-    --good: #7fcf9c;
-    --good-soft: #17301f;
-    --warn: #e9b65f;
-    --warn-soft: #33281a;
-    --bad: #f39184;
-    --bad-soft: #3b201d;
-  }
+  --background: #000000;
+  --surface: #0e1114;
+  --surface-muted: #171b1f;
+  --foreground: #eef1ee;
+  --muted: #a2acb3;
+  --border: #23292e;
+  --border-strong: #3a434b;
+  --accent: #8fb3f5;
+  --accent-hover: #b3cbf8;
+  --accent-foreground: #0b1730;
+  --accent-soft: #13203a;
+  --good: #7fd3a0;
+  --good-soft: #0f2618;
+  --warn: #f0bd62;
+  --warn-soft: #2b2112;
+  --bad: #ff8f80;
+  --bad-soft: #34150f;
+  /* The headlight and hover glow. */
+  --glow: 143 179 245;
 }
 
 @theme inline {
@@ -79,8 +58,8 @@
 html {
   font-size: 106.25%; /* 17px body text */
   text-size-adjust: 100%;
-  /* Native controls and scrollbars follow the theme. */
-  color-scheme: light dark;
+  /* Native controls and scrollbars match the black theme. */
+  color-scheme: dark;
   /* Keyboard focus and anchor jumps clear the result page's sticky section bar. */
   scroll-padding-top: 4rem;
   -webkit-tap-highlight-color: transparent;
@@ -334,6 +313,12 @@ a {
   .flip { transition: none; }
 }
 
+/* A panel inside a tabbed result section: its own section rule and spacing would double up. */
+.tab-panel > section {
+  border-top: 0;
+  padding-top: 0;
+}
+
 /* Jumping to a section lands below the sticky section bar. */
 #result [id] {
   scroll-margin-top: 3.75rem;
@@ -347,18 +332,120 @@ a {
 .d5 { animation-delay: 400ms; }
 .d6 { animation-delay: 480ms; }
 
-/* Soft shadow for the few raised things (the sample report, photos). */
-.lift {
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -12px rgb(28 27 25 / 0.18);
+/* Background: black, stamped dots everywhere, and the headlight (components/BackgroundFx.tsx). */
+.bg-fx {
+  --x: 50vw;
+  --y: 18vh;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
-@media (prefers-color-scheme: dark) {
-  .lift {
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -16px rgb(0 0 0 / 0.6);
+.bg-fx::before,
+.bg-fx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: 22px 22px;
+}
+.bg-fx::before {
+  background-image: radial-gradient(rgb(255 255 255 / 0.075) 1px, transparent 1.5px);
+}
+/* The same dots, brighter, only inside the beam. */
+.bg-fx::after {
+  background-image: radial-gradient(rgb(var(--glow) / 0.7) 1.1px, transparent 1.7px);
+  mask-image: radial-gradient(circle 240px at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.35) 45%, transparent 100%);
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+}
+/* The beam's soft light. */
+.bg-fx > span {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle 460px at var(--x) var(--y), rgb(var(--glow) / 0.11), transparent 70%);
+  opacity: 0.7;
+  transition: opacity 0.4s ease;
+}
+.bg-fx[data-lit] > span,
+.bg-fx[data-lit]::after {
+  opacity: 1;
+}
+
+/* Raised things (photos, the photo deck) sit on a soft dark shadow with a faint edge light. */
+.lift {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.04), 0 18px 48px -18px rgb(0 0 0 / 0.9);
+}
+
+/*
+ * Cursor: the arrow carries a soft blue glow (an SVG cursor, so it stays a real
+ * system cursor with no lag). Links, buttons and text fields keep their usual cursors.
+ */
+html {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cdefs%3E%3Cfilter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='2.2'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M6 4 L6 24 L11 19 L14.5 27 L18 25.5 L14.5 17.5 L21 17.5 Z' fill='%238fb3f5' opacity='.75' filter='url(%23g)'/%3E%3Cpath d='M6 4 L6 24 L11 19 L14.5 27 L18 25.5 L14.5 17.5 L21 17.5 Z' fill='%23fff' stroke='%23000' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E") 6 4, auto;
+}
+
+/* Hover highlight: headings, links, buttons and cards catch the light. Body text stays still, so long pages stay readable. */
+@media (hover: hover) {
+  main h1,
+  main h2,
+  main h3 {
+    transition: text-shadow 0.35s ease;
+  }
+  main h1:hover,
+  main h2:hover,
+  main h3:hover {
+    text-shadow: 0 0 22px rgb(var(--glow) / 0.45), 0 0 2px rgb(var(--glow) / 0.35);
+  }
+  .link,
+  nav a {
+    transition: text-shadow 0.2s ease, color 0.2s ease;
+  }
+  .link:hover,
+  nav a:hover {
+    text-shadow: 0 0 14px rgb(var(--glow) / 0.65);
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 0 1px rgb(var(--glow) / 0.5), 0 0 28px -4px rgb(var(--glow) / 0.65);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    box-shadow: 0 0 22px -6px rgb(var(--glow) / 0.5);
+  }
+  .glow-hover {
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .glow-hover:hover {
+    border-color: rgb(var(--glow) / 0.55);
+    box-shadow: 0 0 0 1px rgb(var(--glow) / 0.25), 0 0 40px -12px rgb(var(--glow) / 0.55);
   }
 }
 
 /* Print / "Save as PDF": just the report, with the source links written out. */
 @media print {
+  :root {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --surface-muted: #f1f3f1;
+    --foreground: #111;
+    --muted: #4b5258;
+    --border: #d3d8d3;
+    --border-strong: #aab2ab;
+    --accent: #1f4ea3;
+    --accent-soft: #e3eaf7;
+    --good: #1d7343;
+    --good-soft: #e1f1e6;
+    --warn: #8a5300;
+    --warn-soft: #fbefd9;
+    --bad: #b3261e;
+    --bad-soft: #fbe8e6;
+  }
+  .bg-fx {
+    display: none !important;
+  }
+  /* Tabbed sections print every panel. */
+  .tab-panel[hidden] {
+    display: block !important;
+    padding-top: 1.5rem;
+  }
   header,
   footer,
   form,

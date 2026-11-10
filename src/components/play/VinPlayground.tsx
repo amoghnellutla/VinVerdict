@@ -18,7 +18,7 @@ const clean = (s: string) => s.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "").sl
 const cap = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
 /** Type or paste any VIN: the plate fills in as you type, checks itself, and NHTSA decodes it. Click a part to flip it. */
-export function VinPlayground({ examples, onCheck }: { examples: { label: string; vin: string }[]; onCheck: (vin: string) => void }) {
+export function VinPlayground({ examples, onCheck, onCheckOwn }: { examples: { label: string; vin: string }[]; onCheck: (vin: string) => void; onCheckOwn: () => void }) {
   const [vin, setVin] = useState("");
   const [decoded, setDecoded] = useState<DecodedVin | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function VinPlayground({ examples, onCheck }: { examples: { label: string
                 onClick={() => setFlipped(flipped === pi ? null : pi)}
                 aria-expanded={flipped === pi}
                 aria-label={`${p.name}: ${chars.join("") || "empty"}. ${flipped === pi ? "Hide" : "Show"} what it means`}
-                className="min-w-0 text-left [perspective:600px]"
+                className="relative min-w-0 text-left [perspective:600px] after:absolute after:-inset-x-1.5 after:-inset-y-1 after:content-['']"
               >
                 <span className={`flip relative block h-[1.15em] text-[length:min(3.4rem,calc((100cqi-2.5rem)*0.075))] ${flipped === pi ? "flipped" : ""}`}>
                   <span className="flip-face absolute inset-0 flex items-end font-mono leading-none font-semibold tracking-[0.06em]">
@@ -159,7 +159,7 @@ export function VinPlayground({ examples, onCheck }: { examples: { label: string
               : check && !check.ok
                 ? check.message
                 : null
-            : `${vin.length} of 17. Or try a real one: `}
+            : `${vin.length} of 17. Tap any part of the plate to see what it means, or try a real one: `}
         {!full &&
           examples.map((e, i) => (
             <span key={e.vin}>
@@ -169,6 +169,12 @@ export function VinPlayground({ examples, onCheck }: { examples: { label: string
               </button>
             </span>
           ))}
+      </p>
+      <p className="mt-4 border-t border-border pt-4 text-sm">
+        Have a listing instead?{" "}
+        <button type="button" className="link font-semibold" onClick={onCheckOwn}>
+          Paste it in the box above
+        </button>
       </p>
     </div>
   );

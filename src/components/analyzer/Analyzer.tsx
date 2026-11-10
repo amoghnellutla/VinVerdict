@@ -159,6 +159,13 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
     if (doneId) requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [doneId]);
 
+  /** "Now check your own listing": back to the paste box, cursor in it. */
+  function focusBox() {
+    const box = document.getElementById("listing") as HTMLTextAreaElement | null;
+    document.getElementById("check-form")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    box?.focus({ preventScroll: true });
+  }
+
   function startOver() {
     setExample(null);
     if (state.status === "done") setHiddenId(state.id);
@@ -186,18 +193,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
 
   return (
     <>
-      {/* The intro's sample check opens its example (data-example on the server-rendered card). */}
-      {!showing && (
-        <div
-          onClick={(e) => {
-            const id = (e.target as HTMLElement).closest("[data-example]")?.getAttribute("data-example");
-            if (id && EXAMPLES.some((x) => x.id === id)) void openExample(id as ExampleId);
-          }}
-        >
-          {intro}
-          {play && <HomePlay data={play} onCheck={(vin) => check(vin)} onOpenExample={(id) => void openExample(id)} />}
-        </div>
-      )}
+      {!showing && intro}
       {showing && (
         <div className="fade-in mb-4 flex flex-wrap items-baseline justify-between gap-3 print:hidden">
           <p className="text-lg font-bold">Check another car</p>
@@ -207,10 +203,11 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         </div>
       )}
       <form
+        id="check-form"
         action={formAction}
         // A new check replaces any open example.
         onSubmit={() => setExample(null)}
-        className={`card print:hidden ${showing ? "sm:py-4" : "mt-12"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
+        className={`card print:hidden ${showing ? "sm:py-4" : "rise d2"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
@@ -300,6 +297,8 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
           <Bookmarklet />
         </div>
       )}
+      {/* The main task comes first; the playground is for when there's no listing to hand. */}
+      {!showing && play && <HomePlay data={play} onCheck={(vin) => check(vin)} onOpenExample={(id) => void openExample(id)} onCheckOwn={focusBox} />}
       {!showing && guest && <Examples onOpen={openExample} loading={exampleLoading} />}
       {!showing && outro}
 
@@ -332,12 +331,12 @@ function Examples({ onOpen, loading }: { onOpen: (id: ExampleId) => void; loadin
   const [featured, ...rest] = EXAMPLES;
   return (
     <section className="mt-14 print:hidden" aria-labelledby="examples-title">
-      <h2 id="examples-title" className="section-title">Or open an example</h2>
+      <h2 id="examples-title" className="section-title">Open a full example</h2>
       <p className="-mt-2 mb-5 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data.</p>
       <button
         type="button"
         onClick={() => onOpen(featured.id)}
-        className="group grid w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-colors hover:border-accent sm:grid-cols-[1.1fr_1fr]"
+        className="glow-hover group grid w-full overflow-hidden rounded-xl border border-border bg-surface text-left sm:grid-cols-[1.1fr_1fr]"
       >
         {featured.photo && (
           // Real listing photo (allowed host only, see lib/csp.ts).
@@ -356,7 +355,7 @@ function Examples({ onOpen, loading }: { onOpen: (id: ExampleId) => void; loadin
             <button
               type="button"
               onClick={() => onOpen(e.id)}
-              className="h-full w-full rounded-lg border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-accent"
+              className="glow-hover h-full w-full rounded-lg border border-border bg-surface px-4 py-3 text-left"
             >
               <span className="block font-semibold">{loading === e.id ? "Opening…" : e.title}</span>
               <span className="block text-sm text-muted">{e.site}</span>

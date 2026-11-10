@@ -33,7 +33,7 @@ function Headline() {
 /** The demo's opening: the question, then three ways to play with it (components/play). */
 function GuestIntro() {
   return (
-    <div className="print:hidden">
+    <div className="mb-8 print:hidden">
       <Headline />
       <p className="rise d2 mt-4 text-sm text-muted">
         Demo, no sign-up. Nothing you paste is saved. <Link href="/security" className="link">How it&apos;s secured</Link>
@@ -62,7 +62,7 @@ function Points() {
 
 function OwnerIntro() {
   return (
-    <div className="mb-10 print:hidden">
+    <div className="mb-8 print:hidden">
       <Headline />
     </div>
   );

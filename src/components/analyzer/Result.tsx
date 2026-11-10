@@ -35,6 +35,7 @@ import { RiskGauge } from "./RiskGauge";
 import { SectionNav } from "./SectionNav";
 import { RunningCost } from "./RunningCost";
 import { Safety } from "./Safety";
+import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
@@ -223,16 +224,17 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         { id: "price-check", label: "Value" },
         ...(history ? [{ id: "listing-history", label: "Listings" }] : []),
         { id: "safety", label: "Safety" },
-        { id: "check-yourself", label: "Proof" },
+        { id: "check-yourself", label: "Check it yourself" },
         { id: "sources", label: "Sources" },
       ]
     : [
         { id: "verdict", label: "Verdict" },
         { id: "history-report", label: "History report" },
         { id: "price-check", label: "Price" },
-        { id: "check-yourself", label: "Proof" },
+        { id: "check-yourself", label: "Check it yourself" },
         { id: "safety", label: "Safety" },
         { id: "costs", label: "Costs" },
+        { id: "before-you-buy", label: "Before you buy" },
         { id: "sources", label: "Sources" },
       ];
 
@@ -307,25 +309,43 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
           {checkYourself}
           <BuyerProtection a={m} />
           <Facts a={a} live={live} />
-          {/* key: start the calculator again with the live price once it arrives */}
-          <div id="costs" className="space-y-10">
-            <OutTheDoor key={live ? "live" : "pasted"} a={m} />
-            <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} />
-            <RunningCost a={m} />
-          </div>
+          <SectionTabs
+            id="costs"
+            title="What it'll cost"
+            intro="The price is only the start: tax and fees on the day, then what it costs to own each year."
+            tabs={[
+              /* key: start the calculator again with the live price once it arrives */
+              { id: "otd", label: "Out the door", content: <OutTheDoor key={live ? "live" : "pasted"} a={m} /> },
+              { id: "year", label: "Cost per year", content: <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} /> },
+              { id: "running", label: "Fuel and upkeep", content: <RunningCost a={m} /> },
+            ]}
+          />
           <Safety a={m} />
-          <InspectionList a={m} />
-          <Checklist value={checklist} onChange={setChecklist}>
-            <SellerMessage
-              carName={carName(m)}
-              listing={m.listing}
-              hits={hits}
-              checklist={checklist}
-              recallCount={a.recalls?.length ?? null}
-              topComplaint={a.complaints?.topComponents[0]?.component ?? null}
-            />
-          </Checklist>
-          <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} />
+          <SectionTabs
+            id="before-you-buy"
+            title="Before you buy"
+            intro="What to ask, what to have checked, and how to pay safely."
+            tabs={[
+              {
+                id: "ask",
+                label: "Ask the seller",
+                content: (
+                  <Checklist value={checklist} onChange={setChecklist}>
+                    <SellerMessage
+                      carName={carName(m)}
+                      listing={m.listing}
+                      hits={hits}
+                      checklist={checklist}
+                      recallCount={a.recalls?.length ?? null}
+                      topComplaint={a.complaints?.topComponents[0]?.component ?? null}
+                    />
+                  </Checklist>
+                ),
+              },
+              { id: "inspect", label: "Inspection list", content: <InspectionList a={m} /> },
+              { id: "day", label: "Buying day", content: <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} /> },
+            ]}
+          />
           {sourcesList}
         </>
       )}

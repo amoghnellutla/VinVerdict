@@ -15,7 +15,13 @@ type DesignId = (typeof DESIGNS)[number]["id"];
 const KEY = "vv-home-play";
 
 /** Three ways to play with VinVerdict before checking a car. The pick is remembered on this device. */
-export function HomePlay({ data, onCheck, onOpenExample }: { data: PlayData; onCheck: (vin: string) => void; onOpenExample: (id: "lexus") => void }) {
+export function HomePlay({ data, onCheck, onOpenExample, onCheckOwn }: {
+  data: PlayData;
+  onCheck: (vin: string) => void;
+  onOpenExample: (id: "lexus") => void;
+  /** Back to the paste box: every design ends by handing off to the real task. */
+  onCheckOwn: () => void;
+}) {
   const [tab, setTab] = useState<DesignId>("vin");
   useEffect(() => {
     try {
@@ -42,7 +48,8 @@ export function HomePlay({ data, onCheck, onOpenExample }: { data: PlayData; onC
   }
 
   return (
-    <section className="mt-10" aria-label="Try VinVerdict">
+    <section className="mt-14" aria-labelledby="play-title">
+      <h2 id="play-title" className="section-title">No listing handy? Try one of these</h2>
       <div role="tablist" aria-label="Ways to try it" onKeyDown={key} className="grid grid-cols-3 gap-1 rounded-xl bg-surface-muted p-1">
         {DESIGNS.map((d) => (
           <button
@@ -64,9 +71,11 @@ export function HomePlay({ data, onCheck, onOpenExample }: { data: PlayData; onC
       </div>
       <div id="play-panel" role="tabpanel" aria-labelledby={`play-tab-${tab}`} className="mt-4 rounded-2xl border border-border bg-surface px-5 py-6 sm:px-8 sm:py-8">
         <div key={tab} className="fade-in">
-          {tab === "vin" && <VinPlayground examples={data.vins} onCheck={onCheck} />}
-          {tab === "scam" && <ScamSpotter fair={data.scamFair} />}
-          {tab === "deck" && <PhotoDeck photos={data.deck.photos} cards={data.deck.cards} verdict={data.deck.verdict} onOpen={() => onOpenExample("lexus")} />}
+          {tab === "vin" && <VinPlayground examples={data.vins} onCheck={onCheck} onCheckOwn={onCheckOwn} />}
+          {tab === "scam" && <ScamSpotter fair={data.scamFair} onCheckOwn={onCheckOwn} />}
+          {tab === "deck" && (
+            <PhotoDeck photos={data.deck.photos} cards={data.deck.cards} verdict={data.deck.verdict} onOpen={() => onOpenExample("lexus")} onCheckOwn={onCheckOwn} />
+          )}
         </div>
       </div>
     </section>

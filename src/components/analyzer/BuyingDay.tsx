@@ -26,7 +26,7 @@ export function BuyingDay({ vin, seller }: { vin: string | null; seller: SellerT
           {vin && <> with VIN <code className="font-mono text-[0.95em]">{vin}</code></>}: open recalls on NHTSA, theft and insurance
           write-offs on NICB VINCheck.
         </li>
-        <li>A pre-purchase inspection by your own mechanic ($100–250). Give them the inspection checklist above.</li>
+        <li>A pre-purchase inspection by your own mechanic ($100–250). Give them the list from the Inspection list tab.</li>
         <li>
           On the test drive: start it cold, drive at highway speed, look for warning lights, and check the odometer matches the listing and its
           earlier readings.

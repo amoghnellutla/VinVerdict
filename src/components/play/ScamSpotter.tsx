@@ -13,7 +13,7 @@ import { fmt } from "@/lib/value/estimate";
  * Click what looks wrong: each find shows VinVerdict's real rule for it and
  * the official source. Find them all and the verdict lands.
  */
-export function ScamSpotter({ fair }: { fair: number | null }) {
+export function ScamSpotter({ fair, onCheckOwn }: { fair: number | null; onCheckOwn: () => void }) {
   // The real rules, run on the ad (with the real market price for this car).
   const hits = useMemo(() => {
     const text = scamAdText();
@@ -56,30 +56,36 @@ export function ScamSpotter({ fair }: { fair: number | null }) {
         >
           {fmt(SCAM_AD.price)}
         </button>
-        {/* A click on plain text (not a flagged phrase) just says "that part's fine". */}
-        <p
-          className="mt-3 text-[1.05rem] leading-relaxed"
-          onClick={(e) => {
-            if ((e.target as HTMLElement).closest("button")) return;
-            setMiss((m) => m + 1);
-            setLast(null);
-          }}
-        >
-          {SCAM_AD.parts.map((p, i) =>
-            p.rule ? (
-              <button
+        {/*
+          Every phrase is clickable the same way and flows like normal text, so the
+          layout doesn't give away which ones are flagged. Innocent ones say "that part's fine".
+        */}
+        <p className="mt-3 text-[1.05rem] leading-relaxed">
+          {SCAM_AD.parts.map((p, i) => {
+            const hit = p.rule && found.includes(p.rule);
+            const act = () => {
+              if (p.rule) return find(p.rule);
+              setMiss((m) => m + 1);
+              setLast(null);
+            };
+            return (
+              <span
                 key={i}
-                type="button"
-                onClick={() => find(p.rule!)}
-                aria-label={`${p.text}${found.includes(p.rule) ? " (flagged)" : ""}`}
-                className={`inline rounded px-0.5 text-left transition-colors ${found.includes(p.rule) ? "bg-bad-soft text-bad underline decoration-bad decoration-2 underline-offset-4" : "hover:bg-surface-muted"}`}
+                role="button"
+                tabIndex={0}
+                onClick={act}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    act();
+                  }
+                }}
+                className={`cursor-pointer rounded px-0.5 transition-colors focus-visible:outline-2 ${hit ? "bg-bad-soft text-bad underline decoration-bad decoration-2 underline-offset-4" : "hover:bg-surface-muted"}`}
               >
                 {p.text}
-              </button>
-            ) : (
-              <span key={i}>{p.text}</span>
-            ),
-          )}
+              </span>
+            );
+          })}
         </p>
         {done && (
           <span aria-hidden className="stamp pointer-events-none absolute top-[5.5rem] right-4 rounded-lg border-4 border-bad px-4 py-1 text-3xl font-extrabold text-bad">
@@ -118,9 +124,16 @@ export function ScamSpotter({ fair }: { fair: number | null }) {
             <p className="pop mt-3">
               That&apos;s all of them. Every one is a check VinVerdict runs on a real ad
               {fair ? `, and the price is ${Math.round(((fair - SCAM_AD.price) / fair) * 100)}% under what a 2019 Civic sells for nearby (${fmt(fair)})` : ""}.{" "}
+            </p>
+          )}
+          {done && (
+            <p className="pop mt-4 flex flex-wrap items-center gap-3">
+              <button type="button" className="btn btn-primary" onClick={onCheckOwn}>
+                Now check your own listing
+              </button>
               <button
                 type="button"
-                className="link"
+                className="link text-sm"
                 onClick={() => {
                   setFound([]);
                   setLast(null);

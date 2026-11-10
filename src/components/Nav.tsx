@@ -20,7 +20,7 @@ async function ForViewer() {
   const account = owner ? (
     <SignOutButton />
   ) : (
-    <Link href="/login" className="text-sm text-muted hover:text-foreground">
+    <Link href="/login" className="inline-block py-1.5 text-sm text-muted hover:text-foreground">
       Owner login
     </Link>
   );
