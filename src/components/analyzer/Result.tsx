@@ -11,9 +11,10 @@ import { recentMiles, summarizeHistory } from "@/lib/history/summary";
 import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import type { LiveListing as Live } from "@/lib/live/parse";
-import type { RuleAction, RuleHit, SellerChecklist, Verdict } from "@/lib/scam/rules";
+import type { SellerChecklist } from "@/lib/scam/rules";
+import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Severity } from "@/lib/decision";
 import { ON_PAGE, raw, RULE_SOURCE } from "@/lib/sources";
-import { DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
+import { fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
 import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
@@ -31,47 +32,21 @@ import { ListingHistory } from "./ListingHistory";
 import { OutTheDoor } from "./OutTheDoor";
 import { PriceCheck, type Details } from "./PriceCheck";
 import { ReportSources } from "./ReportSources";
-import { RiskGauge } from "./RiskGauge";
 import { SectionNav } from "./SectionNav";
 import { RunningCost } from "./RunningCost";
 import { Safety } from "./Safety";
 import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
+import { VerdictCard } from "./VerdictCard";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 const miles = (n: number | null) => (n == null ? null : `${n.toLocaleString("en-US")} mi`);
 const cap = (s: string | null) => (s ? s[0].toUpperCase() + s.slice(1) : null);
 
-type Box = { label: string; text: string; tone: string; title: string };
-
-// tone = colored left bar + soft background; title color matches.
-const VERDICT: Record<Verdict, Box> = {
-  hide: { label: "Walk away", text: "There's at least one deal-breaker below.", tone: "border-l-bad bg-bad-soft", title: "text-bad" },
-  verify: { label: "Check it in person first", text: "Looks clean, but a price this low needs a reason. See the car, title and seller's ID before paying.", tone: "border-l-warn bg-warn-soft", title: "text-warn" },
-  caution: { label: "Go carefully", text: "No deal-breakers, but ask the seller about the points below.", tone: "border-l-warn bg-warn-soft", title: "text-warn" },
-  clear: { label: "No red flags found", text: "The history report shows no damage. Still have a mechanic inspect it and check the title in person.", tone: "border-l-good bg-good-soft", title: "text-good" },
-};
-
-// "No red flags" needs the accident history confirmed: free records and listing feeds can't show it.
-const UNCONFIRMED: Box = {
-  label: "No red flags so far",
-  text: "Nothing wrong in the listing or the free records, but its accident history isn't confirmed. Check the history report below before you trust this.",
-  tone: "border-l-border-strong bg-surface",
-  title: "text-foreground",
-};
-
-// A bare VIN with nothing wrong isn't "no red flags": the deal hasn't been checked yet.
-const VIN_ONLY_CLEAR: Box = {
-  label: "The car checks out so far",
-  text: "A VIN shows the car, not the deal. It's looked up online below; paste the listing too for the seller and scam checks.",
-  tone: "border-l-border-strong bg-surface",
-  title: "text-foreground",
-};
-
-const ACTION_STYLE: Record<RuleAction, { badge: string; label: string }> = {
-  hide: { badge: "bg-bad-soft text-bad", label: "Deal-breaker" },
-  flag: { badge: "bg-warn-soft text-warn", label: "Ask about it" },
-  info: { badge: "bg-surface-muted text-muted", label: "Good to know" },
+const SEVERITY_STYLE: Record<Severity, string> = {
+  stop: "bg-bad-soft text-bad",
+  verify: "bg-warn-soft text-warn",
+  note: "bg-surface-muted text-muted",
 };
 
 /** The lookup, with a lost connection or a server cut-off turned into a message instead of a broken page. */
@@ -181,10 +156,20 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     return <LinkOnly host={a.listing.sourceHost} />;
   }
 
-  const order: RuleAction[] = ["hide", "flag", "info"];
-  const hits = [...result.hits].sort((x, y) => order.indexOf(x.action) - order.indexOf(y.action));
-  const confirmed = accidentHistoryConfirmed(m.listing, answers);
-  const v = result.verdict === "clear" && !confirmed ? (vinOnly && !live ? VIN_ONLY_CLEAR : UNCONFIRMED) : VERDICT[result.verdict];
+  const decision = decide({
+    hits: result.hits,
+    kind: a.listing.kind,
+    hasVin: !!goodVin,
+    hasPrice: m.listing.price != null,
+    decoded: !!a.decoded,
+    recalls: a.recalls?.length ?? null,
+    report: answers,
+    checklist,
+    listingStatesHistory: accidentHistoryConfirmed(m.listing, EMPTY_REPORT),
+    priced: !!sources,
+    price: valuation ? { label: valuation.label, low: valuation.low, high: valuation.high, confidence: valuation.confidence, unpriced: valuation.unpriced } : null,
+  });
+  const hits: Finding[] = decision.findings;
   const make = a.decoded?.make ?? a.listing.make;
   const recordedAt = recorded?.recordedAt ?? null;
 
@@ -225,7 +210,6 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   // A pasted ad without a VIN: one close match among the dealer cars for sale nearby (no extra lookup).
   const sameCar = !goodVin && !selling && sources?.comps ? findSameCar(m.listing, a.decoded?.year ?? m.listing.year, sources.comps.active) : null;
   const photos = live?.photos?.length ? live.photos : matchPhotos && sameCar?.comp.photos?.length ? sameCar.comp.photos : shots;
-  const gaugeTone = result.verdict === "hide" ? "bad" : result.verdict === "clear" ? (confirmed ? "good" : "muted") : "warn";
   const nav = selling
     ? [
         { id: "verdict", label: "Your car" },
@@ -276,17 +260,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         {selling ? (
           <SellBox v={sellV?.privateV ?? null} looking={!done} />
         ) : (
-          <section className={`rise d1 flex flex-col gap-4 rounded-lg border-l-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between ${v.tone}`}>
-            <div className="min-w-0">
-              <h2 className={`text-[2.2rem] font-extrabold tracking-tight sm:text-[2.9rem] ${v.title}`}>{v.label}</h2>
-              <p className="mt-1 text-[1.05rem]">{v.text}</p>
-              <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
-              <p className="mt-2 text-sm text-muted">
-                Every finding below names its source, and <a href="#check-yourself" className="link">you can check the car yourself</a>.
-              </p>
-            </div>
-            <RiskGauge risk={result.risk} tone={gaugeTone} />
-          </section>
+          <VerdictCard d={decision} />
         )}
       </header>
 
@@ -416,36 +390,17 @@ function SellBox({ v, looking }: { v: Valuation | null; looking: boolean }) {
 }
 
 /** The three things that matter most, inside the verdict box (feature 4). */
-function Summary({ hits, valuation, price, walkAway }: { hits: RuleHit[]; valuation: Valuation | null; price: number | null; walkAway: boolean }) {
-  const points: string[] = [];
-  if (valuation?.label && price) {
-    const diff = valuation.fair - price;
-    // Next to a deal-breaker, a big discount is bait, not a bargain.
-    if (walkAway && diff >= valuation.fair * 0.15) points.push(`${fmt(diff)} under the fair price of about ${fmt(valuation.fair)}: too cheap to be real`);
-    else points.push(`${DEAL_TEXT[valuation.label]}: ${Math.abs(diff) < 100 ? "right at" : `${fmt(Math.abs(diff))} ${diff > 0 ? "under" : "over"}`} the fair price of about ${fmt(valuation.fair)}`);
-  }
-  for (const h of hits) {
-    if (points.length >= 3) break;
-    if (h.action !== "info") points.push(h.title);
-  }
-  if (points.length === 0) return null;
-  return (
-    <ul className="mt-3 list-disc space-y-0.5 pl-5 font-semibold">
-      {points.map((p) => <li key={p}>{p}</li>)}
-    </ul>
-  );
-}
-
-function HitRow({ hit, vin }: { hit: RuleHit; vin: string | null }) {
-  const s = ACTION_STYLE[hit.action];
+function HitRow({ hit, vin }: { hit: Finding; vin: string | null }) {
   const ref = RULE_SOURCE[hit.id];
   const here = ON_PAGE[hit.id];
   const decode = (hit.id === "vin-mismatch" || hit.id === "vin-decode-warning") && vin;
   return (
     <li className="grid gap-1 py-4 sm:grid-cols-[8.5rem_1fr] sm:gap-4">
-      <span className={`tag h-fit w-fit ${s.badge}`}>{s.label}</span>
+      <span className={`tag h-fit w-fit ${SEVERITY_STYLE[hit.severity]}`}>{SEVERITY_LABEL[hit.severity]}</span>
       <div>
-        <p className="font-semibold">{hit.title}</p>
+        <p className="font-semibold">
+          {hit.title} <span className="ml-1 whitespace-nowrap text-sm font-normal text-muted">· {EVIDENCE_LABEL[hit.evidence]}</span>
+        </p>
         <p className="text-muted">{hit.reason}</p>
         {(ref || here || decode) && (
           <p className="mt-1 text-sm text-muted">

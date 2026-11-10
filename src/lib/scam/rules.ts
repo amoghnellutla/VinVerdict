@@ -72,11 +72,11 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // --- Title and history ---
   if (["salvage", "rebuilt", "flood", "lemon", "branded"].includes(l.titleStatus)) {
     add("title-brand", "hide", `${l.titleStatus[0].toUpperCase()}${l.titleStatus.slice(1)} title`,
-      "Branded titles mean major past damage or defects, lower resale value and harder insurance. VinVerdict only shows clean titles.");
+      "Branded titles mean major past damage or defects, lower resale value and harder insurance. Have it inspected by a body shop, and price it well below a clean-title car.");
   }
   if (l.accident === "reported" || c.anyAccidents === true) {
     add("accident-reported", "hide", "Accident reported",
-      "The listing or seller mentions an accident. VinVerdict only shows cars with no reported accidents.");
+      "The listing or seller mentions an accident. A repaired accident isn't a deal-breaker on its own: get the history report and repair records, have the repair inspected, and expect to pay less.");
   } else if (l.accident === "unknown" && c.anyAccidents !== false) {
     add("accident-unknown", "info", "Accident history unknown",
       "Nothing says whether it's been in an accident. Ask the seller, run the free NICB VINCheck, and get a Carfax if a dealer offers one.");
@@ -84,7 +84,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Transmission ---
   if (l.transmission === "manual" || decoded?.transmissionKind === "manual") {
-    add("manual", "hide", "Manual transmission", "You're looking for automatics only.");
+    add("manual", "hide", "Manual transmission", "Good to know: fewer buyers want a manual, so it can take longer to resell. No problem if you drive one.");
   }
 
   // --- VIN and price ---
@@ -143,7 +143,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   }
   if (/\b(deployed|overseas|out of the country|stationed (at|in|overseas)|military (base|deployment)|on (a )?mission)\b|i('m| am) (currently )?(out of state|abroad)|seller is (out of state|abroad)/.test(t) || c.meetsInPersonLocally === false) {
     add("seller-remote", "hide", "Seller isn't local",
-      "The seller is out of state, overseas or won't meet in person. You can't see the car or the title, so walk away.");
+      "The seller is out of state, overseas or won't meet in person. That's the most common fake-listing story: you can't see the car or the title, so don't send money.");
   }
 
   // --- Auction source ---
@@ -155,7 +155,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   if (c.allowsInspection === false ||
       /\b(no|not allowing|won'?t allow|will not allow|don'?t allow|doesn'?t allow) (an? )?(pre-?purchase )?(inspections?|mechanics?|ppi)\b|\bno test drives?\b/.test(t)) {
     add("no-inspection", "hide", "Won't allow an inspection",
-      "A seller who refuses a pre-purchase inspection is hiding something. Walk away.");
+      "A seller who refuses a pre-purchase inspection may be hiding something. Don't buy without one.");
   }
 
   // --- Curbstoning, title washing, liens ---

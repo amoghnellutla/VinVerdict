@@ -11,6 +11,8 @@ import type { DemoData } from "@/lib/demo/examples";
 import { summarizeHistory } from "@/lib/history/summary";
 import { mergeLive } from "@/lib/live/merge";
 import { fmt, valueCar } from "@/lib/value/estimate";
+import { decide } from "@/lib/decision";
+import { EMPTY_REPORT } from "@/lib/history-report";
 import { buildVerdict } from "@/lib/verdict";
 
 export type PlayData = {
@@ -19,8 +21,6 @@ export type PlayData = {
   scamFair: number | null;
   deck: { photos: string[]; cards: string[]; verdict: string };
 };
-
-const VERDICT_TEXT = { hide: "Walk away", verify: "Check it in person first", caution: "Go carefully", clear: "No red flags so far" } as const;
 
 function worked(d: DemoData) {
   const asOf = new Date(`${d.recordedAt}T12:00:00Z`);
@@ -46,7 +46,7 @@ export function playData(): PlayData {
   if (lx.live?.price) cards.push(`Listed at ${fmt(lx.live.price)}${lx.live.sellerName ? ` by ${lx.live.sellerName}` : ""}`);
   if (lx.v && lx.live?.price) {
     const over = lx.live.price - lx.v.fair;
-    cards.push(over > 100 ? `Fair price is about ${fmt(lx.v.fair)}: ${fmt(over)} over` : `Fair price is about ${fmt(lx.v.fair)}`);
+    cards.push(over > 100 ? `Estimated price about ${fmt(lx.v.fair)}: ${fmt(over)} over` : `Estimated price about ${fmt(lx.v.fair)}`);
   }
   if (lx.live?.accidentCount) cards.push(`Listing data shows ${lx.live.accidentCount} accident${lx.live.accidentCount > 1 ? "s" : ""}`);
   const first = L.price.history?.map((h) => h.firstSeen).filter((x): x is string => !!x).sort()[0];
@@ -62,6 +62,15 @@ export function playData(): PlayData {
       { label: name, vin: L.analysis.listing.vin! },
     ],
     scamFair: sc.v?.fair ?? null,
-    deck: { photos: L.price.live?.photos ?? [], cards, verdict: VERDICT_TEXT[lx.result.verdict] },
+    deck: {
+      photos: L.price.live?.photos ?? [],
+      cards,
+      // The same next step the full result shows for this car.
+      verdict: decide({
+        hits: lx.result.hits, kind: L.analysis.listing.kind, hasVin: true, hasPrice: lx.listing.price != null, decoded: !!L.analysis.decoded,
+        recalls: L.analysis.recalls?.length ?? null, report: EMPTY_REPORT, checklist: {}, listingStatesHistory: false, priced: !!lx.v,
+        price: lx.v ? { label: lx.v.label, low: lx.v.low, high: lx.v.high, confidence: lx.v.confidence, unpriced: lx.v.unpriced } : null,
+      }).title,
+    },
   };
 }

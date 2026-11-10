@@ -26,6 +26,7 @@
 
 | You want to know… | VinVerdict checks… |
 | --- | --- |
+| **Should I go see it?** | One next step (Stop, Verify before going further, Worth investigating, or Not enough information) and four checks behind it: can you trust the listing, what shape is the car in, is the price right, is it safe to pay. Each shows what's still unknown. |
 | **Is this ad a scam?** | 50+ checks on the ad's own words and data, each tied to FBI, FTC or NICB guidance: gift-card or payment-app deposits, "I'm deployed, it's at a shipping company", a price far below similar cars, a VIN that doesn't match the ad, a title not in the seller's name, and more. |
 | **Is the VIN real, and is it this car?** | The check digit, then NHTSA's decoder, compared with the year, make, model and gearbox in the ad. |
 | **Has this car been listed before?** | Past listings of the VIN that MarketCheck recorded since 2015: dates, prices, miles and sellers. It flags odometer drops, quick dealer resales and price cuts. |
@@ -64,6 +65,7 @@ Tip: drag the **bookmark button** on the home page to your bookmarks bar. On any
 
 These limits are deliberate. A tool that sounds sure when it isn't does more harm than one that says "not checked".
 
+- **It never says a car is safe.** The best answer is "worth investigating", with a list of what's still unknown.
 - **It never says a car is clean.** Listing feeds often miss accidents that Carfax or AutoCheck show, so a feed's "0 accidents" or owner count never clears a car. Only a history report you attach can, and missing data always shows as **not checked**.
 - **Prices are estimates.** What a buyer finally paid isn't public. Prices come from what similar cars were advertised for, and the page says so.
 - **Recalls are for the model year.** Not every car of that year is affected. Whether this car was repaired is only in NHTSA's and the maker's VIN lookups, which are linked.

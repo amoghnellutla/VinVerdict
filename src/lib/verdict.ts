@@ -64,7 +64,7 @@ export function buildVerdict(a: VerdictInput, sellerAnswers: SellerChecklist, no
       id: "report-damage",
       action: "hide",
       title: `History report: ${DAMAGE_LABEL[report.damage].toLowerCase()}`,
-      reason: `${report.damage === "severe" ? "Structural or airbag damage can weaken the car in a future crash. " : ""}You're looking for cars with no reported accidents. If you still consider it, get the repair records and have a body shop inspect the repair, and pay less: the price check below accounts for it.`,
+      reason: `${report.damage === "severe" ? "Structural or airbag damage can weaken the car in a future crash. " : ""}If you still consider it, get the repair records and have a body shop inspect the repair, and pay less: the price check below accounts for it.`,
     });
   }
   if (report.title === "branded" && !hits.some((h) => h.id === "title-brand")) {

@@ -60,7 +60,7 @@ export function liveRuleHits(pasted: ParsedListing, live: LiveListing | null): R
       id: "live-accident",
       action: "hide",
       title: `History shows ${live.accidentCount} accident${live.accidentCount > 1 ? "s" : ""}`,
-      reason: `${live.source}'s history data for this VIN reports ${live.accidentCount === 1 ? "an accident" : `${live.accidentCount} accidents`}${pasted.accident === "none" ? ", even though the listing says none" : ""}. VinVerdict only shows cars with no reported accidents.`,
+      reason: `${live.source}'s history data for this VIN reports ${live.accidentCount === 1 ? "an accident" : `${live.accidentCount} accidents`}${pasted.accident === "none" ? ", even though the listing says none" : ""}. Get the full history report to see how bad it was, have the repair inspected, and expect to pay less.`,
     });
   }
 

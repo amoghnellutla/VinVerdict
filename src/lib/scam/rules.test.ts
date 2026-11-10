@@ -20,6 +20,11 @@ function run(text: string, extra: Partial<ScamInput> = {}) {
 const ids = (r: ReturnType<typeof run>) => r.hits.map((h) => h.id);
 
 describe("evaluateScamRules", () => {
+  it("a seller who won't meet in person locally counts, even when the ad doesn't say so", () => {
+    expect(ids(run(GOOD_TEXT, { decoded: DECODED, checklist: { meetsInPersonLocally: false } }))).toContain("seller-remote");
+    expect(ids(run(GOOD_TEXT, { decoded: DECODED, checklist: { meetsInPersonLocally: true } }))).not.toContain("seller-remote");
+  });
+
   it("clears a clean, complete private listing", () => {
     const r = run(GOOD_TEXT, { decoded: DECODED });
     expect(r.hits).toEqual([]);
