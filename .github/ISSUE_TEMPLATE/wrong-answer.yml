@@ -1,0 +1,44 @@
+name: VinVerdict got a listing wrong
+description: A wrong price, miles, year, warning, missed scam sign or false alarm. These are the most useful reports.
+title: "Wrong answer: "
+labels: [accuracy]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Every report like this becomes a test case, so the same mistake can't come back.
+        **Before pasting, remove phone numbers, emails and people's names** from the listing text.
+  - type: dropdown
+    id: site
+    attributes:
+      label: Where was the listing?
+      options: [Facebook Marketplace, Craigslist, Autotrader, Cars.com, CarGurus, A dealer's own site, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: listing
+    attributes:
+      label: The listing text you pasted (or the VIN)
+      description: Paste exactly what you put into VinVerdict. Screenshots are fine too; drag them in.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What VinVerdict said
+      placeholder: "e.g. It read the miles as 98 instead of 98,000, or it said 'Walk away' because of the word 'deposit'."
+    validations:
+      required: true
+  - type: textarea
+    id: right
+    attributes:
+      label: What the right answer is, and how you know
+      placeholder: "e.g. The odometer photo shows 98,000. The seller only said 'no deposit needed'."
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Do you know how it turned out? (optional)
+      options: [Don't know, Bought it and it was fine, It turned out to be a scam, The car had a problem the ad didn't mention, Other]

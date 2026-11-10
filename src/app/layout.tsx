@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Overpass, Overpass_Mono } from "next/font/google";
 import { connection } from "next/server";
 import Link from "next/link";
+import { ExternalLink } from "@/components/ExternalLink";
 import { BackgroundFx } from "@/components/BackgroundFx";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
@@ -47,6 +48,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <p>
               Privacy: demo checks aren&apos;t stored, and screenshots are read on your device.{" "}
               <Link href="/security" className="link">How it&apos;s secured</Link>
+            </p>
+            <p>
+              Got a wrong answer, or an idea?{" "}
+              <ExternalLink href="https://github.com/amoghnellutla/VinVerdict/issues/new/choose" className="link">Tell us on GitHub</ExternalLink>{" "}
+              (every wrong answer becomes a test case). The{" "}
+              <ExternalLink href="https://github.com/amoghnellutla/VinVerdict" className="link">source code</ExternalLink> is public.
             </p>
           </div>
         </footer>

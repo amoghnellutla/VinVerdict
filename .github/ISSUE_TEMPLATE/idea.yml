@@ -1,0 +1,23 @@
+name: Suggest an improvement
+description: A feature, a check VinVerdict should do, something confusing, or a better free data source.
+title: "Idea: "
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What were you trying to do?
+      placeholder: "e.g. I was comparing three Civics on Facebook and kept losing track of which seller answered what."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Any free official source that backs it up? (optional)
+      description: VinVerdict only shows facts it can link to a source, so a link helps a lot.

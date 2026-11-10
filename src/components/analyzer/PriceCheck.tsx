@@ -311,7 +311,7 @@ function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
         <span className="nums absolute top-7 -translate-x-1/2 text-xs text-muted" style={{ left: pos(v.low) }}>{fmt(v.low)}</span>
         <span className="nums absolute top-7 -translate-x-1/2 text-xs text-muted" style={{ left: pos(v.high) }}>{fmt(v.high)}</span>
       </div>
-      {price !== null && <p className="-mt-2 text-sm text-muted">The black line is the asking price; green is the fair range.</p>}
+      {price !== null && <p className="-mt-2 text-sm text-muted">The tall line is the asking price; green is the fair range.</p>}
 
       {v.offer && (
         <div className="rounded-md border-l-4 border-l-accent bg-accent-soft px-5 py-4">

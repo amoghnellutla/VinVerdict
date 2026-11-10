@@ -15,10 +15,10 @@ Copy-Item .env.example .env         # used by the Python scripts in tools/
 
 Both files are gitignored. Fill them in as you go through the steps below.
 
-## 1. GitHub: private repo
+## 1. GitHub repo
 
 1. Sign in at https://github.com and click **New repository**.
-2. Name it `vinverdict`, choose **Private**, and leave "Add a README" **unchecked** (the project already has one).
+2. Name it `vinverdict`, choose **Public** (or Private), and leave "Add a README" **unchecked** (the project already has one).
 3. Click **Create repository**.
 4. Connect your local copy and push:
 
@@ -119,7 +119,7 @@ The limits live in that SQL file and nowhere else: 2 live lookups per visitor pe
 
 ## Done? Checklist
 
-- [ ] GitHub private repo `vinverdict` created
+- [ ] GitHub repo `vinverdict` created
 - [ ] Vercel account linked to GitHub
 - [ ] Supabase project created; URL + publishable key in `.env.local`; sign-ups off; your user added
 - [ ] MarketCheck key in `.env` + `.env.local`
