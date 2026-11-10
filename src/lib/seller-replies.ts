@@ -14,7 +14,7 @@ import { evaluateScamRules, type RuleHit } from "@/lib/scam/rules";
 /** The ad rules that can fire from words in a message. */
 const MESSAGE_RULES = new Set([
   "pay-gift-card", "pay-wire", "pay-app-upfront", "pay-app", "deposit-first", "shipping-only", "seller-remote",
-  "no-inspection", "rushed", "curbstoning", "lien", "title-washing", "auction",
+  "no-inspection", "rushed", "curbstoning", "lien", "title-washing", "auction", "odometer-unknown",
 ]);
 
 const NO_DEPOSIT = "I don't send money before I've seen the car and the title in person. Can we meet so I can see it first? I'll pay at a bank once everything checks out.";
@@ -34,6 +34,7 @@ const REPLY: Record<string, string> = {
   lien: "Which bank holds the loan? I'd want to pay the bank directly and get the lien release.",
   "title-washing": "Can you send a photo of the title, front and back?",
   auction: "Was it bought at an insurance or salvage auction? Can you share the auction listing?",
+  "odometer-unknown": "What does the title say about the mileage? Can you send a photo of it, and any service records that show past readings?",
   "story-miles": "Your message gives different miles from the ad. Could you send a photo of the odometer today?",
   "story-title": "The ad says the title is clean. Can you send a photo of the title, front and back?",
   "story-accident": "What was damaged, and do you have the repair invoice?",

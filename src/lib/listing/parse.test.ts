@@ -178,3 +178,29 @@ describe("prior use: police and taxi", () => {
     expect(parseListing("2016 Toyota Camry hybrid, former taxi, 300k miles").usage).toBe("fleet");
   });
 });
+
+describe("title and accident wording (probe 2026-11-10)", () => {
+  it("reads more title brands", () => {
+    expect(parseListing("2016 Civic, salvaged title, runs great").titleStatus).toBe("salvage");
+    expect(parseListing("never salvaged, clean title").titleStatus).toBe("clean");
+    expect(parseListing("junk title, parts car").titleStatus).toBe("branded");
+    expect(parseListing("lemon law buyback, all fixed").titleStatus).toBe("lemon");
+    expect(parseListing("manufacturer buyback").titleStatus).toBe("lemon");
+    expect(parseListing("not a lemon, clean title").titleStatus).toBe("clean");
+  });
+  it("doesn't read a lemon color or air freshener as a lemon title", () => {
+    expect(parseListing("lemon yellow paint, clean title").titleStatus).toBe("clean");
+    expect(parseListing("comes with a lemon tree air freshener lol").titleStatus).toBe("unknown");
+  });
+  it("reads clean-title variants, but not 'clear title' (that means no lien)", () => {
+    expect(parseListing("clean blue title").titleStatus).toBe("clean");
+    expect(parseListing("clean and clear title").titleStatus).toBe("clean");
+    expect(parseListing("title is clear").titleStatus).toBe("unknown");
+  });
+  it("reads wrecks and hit-a-deer as accidents", () => {
+    expect(parseListing("was in a wreck last year, repaired").accident).toBe("reported");
+    expect(parseListing("hit a deer, hood and bumper replaced").accident).toBe("reported");
+    expect(parseListing("never been wrecked").accident).toBe("none");
+    expect(parseListing("no wrecks, garage kept").accident).toBe("none");
+  });
+});

@@ -79,6 +79,7 @@ export const RULE_SOURCE: Record<string, SourceRef> = {
   "title-washing": REF.nicb,
   rushed: REF.ic3,
   "mileage-low": REF.odometer,
+  "odometer-unknown": REF.odometer,
   "high-miles": REF.fhwa,
   "too-good": REF.ic3,
   "too-good-plus-flags": REF.ic3,

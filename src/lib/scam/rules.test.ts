@@ -123,3 +123,17 @@ describe("evaluateScamRules", () => {
     expect(r.verdict).toBe("hide");
   });
 });
+
+describe("odometer the seller says is wrong", () => {
+  it("catches TMU, not-actual-miles and broken-odometer wording", () => {
+    for (const s of ["TMU, priced to sell.", "Miles are not actual.", "Not actual mileage on the title.", "Odometer is broken, around 150k.",
+      "odometer stopped working last year", "Title says exceeds mechanical limits.", "true mileage unknown"]) {
+      expect(ids(run(`${GOOD_TEXT} ${s}`, { decoded: DECODED })), s).toContain("odometer-unknown");
+    }
+  });
+  it("doesn't fire on a working odometer or a legally mileage-exempt older car", () => {
+    for (const s of ["Odometer works fine.", "1999 Camry, mileage exempt on the title.", "Not TMU, actual miles with records.", "Actual miles, service records."]) {
+      expect(ids(run(`${GOOD_TEXT} ${s}`, { decoded: DECODED })), s).not.toContain("odometer-unknown");
+    }
+  });
+});

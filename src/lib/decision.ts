@@ -59,7 +59,7 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
 const STOP = new Set([
   "pay-gift-card", "pay-wire", "pay-app-upfront", "deposit-first", "shipping-only", "seller-remote",
   "no-inspection", "title-brand", "report-title", "vin-invalid", "vin-mismatch", "too-good-plus-flags",
-  "auction", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
+  "auction", "odometer-unknown", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
 ]);
 /** Facts worth knowing that say nothing bad about the seller or the car. */
 const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown"]);
@@ -76,7 +76,7 @@ const AREA: Record<string, Area> = {
   "story-miles": "car", "story-title": "car", "story-accident": "car",
   "accident-reported": "car", "accident-unknown": "car", "live-accident": "car", "report-damage": "car",
   "report-commercial": "car", fleet: "car", "title-brand": "car", "report-title": "car", "title-washing": "car",
-  auction: "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
+  auction: "car", "odometer-unknown": "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
   "history-rollback": "car", "history-miles-lower": "car", "live-miles-lower": "car", "history-turnover": "car",
   "history-dealer-recent": "car", "proof-stolen": "car", "proof-total-loss": "car", "proof-auction": "car",
   "proof-odometer": "car", "proof-open-recalls": "car", "proof-miles-lower": "car", "proof-reports-differ": "car",

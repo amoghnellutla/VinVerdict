@@ -232,13 +232,15 @@ function findTitle(text: string): TitleStatus {
   // Cars.com: "Clean title: No" means the title is branded.
   // Needs the colon (or the box's next label / end of text) so "clean title no accidents" stays clean.
   if (/\bclean title:\s*no\b|\bclean title no(?= open recall| personal use| 1-owner|$)/.test(text)) return "branded";
-  if (hasUnnegated(text, /\bsalvage\b/)) return "salvage";
+  if (hasUnnegated(text, /\bsalvaged?\b/)) return "salvage";
   if (hasUnnegated(text, /\b(rebuilt|rebuild|reconstructed|restored) title\b|\brebuilt\b(?! (engine|transmission|motor|trans))/)) return "rebuilt";
   if (hasUnnegated(text, /\bflood(ed)?\b|water damage/)) return "flood";
-  if (hasUnnegated(text, /\blemon\b/)) return "lemon";
-  if (hasUnnegated(text, /\bbranded title\b/)) return "branded";
-  // "clean title", "title is clean", Craigslist's "title status: clean", "clean NJ title"
-  if (/\bclean (title|carfax|autocheck)\b|title (status:? )?(is )?clean\b|\bclean [a-z]{2} title\b/.test(text)) return "clean";
+  // The lemon-law brand, not "lemon yellow paint" or a "lemon tree air freshener".
+  if (hasUnnegated(text, /\blemon[- ](law|title|buy ?back|brand)|\b(is|was|a|declared|deemed) (a )?lemon\b(?! (yellow|green|tree|scent|fresh|colou?r|paint))|\bmanufacturer buy ?back\b/)) return "lemon";
+  if (hasUnnegated(text, /\bbranded title\b|\b(junk|non-?repairable) title\b|\btitle (status:? )?(is )?(junk|non-?repairable)\b/)) return "branded";
+  // "clean title", "title is clean", Craigslist's "title status: clean", "clean NJ title",
+  // "clean blue title", "clean and clear title". ("Clear title" alone means no lien, not no brand.)
+  if (/\bclean (and clear |blue |[a-z]{2} )?(title|carfax|autocheck)\b|title (status:? )?(is )?clean\b/.test(text)) return "clean";
   return "unknown";
 }
 
@@ -254,8 +256,8 @@ const SAFETY_FEATURE = /\bpre-?collision\b|\b(?:forward|front|rear|cross[- ]traf
 //   CarGurus / CarMax / Carvana  "No accidents reported" / "1 accident reported"
 const HISTORY_ACCIDENT = /\bat least (?:1|one) accident\b|\b[1-9] (?:accidents?|damage events?)(?: or damage)? reported\b|\baccidents? or damage:? (?:at least )?[1-9]\b|\baccidents? (?:or damage )?reported\b|\bdamage reported\b/;
 const HISTORY_NONE = /\baccidents? or damage:? none reported\b|\bno accidents? (?:or damage )?reported\b|\bno accidents? or damage\b|\b0 accidents\b|\bno reported accidents\b|\bclean carfax\b/;
-const SAID_NONE = /\bno accidents?\b|\baccident[- ]free\b|never (?:been )?in an accident|\bzero accidents\b|\bno damage\b|\bno significant damage\b/;
-const SAID_ACCIDENT = /\baccidents?\b|\bcollision\b|fender[- ]bender|\b(?:frame|structural|front[- ]end|rear[- ]end|body|hail) damage\b|airbags? (?:deployed|popped)|\bwas hit\b|got hit|been hit|rear[- ]ended|\btotaled\b/;
+const SAID_NONE = /\bno accidents?\b|\baccident[- ]free\b|never (?:been )?in an accident|\bzero accidents\b|\bno damage\b|\bno significant damage\b|\bnever (?:been )?wrecked\b|\bno wrecks?\b/;
+const SAID_ACCIDENT = /\baccidents?\b|\bcollision\b|fender[- ]bender|\b(?:frame|structural|front[- ]end|rear[- ]end|body|hail) damage\b|airbags? (?:deployed|popped)|\bwas hit\b|got hit|been hit|rear[- ]ended|\btotaled\b|\bwreck(?:ed|s)?\b|\bhit (?:a |by a )?(?:deer|pole|curb|car|truck|guardrail)\b/;
 
 function findAccident(text: string): AccidentStatus {
   const t = text.replace(SAFETY_FEATURE, " ");

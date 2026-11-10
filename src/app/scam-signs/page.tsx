@@ -63,7 +63,7 @@ const SIGNS: Sign[] = [
   },
   {
     title: "Miles that don't fit",
-    looks: "An 8-year-old car with 18,000 miles, or fewer miles than an earlier listing of the same VIN.",
+    looks: "An 8-year-old car with 18,000 miles, \"TMU\" or \"not actual miles\" in the ad, or fewer miles than an earlier listing of the same VIN.",
     why: "Odometer rollback makes a car look worth more than it is.",
     todo: "Check the miles on past listings and service records, and in a history report.",
     sources: [REF.odometer],

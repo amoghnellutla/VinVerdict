@@ -50,7 +50,7 @@ Every check ends in one of four answers. It never says "safe":
 
 | Answer | When |
 | --- | --- |
-| **Stop: serious warning** | A known scam pattern (gift cards, a deposit before viewing, a shipping-only story, a seller who's away) or a serious problem with the car (a branded title, an odometer rollback) |
+| **Stop: serious warning** | A known scam pattern (gift cards, a deposit before viewing, a shipping-only story, a seller who's away) or a serious problem with the car (a branded title, an odometer rollback, miles the seller admits aren't real) |
 | **Verify before going further** | Something to check with the seller or in person: a reported accident, a title not in the seller's name, a price far below similar cars |
 | **Worth investigating** | Nothing wrong found in what was checked, with a list of what's still unknown |
 | **Not enough information** | No VIN and no price to go on |

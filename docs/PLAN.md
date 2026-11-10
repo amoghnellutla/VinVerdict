@@ -156,7 +156,7 @@ A price far below market is a warning, not a win, until other checks pass. Rules
 
 | Rule | Action |
 | --- | --- |
-| Salvage, rebuilt, flood or lemon title | Hide |
+| Salvage, rebuilt, flood, junk or lemon title (incl. "salvaged", "lemon law buyback"; not "lemon yellow paint") | Hide |
 | Accident reported | Hide |
 | Accident history unknown | Show with label + Carfax (if dealer provides) and [NICB VINCheck](https://www.nicb.org/vincheck) links |
 | Manual transmission | Hide |
@@ -173,6 +173,7 @@ A price far below market is a warning, not a win, until other checks pass. Rules
 | Same phone number on several listings | Flag |
 | Wants to meet only in a random lot, rushed sale | Flag |
 | Impossible mileage (e.g. < 500 mi/year on an older car) | Flag |
+| Seller says the miles aren't real ("TMU", "not actual miles", "exceeds mechanical limits", broken odometer; not "mileage exempt") | Hide |
 | Same VIN listed at different prices | Flag (live-listing lookup) |
 | Private seller offering a dealer-listed VIN 15%+ cheaper (cloned listing) | Hide |
 | Private seller, same VIN also listed by a dealer | Flag |
@@ -370,6 +371,7 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-10 | **Title, accident and odometer wording probe.** 40 phrasings checked against the listing reader. Fixed: "salvaged title" and "junk title" weren't read as brands; "lemon yellow paint" or a "lemon tree air freshener" was read as a lemon-law title (a false Stop); "was in a wreck" and "hit a deer" weren't read as accidents; "clean blue title" / "clean and clear title" weren't read as clean ("title is clear" still isn't: it means no lien). New rule `odometer-unknown` (car area, Stop): the ad or the seller's messages say TMU, not actual miles, exceeds mechanical limits or a broken odometer; "mileage exempt" (older cars, legal) doesn't fire. Seller questions no longer say "an earlier listing showed different miles" when the only reason is low miles for the age. Scam scorecards unchanged (car-area rules don't count there) |
 | 2026-11-10 | **Rewording probe.** 13 new paraphrases of the scam patterns found 9 gaps ("can't meet in person", "drop it off after you pay", "shipped once payment clears", "w/ Zelle 1st", "shipping co", "buyer protection through eBay", "Google Play cards", a "holding fee" to schedule a viewing, "half via Chime, rest on delivery"). Fixed with chat-shorthand expansion, brand-name gift cards, more payment apps (Chime, Apple Pay/Cash, USDT), pay-then-deliver stories (unless the seller offers a viewing) and a "can't meet" rule that ignores "can't meet until Saturday". The held-out set caught a regression from the new payment apps (h13, a holding payment through Apple Pay Cash); fixed, moved to tuning, replaced by h14 (caught on first run). The 14 probe ads (9 scams, 5 honest look-alikes) joined the tuning set: now 89 ads, all correct; the keyword filter misses 5 of the reworded scams and flags 21 of 51 honest ads |
 | 2026-11-10 | **Used-car scam signs page** (`/scam-signs`, public, in the sitemap and footer): the nine patterns VinVerdict checks (money before seeing the car, an away seller and a car that ships, a price far below similar cars, no inspection, title not in the seller's name, a VIN that doesn't add up, miles that don't fit, a branded or recently moved title, a cloned dealer website), each with a typical example, why it matters, what to do, its official source (FBI IC3, FTC, NICB, NHTSA, NMVTIS, a state attorney general) and where VinVerdict checks it. Writing it found a gap: "title isn't in my name" wasn't caught by the curbstoning rule (only "is not"); fixed and tested. Every scorecard unchanged; 0 accessibility violations |
 | 2026-11-10 | **What a price estimate rests on** (outside review: show sample size, radius, mileage, trim match, freshness). Under the estimate: "Found 49 ended and 20 current listings within 100 miles: 2015–2017 models, 24k–177k miles, 40 with the same trim, ended listings last seen Aug 6 – Oct 30, 2026 (the estimate leaves out outliers)", plus cautions when there are fewer than 5 similar cars, this car's miles are outside their range, or no trim matches (`lib/value/basis.ts`, tested). Older saved checks without the comparable cars show the counts only (re-recording them would spend paid API calls). Both sources were confirmed to search 100 miles |

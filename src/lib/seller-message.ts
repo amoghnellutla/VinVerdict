@@ -56,8 +56,12 @@ export function sellerMessage(m: MessageInput): string {
   for (const k of (m.knownIssues ?? []).slice(0, 2)) {
     q.push(`This model year has a known issue (${k.title.toLowerCase()}, covered by ${k.label}). Was it fixed, and do you have the record?`);
   }
-  if (has("history-miles-lower") || has("history-rollback") || has("live-miles-lower") || has("mileage-low")) {
+  if (has("history-miles-lower") || has("history-rollback") || has("live-miles-lower")) {
     q.push("An earlier listing of this car showed different miles. Could you send a photo of the odometer today?");
+  } else if (has("odometer-unknown")) {
+    q.push("What does the title say about the mileage? Do you have service records that show past odometer readings?");
+  } else if (has("mileage-low")) {
+    q.push("The miles are very low for its age. Could you send a photo of the odometer today, and service records that show past readings?");
   }
   if (!dealer && c.titleInSellerName == null) q.push("Is the title in your name, and is it clean (no salvage, rebuilt or flood brand)?");
   if (dealer) q.push("Could you send the Carfax or AutoCheck report, and the out-the-door price with every fee?");

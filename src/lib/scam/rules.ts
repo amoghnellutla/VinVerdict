@@ -235,6 +235,15 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
       "Pressure to decide fast or meet in a random lot leaves no time for checks. Take your time and meet somewhere public and safe.");
   }
 
+  // --- Odometer the seller says is wrong ---
+  // "TMU" (true mileage unknown), "not actual miles", "exceeds mechanical limits" are title
+  // brands; a broken odometer means the same. Not "mileage exempt": older cars are legally
+  // exempt from odometer disclosure, which says nothing bad about this one.
+  if (hasUnnegated(t, /\btmu\b|\btrue (miles|mileage) (is |are )?unknown\b|\bnot actual (miles|mileage)\b|\b(miles|mileage) (is |are )?not actual\b|\bexceeds mechanical limits?\b|\bodometer (is )?(broken|not working|doesn'?t work|does not work|stopped working)\b|\bbroken odometer\b/)) {
+    add("odometer-unknown", "hide", "True miles unknown",
+      "The seller says the odometer reading isn't the car's real mileage (TMU, not actual miles, or a broken odometer). Its wear and value can't be judged from the miles: price it well below similar cars and have it inspected.");
+  }
+
   // --- Mileage sanity ---
   const year = l.year ?? decoded?.year ?? null;
   if (year && l.miles !== null) {
