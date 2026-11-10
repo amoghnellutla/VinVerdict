@@ -13,6 +13,7 @@ import { EMPTY_REPORT } from "@/lib/history-report";
 import { parseListing } from "@/lib/listing/parse";
 import { checkReplies } from "@/lib/seller-replies";
 import { buildVerdict } from "@/lib/verdict";
+import { leaveOneOut, predict, topScamFeatures, train } from "./learned";
 
 export type EvalCase = { id: string; origin: "real" | "synthetic"; scam: boolean; basis?: string; text: string };
 
@@ -72,6 +73,16 @@ export type Scorecard = {
   messages: Metrics;
   /** The keyword filter on the same replies. */
   messagesBaseline: Metrics;
+  /** A naive Bayes model retrained on the tuning ads every run (learned.ts). It changes no answer. */
+  learned: {
+    trainedOn: number;
+    /** Each tuning ad scored by a model trained on all the others. */
+    crossValidated: Metrics;
+    heldOut: Metrics;
+    replies: Metrics;
+    /** The words and pairs that push it hardest towards "scam". */
+    topFeatures: string[];
+  };
   misses: { id: string; kind: "missed scam" | "false alarm"; why: string[] }[];
 };
 
@@ -89,6 +100,16 @@ export function score(cases: EvalCase[], heldOut: EvalCase[], generated: string,
     heldOut: metrics(held),
     messages: metrics(replies.cases.map((c) => ({ scam: c.scam, flagged: replyFlags(replies.ad, c.text) }))),
     messagesBaseline: metrics(replies.cases.map((c) => ({ scam: c.scam, flagged: baselineFlags(c.text) }))),
+    learned: (() => {
+      const model = train(cases);
+      return {
+        trainedOn: model.trainedOn,
+        crossValidated: metrics(leaveOneOut(cases)),
+        heldOut: metrics(heldOut.map((c) => ({ scam: c.scam, flagged: predict(model, c.text) }))),
+        replies: metrics(replies.cases.map((c) => ({ scam: c.scam, flagged: predict(model, c.text) }))),
+        topFeatures: topScamFeatures(model, 12),
+      };
+    })(),
     misses: [...rows, ...held]
       .filter((r) => r.scam !== r.flagged)
       .map((r) => ({ id: r.id, kind: r.scam ? "missed scam" as const : "false alarm" as const, why: r.why })),

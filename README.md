@@ -136,25 +136,30 @@ These limits are deliberate. A tool that sounds sure when it isn't does more har
 | Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
 | --- | --- | --- | --- |
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
-| VinVerdict, tuning ads | 38 of 38 | 0 of 51 | 100% |
-| A keyword filter (payment app, shipping, deposit, away) | 33 of 38 | **21 of 51** | 61% |
+| VinVerdict, tuning ads | 38 of 38 | 0 of 52 | 100% |
+| A keyword filter (payment app, shipping, deposit, away) | 33 of 38 | **22 of 52** | 60% |
 | VinVerdict, **seller replies** (written before the first measurement) | 12 of 12 | 0 of 13 | 100% |
 | The keyword filter, same replies | 10 of 12 | **7 of 13** | 59% |
+| A **trained model** (naive Bayes), held-out ads | 12 of 12 | 0 of 13 | 100% |
+| The trained model, tuning ads (leave-one-out) | 34 of 38 | 4 of 52 | 89% |
 
 - **How it got there:** before context-aware rules, VinVerdict also caught every scam but told **9 of 46 honest ads (20%)** to stop. The first held-out run caught 11 of 12; the miss, a "refundable viewing fee" by Cash App, was fixed and moved into the tuning set, so the held-out number stays honest.
+- **Rules or a trained model?** A naive Bayes model is retrained on the labelled ads on every change and scored next to the rules ([`learned.ts`](src/lib/scam/eval/learned.ts)). It changes no answer. On held-out ads both are perfect; scored leave-one-out on the tuning ads it misses 4 scams and flags 4 honest ads. The words it leans on most ("will", "to you", "the car") show it's learning the writing style of the test ads, not scam patterns. It would only join the app by beating the rules on real held-out listings, and then only to add warnings.
 - **The caveat:** most ads so far are written from published scam patterns. Real listings are being added and reported separately, and real-world numbers will be lower.
 
 **Listing parser.** Real page layouts (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`src/lib/listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong is a case:
 
 ```
-Listing corpus scorecard (26 cases)
-  accident     17/17    make         21/21    price         26/26
-  miles        23/23    model        21/21    titleStatus   13/13
-  sellerType   17/17    transmission 11/11    verdict       20/20
-  rules fired  24/24    false alarms avoided  32/32
-  ownerCount   10/10    exteriorColor 7/7     usage          5/5
-  kind          4/4     docFee        2/2     sourceHost     2/2    distanceMiles 1/1
+Listing corpus scorecard (27 cases)
+  accident     18/18    make         22/22    price         27/27
+  miles        24/24    model        22/22    titleStatus   14/14
+  sellerType   18/18    transmission 12/12    verdict       21/21
+  rules fired  25/25    false alarms avoided  48/48
+  ownerCount   11/11    exteriorColor 8/8     usage          5/5
+  kind          5/5     docFee        3/3     vin            9/9    distanceMiles 2/2
 ```
+
+**The dataset.** Every labelled ad, pasted page and seller reply is in one file, [`dataset/vinverdict-labelled.jsonl`](dataset/) (about 140 rows, one JSON object per line, loadable with pandas), with a [description](dataset/README.md) of how it was labelled and its limits. A test fails if the file and the measurements drift apart. To grow it: `npm run add-case` adds a pasted listing (phone numbers and emails removed automatically), you fill in the right answers by hand, and `npm run retrain` retrains the model and refreshes the scorecard and the dataset.
 
 **Sources.** Every known model-year problem cites the maker's bulletin it was checked against, and a test fails if a bulletin number or year range changes. The test was added after an outside review found the 2015–16 Accord/CR-V CVT warning citing the wrong bulletin.
 
@@ -239,7 +244,8 @@ Without the listing-API keys, everything except the price and history lookups st
 | --- | --- |
 | `npm run dev` | Local site with hot reload |
 | `npm test` | All tests, offline, with the parser and scam scorecards (no API calls) |
-| `UPDATE_SCORECARD=1 npx vitest run src/lib/scam/eval` | Refresh the published scam scorecard after changing rules or cases |
+| `npm run add-case -- --name <name> --label scam\|honest --file listing.txt` | Add a pasted listing to the labelled dataset (removes phone numbers and emails) |
+| `npm run retrain` | Retrain the model, refresh the published scorecard and the dataset file, run every test |
 | `npm run lint` / `npx tsc --noEmit` | Lint / type-check |
 | `npm run build` then `npm start` | Production build, run locally |
 
@@ -249,7 +255,8 @@ Without the listing-API keys, everything except the price and history lookups st
 src/app/            pages (home, My list, scam signs, accuracy, shortlist, security, owner pages) and server actions
 src/components/     the result page and shared UI
 src/lib/decision.ts the buyer's decision: severity, evidence, four areas, next step
-src/lib/scam/       warning-sign rules, and eval/ (labelled ads + scorecard)
+src/lib/scam/       warning-sign rules, and eval/ (labelled ads, scorecard, trained model)
+dataset/            the labelled dataset as one JSONL file, with its description
 src/lib/listing/    listing parser and its accuracy corpus
 src/lib/value/      price estimate and the manual comparison
 src/lib/nhtsa/      NHTSA client and parsing

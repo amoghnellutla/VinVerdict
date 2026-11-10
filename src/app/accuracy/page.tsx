@@ -23,6 +23,12 @@ const REPLY_ROWS: { name: string; note: string; m: Metrics }[] = [
   { name: "A keyword filter", note: "The same scary-word filter, on the same replies", m: s.messagesBaseline },
 ];
 
+const LEARNED_ROWS: { name: string; note: string; m: Metrics }[] = [
+  { name: "Trained model, held-out ads", note: `The same ${s.learned.heldOut.cases} held-out ads as above`, m: s.learned.heldOut },
+  { name: "Trained model, tuning ads", note: "Each ad scored by a model trained on all the others (leave-one-out)", m: s.learned.crossValidated },
+  { name: "Trained model, seller replies", note: "Trained on ads only, scored on the replies", m: s.learned.replies },
+];
+
 /** One scorecard: a stacked list on phones, a table on wider screens. */
 function ScoreTable({ rows, unit }: { rows: { name: string; note: string; m: Metrics }[]; unit: string }) {
   return (
@@ -101,6 +107,30 @@ export default function AccuracyPage() {
           &quot;my husband is deployed, come by&quot;). First run: {messages.firstRun.replace(/^[\d-]+: /, "")}
         </p>
         <ScoreTable rows={REPLY_ROWS} unit="replies" />
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <h2 className="section-title">Could a trained model do better?</h2>
+        <p className="max-w-2xl">
+          VinVerdict&apos;s warnings come from written rules, so each one can name its source. To check whether learning from the data would do better, a
+          simple model (naive Bayes over words and word pairs) is retrained on the {s.learned.trainedOn} tuning ads on every change and scored the same way. It
+          doesn&apos;t change any answer VinVerdict gives.
+        </p>
+        <ScoreTable rows={LEARNED_ROWS} unit="examples" />
+        <ul className="mt-4 max-w-2xl list-disc space-y-2 pl-5 text-sm text-muted">
+          <li>
+            The words it leans on most are &quot;{s.learned.topFeatures.slice(0, 4).join("\", \"")}&quot;: phrasing, not scam patterns. Most ads were written by
+            one person, so it&apos;s likely learning that person&apos;s style. Real listings are needed before its numbers mean much.
+          </li>
+          <li>
+            Its first two versions flagged almost every honest ad: the scam examples are short ads while many honest ones are whole dealer pages, so it learned
+            &quot;short means scam&quot;. The version shown was chosen after seeing that, so its held-out number is less clean than the rules&apos;.
+          </li>
+          <li>
+            It would only be used in the app if it beats the rules on real held-out listings, and then only to add a warning, never to clear a car.{" "}
+            <ExternalLink href={`${REPO}/tree/main/dataset`} className="link">The labelled dataset</ExternalLink> is public.
+          </li>
+        </ul>
       </section>
 
       <section className="mt-10 border-t border-border pt-8">

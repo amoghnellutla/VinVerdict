@@ -10,7 +10,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "add-case": "node scripts/add-case.mjs",
+    "retrain": "node scripts/retrain.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

@@ -20,6 +20,8 @@ type CaseSpec = {
   verdict?: Verdict;
   mustHit?: string[];
   mustNotHit?: string[];
+  /** Set by `npm run add-case` until the answers have been filled in from the page by hand. */
+  todo?: string;
 };
 
 const DIR = join(__dirname, "cases");
@@ -51,6 +53,7 @@ describe("listing corpus", () => {
 
   for (const c of cases) {
     it(c.name, () => {
+      expect(c.spec.todo, `${c.name}: fill in "expect" from the page by hand, then delete "todo"`).toBeUndefined();
       const listing = parseListing(c.text);
       const result = buildVerdict({ text: c.text, listing, decoded: null }, {}, NOW);
       const ids = result.hits.map((h) => h.id);
