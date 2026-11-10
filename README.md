@@ -75,6 +75,7 @@ Behind it are four checks: **Listing trust, Car condition, Price, Ready to pay.*
 - **Proof you collect:** attach a Carfax, AutoCheck or NICB result (a screenshot or pasted text). VinVerdict reads it, files it under the right check, and updates the verdict. Bad news always wins.
 - **Photos:** reverse-search the listing's photos (Google Lens, Bing) to see whether they appear in an older or faraway ad.
 - **Fake dealer sites:** a short check based on the FTC's September 2026 alert on cloned dealer websites.
+- **No listing yet?** [Used-car scam signs](https://vinverdict.vercel.app/scam-signs) explains the nine patterns it checks for, with an example, what to do and the official source for each.
 
 ### 3. Helps you decide and negotiate
 
@@ -245,7 +246,7 @@ Without the listing-API keys, everything except the price and history lookups st
 **Project layout**
 
 ```
-src/app/            pages (home, My list, accuracy, shortlist, security, owner pages) and server actions
+src/app/            pages (home, My list, scam signs, accuracy, shortlist, security, owner pages) and server actions
 src/components/     the result page and shared UI
 src/lib/decision.ts the buyer's decision: severity, evidence, four areas, next step
 src/lib/scam/       warning-sign rules, and eval/ (labelled ads + scorecard)

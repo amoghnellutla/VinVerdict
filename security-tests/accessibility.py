@@ -45,7 +45,7 @@ with sync_playwright() as p:
     for name, opts in [("computer", {"viewport": {"width": 1280, "height": 900}}), ("phone", {"viewport": {"width": 390, "height": 844}, "is_mobile": True, "has_touch": True})]:
         print(f"On a {name}")
         page = browser.new_context(bypass_csp=True, **opts).new_page()
-        for path in ["/", "/mine", "/accuracy", "/shortlist", "/why", "/security", "/login"]:
+        for path in ["/", "/mine", "/accuracy", "/scam-signs", "/shortlist", "/why", "/security", "/login"]:
             page.goto(args.base + path)
             page.wait_for_load_state("networkidle")
             audit(page, path)

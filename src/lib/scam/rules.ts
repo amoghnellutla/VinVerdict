@@ -189,7 +189,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Curbstoning, title washing, liens ---
   if (c.titleInSellerName === false ||
-      /\bsell(ing)? (it )?for (my|a) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is )?not in my name|\b(open|jumped|floating) title\b|\bno title\b(?! (issues?|problems?|brands?|damage|history))|title status:? (missing|parts only)|title (is )?(lost|coming|in the mail)/.test(t)) {
+      /\bsell(ing)? (it )?for (my|a) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is |isn'?t )?(not )?in my name yet|title (is )?not in my name|title isn'?t in my name|\b(open|jumped|floating) title\b|\bno title\b(?! (issues?|problems?|brands?|damage|history))|title status:? (missing|parts only)|title (is )?(lost|coming|in the mail)/.test(t)) {
     add("curbstoning", "flag", "Title not in seller's name",
       "Unlicensed dealers (\"curbstoners\") pose as private sellers. The name on the title must match the seller's ID.");
   }

@@ -20,6 +20,13 @@ function run(text: string, extra: Partial<ScamInput> = {}) {
 const ids = (r: ReturnType<typeof run>) => r.hits.map((h) => h.id);
 
 describe("evaluateScamRules", () => {
+  it("catches the title-not-in-my-name phrasings, but not a seller whose title is in their name", () => {
+    for (const s of ["Title isn't in my name yet.", "title is not in my name", "The title isnt in my name", "Selling for my cousin."]) {
+      expect(ids(run(`${GOOD_TEXT} ${s}`, { decoded: DECODED })), s).toContain("curbstoning");
+    }
+    expect(ids(run(`${GOOD_TEXT} Title is in my name.`, { decoded: DECODED }))).not.toContain("curbstoning");
+  });
+
   it("a seller who won't meet in person locally counts, even when the ad doesn't say so", () => {
     expect(ids(run(GOOD_TEXT, { decoded: DECODED, checklist: { meetsInPersonLocally: false } }))).toContain("seller-remote");
     expect(ids(run(GOOD_TEXT, { decoded: DECODED, checklist: { meetsInPersonLocally: true } }))).not.toContain("seller-remote");
