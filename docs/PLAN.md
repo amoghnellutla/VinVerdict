@@ -14,6 +14,7 @@ Nov 8, 2026 · @the owner
 
 | Job | Already done well by | This app's role |
 | --- | --- | --- |
+| 2026-11-10 | **Dev-tool advisory cleared.** Dependabot flagged minimatch 10.x (glob DoS, GHSA moderate) inside typescript-eslint, a lint-only tool that never ships. The newest typescript-eslint still asks for minimatch 10, so `package.json` overrides `minimatch@^10` to the patched 11.x. Lint, typecheck, tests and build unchanged; `npm audit` (all deps, not only shipped) now 0 |
 | Search many sites at once | AutoTempest | Don't copy it: link out to it |
 | Deal labels on dealer cars | CarGurus, AutoTrader (KBB) | Same idea, but one scorer for every source |
 | Rate private-seller listings (Facebook, Craigslist) | Almost nobody (Spottable extension claims to; test it) | Core feature: paste analyzer |
