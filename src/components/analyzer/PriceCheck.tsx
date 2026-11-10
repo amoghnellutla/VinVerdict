@@ -10,7 +10,8 @@ import { readBuyerZip } from "@/lib/buyer-zip";
 import type { HistoryRecord } from "@/lib/history/parse";
 import type { LiveListing } from "@/lib/live/parse";
 import type { Comp, CompEstimate } from "@/lib/value/comps";
-import { DEAL_TEXT, fmt, type DealLabel, type Valuation } from "@/lib/value/estimate";
+import { DEAL_TEXT, fmt, type DealLabel, type PriceSources, type Valuation } from "@/lib/value/estimate";
+import { basisText, priceBasis } from "@/lib/value/basis";
 import { LiveFacts } from "./LiveListing";
 import { LookupProgress, useElapsed } from "./LookupProgress";
 import { SellValue } from "./SellValue";
@@ -228,7 +229,10 @@ export function PriceCheck(props: Props) {
               done.sources && <p>Not enough similar cars nearby to price it. Try the links below.</p>
             )
           ) : v ? (
-            <ValueSummary v={v} price={l.price} />
+            <>
+              <ValueSummary v={v} price={l.price} />
+              {done.sources && <PriceBasis sources={done.sources} miles={l.miles} />}
+            </>
           ) : (
             done.sources && <p>Not enough similar cars nearby to price this one. Try the links below.</p>
           )}
@@ -332,6 +336,23 @@ function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** What the estimate rests on: how many similar cars, how close, how recent, and any reason to doubt it. */
+function PriceBasis({ sources, miles }: { sources: PriceSources; miles: number | null }) {
+  const comps = sources.comps;
+  // Older saved checks kept only the counts.
+  if (!comps) {
+    const n = [sources.sold?.n && `${sources.sold.n} ended`, sources.active?.n && `${sources.active.n} current`].filter(Boolean).join(" and ");
+    return n ? <p className="text-sm text-muted">Based on {n} listings within 100 miles.</p> : null;
+  }
+  const b = priceBasis({ ...comps, target: { ...comps.target, miles: miles ?? comps.target.miles } });
+  return (
+    <p className="text-sm text-muted">
+      {basisText(b)}
+      {b.cautions.length > 0 && <span className="text-warn"> Caution: {b.cautions.join("; ")}.</span>}
+    </p>
   );
 }
 
