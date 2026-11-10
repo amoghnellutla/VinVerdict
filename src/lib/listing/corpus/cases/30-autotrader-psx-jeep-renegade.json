@@ -1,0 +1,28 @@
+{
+  "note": "Real Autotrader Private Seller Exchange page pasted by Amogh (2026-11-10); seller's name removed. Answers read from the page by hand before running VinVerdict. The listing title and the VIN (ZAC…, Jeep's Italian plant, which builds the Renegade) say 2015 Jeep Renegade Trailhawk, but the seller's own text says 'Selling a … 2015 Jeep Cherokee Trailhawk' and 'Make/Model: Jeep Cherokee Trailhawk': a buyer should ask which car it is. The history box says 'Accident or Damage Reported' while the seller says 'good condition' and 'clean-title' (a clean title doesn't mean no accidents). Traps: Autotrader's own checkout text ('pay the seller electronically (wire, ACH, credit/debit card)', 'secure electronic transfer of funds', delivery 'to your doorstep', 'We do not allow salvage titles', 'lien-free title') is the platform, not the seller; 'Stock#:' on a private listing; 'Private Seller Cars' and 'For Sale By Owner' menus; '2,398 mi away' before '91,000 mi'; '100k-mile mark'; KBB reviews mentioning transmission issues.",
+  "expect": {
+    "kind": "text",
+    "vin": "ZACCJBCT5FPB88593",
+    "year": 2015,
+    "make": "Jeep",
+    "model": "Renegade",
+    "price": 9675,
+    "docFee": null,
+    "miles": 91000,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "reported",
+    "exteriorColor": "green",
+    "ownerCount": 1,
+    "sellerType": "private",
+    "distanceMiles": 2398
+  },
+  "verdict": "hide",
+  "mustHit": ["accident-reported", "far-away", "model-conflict"],
+  "mustNotHit": [
+    "no-price", "no-vin", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "shipping-only", "seller-remote",
+    "title-brand", "mileage-low", "high-miles", "rushed", "lien", "manual", "odometer-unknown", "curbstoning", "no-inspection", "auction"
+  ],
+  "scam": false,
+  "origin": "real"
+}

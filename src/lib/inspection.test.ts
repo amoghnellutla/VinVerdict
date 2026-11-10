@@ -119,3 +119,16 @@ describe("known-issue citations", () => {
     expect(KNOWN_ISSUES.find((k) => k.id === "honda-cvt-p1890")!.check.match(/\b\d{2}-\d{3}\b/g)).toEqual(["16-053"]);
   });
 });
+
+describe("buyerProtection: Autotrader Private Seller Exchange (real case 30)", () => {
+  const base = { sourceHost: null, year: 2015, price: 9675, miles: 91000 };
+  it("isn't 'no protection': Autotrader verifies the seller, the title and pays the seller after delivery", () => {
+    const p = buyerProtection({ ...base, sellerType: "private", text: "Private Seller ExchangeVerified Vehicle ... (Private Seller)" });
+    expect(p).toMatchObject({ source: "psx", level: "some", returns: null, warranty: null });
+    expect(p.notes.join(" ")).toMatch(/only protects you if you pay through Autotrader's checkout/);
+    expect(p.links[0].url).toMatch(/^https:\/\/intercom\.help\/autotraderprivatesellerexchange\//);
+  });
+  it("a plain private sale is still 'no protection'", () => {
+    expect(buyerProtection({ ...base, sellerType: "private", text: "Selling my Jeep, cash only" }).level).toBe("none");
+  });
+});

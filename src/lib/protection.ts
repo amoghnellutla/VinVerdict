@@ -6,7 +6,21 @@
 
 export const PROTECTION_AS_OF = "2026-11-09";
 
-export type ProtectionSource = "carmax" | "carvana" | "enterprise" | "hertz" | "dealer" | "private" | "unknown";
+export type ProtectionSource = "carmax" | "carvana" | "enterprise" | "hertz" | "psx" | "dealer" | "private" | "unknown";
+
+/** Autotrader Private Seller Exchange: a private sale run through Autotrader's checkout (checked 2026-11-10). */
+const PSX: Omit<Protection, "source"> = {
+  name: "Autotrader Private Seller Exchange",
+  level: "some",
+  returns: null,
+  warranty: null,
+  notes: [
+    "Autotrader checks the car is registered to the seller and verifies IDs, and pays the seller only after you confirm you have the car.",
+    "You get a properly endorsed title free of liens. It's still a private sale, sold as-is: no return and no warranty (service contracts cost extra).",
+    "This only protects you if you pay through Autotrader's checkout. A seller who asks to move the chat or the payment off the site is a warning sign.",
+  ],
+  links: [{ label: "Autotrader Private Seller Exchange: how it works", url: "https://intercom.help/autotraderprivatesellerexchange/en/articles/12821655-how-it-works" }],
+};
 
 export type Protection = {
   source: ProtectionSource;
@@ -90,6 +104,8 @@ export function buyerProtection(i: ProtectionInput): Protection {
   const hay = `${i.sourceHost ?? ""} ${i.text}`;
   const big = PATTERNS.find(([re]) => re.test(hay))?.[1];
   if (big) return { source: big, ...BIG_SELLERS[big] };
+  // No end boundary: Autotrader's page runs the words together ("Private Seller ExchangeVerified Vehicle").
+  if (i.sellerType !== "dealer" && /\bprivate seller exchange/i.test(i.text)) return { source: "psx", ...PSX };
 
   // Anchored, so "notfacebook.com" or "facebook.com.example" don't count.
   if (i.sellerType === "private" || /(^|\.)(facebook\.com|craigslist\.org)$/i.test(i.sourceHost ?? "")) {

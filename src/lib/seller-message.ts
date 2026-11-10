@@ -70,6 +70,8 @@ export function sellerMessage(m: MessageInput): string {
   } else if (!dealer && c.titleInSellerName == null) {
     q.push("Is the title in your name, and is it clean (no salvage, rebuilt or flood brand)?");
   }
+  const conflict = m.hits.find((h) => h.id === "model-conflict");
+  if (conflict) q.push(`The listing and your description name different models (${conflict.title[0].toLowerCase()}${conflict.title.slice(1)}). Which is it? Could you send a photo of the VIN on the dashboard?`);
   if (has("auction")) q.push("Where was it bought at auction? Could you send the auction listing or its photos?");
   if (dealer) q.push("Could you send the Carfax or AutoCheck report, and the out-the-door price with every fee?");
   if (c.anyAccidents == null && !has("accident-reported") && !has("live-accident")) q.push("Has it been in any accident, even a small one?");

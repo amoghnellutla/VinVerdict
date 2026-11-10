@@ -118,6 +118,16 @@ function findVin(raw: string): string | null {
   return candidates.find((c) => checkVin(c).ok) ?? normalizeVin(candidates[0]);
 }
 
+/**
+ * The known model of `make` that `after` starts with ("cherokee trailhawk…" → "Cherokee"), longest name first so
+ * "Grand Cherokee" wins over "Cherokee". Null when the words aren't a model VinVerdict knows.
+ */
+export function modelNamed(make: string, after: string): string | null {
+  const models = [...(MODELS[make] ?? [])].sort((a, b) => b.length - a.length);
+  const head = squash(after.slice(0, 30));
+  return models.find((m) => head.startsWith(squash(m))) ?? null;
+}
+
 function findMakeModel(text: string): { make: string | null; model: string | null; at: number } {
   let best: { make: string; model: string | null; at: number } | null = null;
   const consider = (make: string, at: number, after: string) => {
@@ -321,7 +331,7 @@ function findColor(text: string): string | null {
     // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
     // Not a part's colour ("Exterior: Black Grille", "black side windows trim") or the next
     // line's interior ("Gravity Grey Exterior / Black Interior" reads "exterior black interior").
-    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?)\\b)`)) ??
+    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
     text.match(new RegExp(`(?<!interior )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));

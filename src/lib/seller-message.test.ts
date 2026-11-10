@@ -37,6 +37,11 @@ describe("sellerMessage", () => {
     expect(text).not.toMatch(/is it clean/);
   });
 
+  it("asks which car it is when the description names another model (real case 30)", () => {
+    const hits = [{ id: "model-conflict", action: "flag" as const, title: "Listed as a Renegade, described as a Cherokee", reason: "" }];
+    expect(sellerMessage({ ...base, hits })).toMatch(/name different models \(listed as a Renegade, described as a Cherokee\)\. Which is it\?/);
+  });
+
   it("makes three-word phrases from the word list", () => {
     let i = 0;
     const seq = [0, 24, 47];

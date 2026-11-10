@@ -150,6 +150,8 @@ export type DecisionInput = {
   checklist: SellerChecklist;
   /** A dealer listing: the private-seller questions (title in their own name, meet locally) aren't asked. */
   dealer?: boolean;
+  /** What the ad itself says about the title ("clean", "rebuilt"…), so "not checked" can say what's claimed. */
+  adTitle?: string;
   /** The listing itself states its accident history (a dealer page's own claim). */
   listingStatesHistory: boolean;
   /** The price check has run. */
@@ -182,11 +184,26 @@ export function decide(d: DecisionInput): Decision {
   // ----- Car condition -----
   const carUnknown: string[] = [];
   const historyKnown = d.report.damage !== "unknown" || d.listingStatesHistory;
-  if (d.report.damage === "unknown") carUnknown.push(d.listingStatesHistory ? "Accident history: only the listing's own claim; open the history report to confirm" : "Accident history: not checked (open a history report)");
+  // When the ad already says something, the "not checked" line says what it claims, so it can't read as if it was missed.
+  if (d.report.damage === "unknown") {
+    const adAccident = findings.some((f) => baseId(f.id) === "accident-reported");
+    carUnknown.push(
+      adAccident
+        ? "Accident details: not checked (the ad reports an accident; the history report says what was damaged)"
+        : d.listingStatesHistory
+          ? "Accident history: only the listing's own claim; open the history report to confirm"
+          : "Accident history: not checked (open a history report)",
+    );
+  }
   if (d.report.title === "unknown") {
-    // When the ad itself names a brand, say so: "not checked" alone reads as if the brand was missed.
     const adBrand = findings.find((f) => baseId(f.id) === "title-brand");
-    carUnknown.push(adBrand ? `Title records: not checked (the ad says ${adBrand.title.toLowerCase()}; NMVTIS confirms it)` : "Title brands (salvage, flood, rebuilt): not checked");
+    carUnknown.push(
+      adBrand
+        ? `Title records: not checked (the ad says ${adBrand.title.toLowerCase()}; NMVTIS confirms it)`
+        : d.adTitle === "clean"
+          ? "Title records: not checked (the ad says clean; NMVTIS confirms it)"
+          : "Title brands (salvage, flood, rebuilt): not checked",
+    );
   }
   if (d.recalls) carUnknown.push(`Recalls: ${d.recalls} on record for the model year; whether this car is affected and repaired isn't checked`);
   if (!d.decoded) carUnknown.push("The car itself: no VIN decoded yet");

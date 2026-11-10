@@ -146,3 +146,21 @@ describe("auction-sourced cars (real case 29)", () => {
     expect(ids(run(`${GOOD_TEXT} Never been to an auction lot, one owner.`, { decoded: DECODED }))).not.toContain("auction");
   });
 });
+
+describe("the seller's description names a different model (real case 30)", () => {
+  const RENEGADE = "Used 2015 Jeep Renegade Trailhawk $9,675 91,000 mi VIN ZACCJBCT5FPB88593. ";
+  it("flags 'Selling a … 2015 Jeep Cherokee' and 'Make/Model: Jeep Cherokee' on a Renegade listing", () => {
+    for (const s of ["Selling a beautifully maintained, clean-title 2015 Jeep Cherokee Trailhawk with 91,000 miles.", "Make/Model: Jeep Cherokee Trailhawk"]) {
+      const r = run(RENEGADE + s);
+      expect(ids(r), s).toContain("model-conflict");
+      expect(r.hits.find((h) => h.id === "model-conflict")?.title).toBe("Listed as a Renegade, described as a Cherokee");
+    }
+  });
+  it("doesn't fire on the same model, an unknown word, or a dealer's similar-cars list", () => {
+    expect(ids(run(RENEGADE + "Selling my 2015 Jeep Renegade Trailhawk, one owner."))).not.toContain("model-conflict");
+    expect(ids(run(RENEGADE + "Selling a 2015 Jeep with new tires."))).not.toContain("model-conflict");
+    expect(ids(run("Certified 2024 BMW X5 $43,191 33,703 mi. Similar: Used 2024 BMW X4 xDrive30i 31K mi Used 2024 BMW X3 M40i"))).not.toContain("model-conflict");
+    // Grand Cherokee and Cherokee are different models.
+    expect(ids(run("2016 Jeep Cherokee Latitude $11,000 80,000 miles. Make/Model: Jeep Grand Cherokee"))).toContain("model-conflict");
+  });
+});

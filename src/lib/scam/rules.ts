@@ -12,7 +12,7 @@
  */
 
 import type { DecodedVin } from "@/lib/nhtsa/parse";
-import type { ParsedListing } from "@/lib/listing/parse";
+import { modelNamed, type ParsedListing } from "@/lib/listing/parse";
 import { hasUnnegated, normalizeText } from "@/lib/listing/text";
 import { checkVin } from "@/lib/vin";
 
@@ -199,6 +199,22 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   if (awayNow.test(t) || workingAway.test(t) || cantMeet || c.meetsInPersonLocally === false) {
     add("seller-remote", "hide", "Seller isn't local",
       "The seller is out of state, overseas or won't meet in person. That's the most common fake-listing story: you can't see the car or the title, so don't send money.");
+  }
+
+  // --- The seller's own words name a different model ---
+  // "Selling a … 2015 Jeep Cherokee Trailhawk" / "Make/Model: Jeep Cherokee" on a Renegade listing (real case 30).
+  // Only the seller's statements count, not a dealer page's "similar cars" carousel.
+  const listedModel = decoded?.model ?? l.model;
+  if (l.make && listedModel) {
+    const mk = l.make.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const said = new RegExp(`\\b(?:make\\s*/\\s*model:?\\s*|(?:selling|for sale:?) (?:a |an |my |our |this )?[^.!?\\n]{0,60}?\\b(?:19|20)\\d{2} )${mk} ([a-z0-9][a-z0-9 -]{0,30})`, "g");
+    // Stricter than sameName: "Grand Cherokee" isn't a "Cherokee"; a longer decoded name ("Accord Sedan") still is an Accord.
+    const sq = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const other = [...t.matchAll(said)].map((m) => modelNamed(l.make as string, m[1])).find((m) => m && !sq(listedModel).startsWith(sq(m)));
+    if (other) {
+      add("model-conflict", "flag", `Listed as a ${listedModel}, described as a ${other}`,
+        `The listing${decoded?.model ? " and the VIN" : ""} say ${l.make} ${listedModel}, but the seller's own description calls it a ${l.make} ${other}. It may be a slip, or text copied from another ad. Ask which car it is, and check the VIN on the dashboard and door against the title.`);
+    }
   }
 
   // --- Auction source ---

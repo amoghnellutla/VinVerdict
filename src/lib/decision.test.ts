@@ -119,3 +119,14 @@ describe("dealer listings and branded titles (real case 29)", () => {
     expect(run({}).areas.find((a) => a.area === "car")!.unknown.join(" ")).toMatch(/Title brands \(salvage, flood, rebuilt\): not checked/);
   });
 });
+
+describe("'not checked' lines say what the ad claims (real case 30)", () => {
+  it("an ad that reports an accident isn't told 'accident history: not checked'", () => {
+    const car = run({ hits: [hit("accident-reported", "hide", "Accident reported")] }).areas.find((a) => a.area === "car")!;
+    expect(car.unknown.join(" ")).toMatch(/Accident details: not checked \(the ad reports an accident/);
+  });
+  it("an ad that says 'clean title' gets 'the ad says clean', not a bare 'not checked'", () => {
+    const car = run({ adTitle: "clean" }).areas.find((a) => a.area === "car")!;
+    expect(car.unknown.join(" ")).toMatch(/Title records: not checked \(the ad says clean; NMVTIS confirms it\)/);
+  });
+});

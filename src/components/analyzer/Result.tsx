@@ -191,6 +191,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     report: answers,
     checklist,
     dealer: m.listing.sellerType === "dealer",
+    adTitle: m.listing.titleStatus,
     listingStatesHistory: accidentHistoryConfirmed(m.listing, EMPTY_REPORT),
     priced: !!sources,
     price: valuation ? { label: valuation.label, low: valuation.low, high: valuation.high, confidence: valuation.confidence, unpriced: valuation.unpriced } : null,
