@@ -5,5 +5,6 @@ export const mi = (n: number | null | undefined) => (n == null ? "—" : `${Math
 export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-export const VERDICT_TEXT = { hide: "Walk away", verify: "Check in person", caution: "Go carefully", clear: "No red flags" } as const;
-export const VERDICT_TAG = { hide: "bg-bad-soft text-bad", verify: "bg-warn-soft text-warn", caution: "bg-warn-soft text-warn", clear: "bg-good-soft text-good" } as const;
+// Saved cars keep the rule engine's verdict; these labels match the result page's wording, and never say "safe".
+export const VERDICT_TEXT = { hide: "Serious warning", verify: "Verify in person", caution: "Check with the seller", clear: "Nothing found so far" } as const;
+export const VERDICT_TAG = { hide: "bg-bad-soft text-bad", verify: "bg-warn-soft text-warn", caution: "bg-warn-soft text-warn", clear: "bg-surface-muted text-foreground" } as const;

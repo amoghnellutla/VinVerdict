@@ -19,7 +19,7 @@ export default function CheckListingPage() {
 const POINTS = [
   { title: "Looks up this exact car.", text: "NHTSA decodes the VIN and checks it against the ad, and the past listings of it that MarketCheck recorded are pulled with their price and miles." },
   { title: "Shows where every fact came from.", text: "Each recall, owner complaint, price and warning links to the public record or listing behind it." },
-  { title: "Reads the ad for scams.", text: "More than 30 checks on the seller's own words, each tied to FBI, FTC or NICB guidance." },
+  { title: "Reads the ad for scams.", text: "More than 50 checks on the seller's own words, each tied to FBI, FTC or NICB guidance, and measured for false alarms on honest ads." },
 ];
 
 function Headline() {

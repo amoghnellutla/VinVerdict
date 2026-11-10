@@ -200,7 +200,8 @@ function Compare({ cars }: { cars: SavedCar[] }) {
   return (
     <section className="mt-8" aria-label="Compare saved cars">
       <h2 className="section-title">Side by side</h2>
-      <div className="overflow-x-auto">
+      {/* Focusable so keyboard users can scroll it sideways on small screens. */}
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Saved cars compared (scrolls sideways on small screens)">
         <table className="w-full min-w-[36rem] text-left align-top">
           <thead>
             <tr className="border-b border-border-strong">

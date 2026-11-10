@@ -205,7 +205,8 @@ flowchart LR
   - login brute force;
   - simultaneous request bursts against the limits;
   - inputs built to freeze the parser.
-- **Automated:** CodeQL scanning, Dependabot and secret scanning with push protection.
+- **Automated:** CodeQL scanning (0 open alerts), Dependabot and secret scanning with push protection.
+- **Accessible:** axe-core's WCAG 2.2 AA rules report no violations on any public page or result state, on a computer and a phone (`security-tests/accessibility.py`).
 
 The attacks are a rerunnable kit in [`security-tests/`](security-tests/). Threat model and OWASP ASVS 5.0 self-assessment, including known gaps: [SECURITY.md](SECURITY.md). Plain-English tour: [How it's secured](https://vinverdict.vercel.app/security). Found a problem? Please [report it privately](https://github.com/amoghnellutla/VinVerdict/security/advisories/new).
 

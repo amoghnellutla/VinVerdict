@@ -125,7 +125,7 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
       {!vin ? (
         <p className="max-w-2xl">
           No valid VIN yet. Ask the seller for it: with the VIN you can check open recalls, theft and insurance write-offs, and title
-          brands for free or a few dollars. A seller who won&apos;t share it is a reason to walk away.
+          brands for free or a few dollars. A seller who won&apos;t share it is a reason to stop.
         </p>
       ) : (
         <>

@@ -24,9 +24,9 @@ export function PhotoCheck({ photos, dealer }: { photos: string[]; dealer: boole
             <li key={src} className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt={`Listing photo ${i + 1}`} width={72} height={48} loading="lazy" referrerPolicy="no-referrer" className="h-12 w-18 rounded object-cover" />
-              <span className="flex flex-col text-sm">
-                <ExternalLink href={`https://lens.google.com/uploadbyurl?url=${enc(src)}`} className="link">Google Lens</ExternalLink>
-                <ExternalLink href={`https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:${enc(src)}`} className="link">Bing</ExternalLink>
+              <span className="flex flex-col gap-1 text-sm">
+                <ExternalLink href={`https://lens.google.com/uploadbyurl?url=${enc(src)}`} className="link inline-flex min-h-6 items-center">Google Lens</ExternalLink>
+                <ExternalLink href={`https://www.bing.com/images/search?view=detailv2&iss=sbi&q=imgurl:${enc(src)}`} className="link inline-flex min-h-6 items-center">Bing</ExternalLink>
               </span>
             </li>
           ))}

@@ -457,7 +457,7 @@ function HitRow({ hit, vin }: { hit: Finding; vin: string | null }) {
             {decode ? (
               <ExternalLink href={raw.decode(vin)}>NHTSA&apos;s decode of this VIN</ExternalLink>
             ) : here ? (
-              <a href={here.anchor} className="text-accent underline-offset-2 hover:underline">{here.name}</a>
+              <a href={here.anchor} className="text-accent underline underline-offset-2 hover:decoration-2">{here.name}</a>
             ) : (
               <ExternalLink href={ref!.href}>{ref!.name}</ExternalLink>
             )}
@@ -546,7 +546,7 @@ function Facts({ a, live }: { a: Analysis; live: Live | null }) {
   const shown = rows.filter(([, x, y, z]) => x || y || z);
   return (
     <Panel title="The car">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="The car's details">
         <table className="nums w-full">
           <thead>
             <tr className="text-left text-sm text-muted">

@@ -198,7 +198,7 @@ function YearCompare({ rows, year, model }: { rows: YearRow[]; year: number; mod
   return (
     <div className="mt-8">
       <h3 className="font-semibold">Compared with the years either side</h3>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Compared with the years either side">
         <table className="nums mt-2 w-full max-w-md text-sm">
           <thead>
             <tr className="text-left text-muted">

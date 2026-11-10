@@ -74,14 +74,14 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt, rep
   }
   if (history?.length) {
     const sites = [...new Set(history.map((h) => h.host).filter(Boolean))];
-    items.push({ what: `${history.length} past listings of this VIN (dates, prices, miles, sellers)`, from: `MarketCheck listing history${sites.length ? `, from ${sites.slice(0, 4).join(", ")}${sites.length > 4 ? "…" : ""}` : ""}`, links: [<a key="h" href="#listing-history" className="text-accent underline-offset-2 hover:underline">each listing is linked above</a>] });
+    items.push({ what: `${history.length} past listings of this VIN (dates, prices, miles, sellers)`, from: `MarketCheck listing history${sites.length ? `, from ${sites.slice(0, 4).join(", ")}${sites.length > 4 ? "…" : ""}` : ""}`, links: [<a key="h" href="#listing-history" className="text-accent underline underline-offset-2 hover:decoration-2">each listing is linked above</a>] });
   }
   if (sources && (sources.sold || sources.active || sources.predicted)) {
     const parts = [sources.sold && `${sources.sold.n} recently ended listings`, sources.active && `${sources.active.n} current listings`].filter(Boolean).join(" and ");
     items.push({
       what: `Estimated price range: ${parts || "a price model"} similar cars near ${sources.zip}`,
       from: [sources.sold && "MarketCheck (ended listings, last advertised price)", sources.active && "Auto.dev (asking prices)", sources.predicted && "MarketCheck Price model"].filter(Boolean).join(", "),
-      links: [<a key="p" href="#price-check" className="text-accent underline-offset-2 hover:underline">the closest ones are linked above</a>],
+      links: [<a key="p" href="#price-check" className="text-accent underline underline-offset-2 hover:decoration-2">the closest ones are linked above</a>],
     });
   }
 
@@ -98,7 +98,7 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt, rep
     items.push({
       what: `Proof you attached: ${proofs.map((p) => `${SOURCE_NAME[p.read.source] === "Unrecognized" ? "an item" : SOURCE_NAME[p.read.source]} (${p.thumb ? "screenshot" : "pasted text"})`).join(", ")}`,
       from: "Read on your device; the findings are listed under Check it yourself",
-      links: [<a key="pf" href="#check-yourself" className="text-accent underline-offset-2 hover:underline">see what each one showed</a>],
+      links: [<a key="pf" href="#check-yourself" className="text-accent underline underline-offset-2 hover:decoration-2">see what each one showed</a>],
     });
   }
 

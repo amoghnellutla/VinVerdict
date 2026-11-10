@@ -17,7 +17,7 @@ export function ExternalLink({ href, children, className, ...rest }: Props) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={className ?? "text-accent underline-offset-2 hover:underline"}
+      className={className ?? "text-accent underline underline-offset-2 hover:decoration-2"}
     >
       {children}
     </a>
