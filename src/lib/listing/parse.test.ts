@@ -167,3 +167,14 @@ describe("short texts", () => {
     expect(parseListing("2014 civic, new tires at 140k, asking 6500").miles).toBeNull();
   });
 });
+
+describe("prior use: police and taxi", () => {
+  it("doesn't read safety advice as police or taxi use", () => {
+    expect(parseListing("2017 Accord $13,900. Happy to meet at a bank or police station.").usage).toBe("unknown");
+    expect(parseListing("2017 Accord $13,900. I'll take a taxi home after the sale.").usage).toBe("unknown");
+  });
+  it("still catches a car that was a police car or taxi", () => {
+    expect(parseListing("2015 Ford Taurus police interceptor, 120k miles").usage).toBe("fleet");
+    expect(parseListing("2016 Toyota Camry hybrid, former taxi, 300k miles").usage).toBe("fleet");
+  });
+});

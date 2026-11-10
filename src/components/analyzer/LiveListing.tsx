@@ -5,18 +5,22 @@ import { ExternalLink } from "@/components/ExternalLink";
 import type { LiveListing as Live } from "@/lib/live/parse";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
-const USAGE = { personal: "Personal", fleet: "Fleet or commercial", rental: "Rental", unknown: null } as const;
+// Only risky use is shown: a feed's "personal" can be wrong (see lib/history-report.ts).
+const USAGE = { personal: null, fleet: "Fleet or commercial", rental: "Rental", unknown: null } as const;
 
-/** Feature 2b: what the car's current (or last) listing says, found by VIN. Display only. */
+/**
+ * Feature 2b: what the car's current (or last) listing says, found by VIN.
+ * Display only. A feed's good news (no accidents, one owner) isn't a history
+ * report and can be out of date, so it's shown as "not confirmed" or left out.
+ */
 export function LiveFacts({ l }: { l: Live }) {
   const where = [l.city, l.state].filter(Boolean).join(", ");
-  const accidents = l.accidentCount == null ? "Not in this source's data" : l.accidentCount === 0 ? "None reported" : `${l.accidentCount} reported`;
+  const accidents = l.accidentCount ? `${l.accidentCount} reported` : "Not confirmed: check the history report";
   const rows: [string, ReactNode][] = [
     ["Price", money(l.price)],
     ["Miles", l.miles == null ? null : `${l.miles.toLocaleString("en-US")} mi`],
     ["Seller", [l.sellerName, where].filter(Boolean).join(", ") || null],
     ["Accidents", accidents],
-    ["Owners", l.ownerCount?.toString() ?? null],
     ["Use", USAGE[l.usage]],
     ["Certified pre-owned", l.certified ? "Yes" : null],
     ["Days listed", l.daysOnMarket?.toString() ?? null],
@@ -39,7 +43,7 @@ export function LiveFacts({ l }: { l: Live }) {
       </dl>
       <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
         {l.url && <ExternalLink href={l.url} className="link">Open the listing</ExternalLink>}
-        {l.carfaxUrl && <ExternalLink href={l.carfaxUrl} className="link">Carfax report (from the dealer)</ExternalLink>}
+        {l.carfaxUrl && <ExternalLink href={l.carfaxUrl} className="link">Free Carfax report (from the dealer)</ExternalLink>}
       </p>
     </div>
   );

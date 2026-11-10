@@ -6,6 +6,10 @@
  * The pasted text wins for facts it states (that's the listing being
  * checked); the live listing fills gaps. Accidents are the exception: a
  * history report showing an accident beats a seller who doesn't mention one.
+ *
+ * Feeds only ever add bad news. Their "0 accidents", owner count, "personal
+ * use" and clean-title flags are not history reports and can be stale (see
+ * lib/history-report.ts), so they never fill in good news.
  */
 
 import type { ParsedListing } from "@/lib/listing/parse";
@@ -25,10 +29,8 @@ const basicColor = (s: string | null) => {
 
 export function mergeLive(l: ParsedListing, live: LiveListing | null): ParsedListing {
   if (!live) return l;
-  const accident =
-    live.accidentCount !== null && live.accidentCount > 0 ? "reported"
-      : l.accident === "unknown" && live.accidentCount === 0 ? "none"
-        : l.accident;
+  const accident = live.accidentCount !== null && live.accidentCount > 0 ? "reported" : l.accident;
+  const riskyUse = live.usage === "fleet" || live.usage === "rental";
   return {
     ...l,
     year: l.year ?? live.year,
@@ -37,11 +39,11 @@ export function mergeLive(l: ParsedListing, live: LiveListing | null): ParsedLis
     price: l.price ?? live.price,
     miles: l.miles ?? live.miles,
     exteriorColor: l.exteriorColor ?? basicColor(live.exteriorColor),
-    ownerCount: l.ownerCount ?? live.ownerCount,
+    ownerCount: l.ownerCount,
     sellerType: l.sellerType !== "unknown" ? l.sellerType : live.sellerType,
-    usage: l.usage !== "unknown" ? l.usage : live.usage,
+    usage: l.usage !== "unknown" ? l.usage : riskyUse ? live.usage : "unknown",
     zip: l.zip ?? live.zip,
-    titleStatus: l.titleStatus === "unknown" && live.cleanTitle ? "clean" : l.titleStatus,
+    titleStatus: l.titleStatus,
     accident,
   };
 }

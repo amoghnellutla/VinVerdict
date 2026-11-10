@@ -114,7 +114,7 @@ Visitors can use VinVerdict without an account (nothing they paste is saved). Tw
    2. In the left menu open **Turnstile** → **Add widget**.
    3. Widget name: `VinVerdict`. **Hostnames:** add `vinverdict.vercel.app` and `localhost`. **Widget mode: Managed**. Leave pre-clearance off. **Create**.
 
-The limits live in that SQL file and nowhere else: 1 live price check per visitor per day, 3 for all visitors together per day, 95 a month, and none once MarketCheck use this month passes 300 of 500 (your reserve). Free checks: 30 per visitor per day.
+The limits live in that SQL file and nowhere else: 2 live lookups per visitor per day, 6 for all visitors together per day, 95 a month, and none once MarketCheck use this month passes 300 of 500 (your reserve). Free checks: 30 per visitor per day.
 
 ## Done? Checklist
 

@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
+import { Turnstile } from "@/components/Turnstile";
 import type { Analysis } from "@/lib/analyze";
 import { readBuyerZip } from "@/lib/buyer-zip";
-import type { Comp } from "@/lib/value/comps";
+import type { HistoryRecord } from "@/lib/history/parse";
+import type { LiveListing } from "@/lib/live/parse";
+import type { Comp, CompEstimate } from "@/lib/value/comps";
 import { DEAL_TEXT, fmt, type DealLabel, type Valuation } from "@/lib/value/estimate";
-import { Turnstile } from "@/components/Turnstile";
 import { LiveFacts } from "./LiveListing";
+import { SellValue } from "./SellValue";
+
+/** Details the person can correct after the lookup (VIN only). null = use what was found. */
+export type Details = { miles: string | null; trim: string | null };
 
 type Props = {
   /** The analysis with live facts merged in. */
@@ -23,6 +29,16 @@ type Props = {
   guest?: boolean;
   /** Demo example: the date its data was recorded. */
   recordedAt?: string | null;
+  /** Buying it (is the price fair?) or selling your own (what's it worth?). */
+  purpose: "buy" | "sell";
+  /** Only a VIN was entered: show the details to confirm. */
+  vinOnly: boolean;
+  details: Details;
+  onDetails: (d: Details) => void;
+  /** Miles and trim as found (listing, live listing or history), shown until edited. */
+  known: { miles: number | null; trim: string | null; milesFrom: string | null };
+  /** Selling: the private-sale and dealer valuations, and the for-sale comps. */
+  sell: { privateV: Valuation | null; dealerV: Valuation | null; active: CompEstimate | null } | null;
 };
 
 const TONE: Record<DealLabel, string> = {
@@ -40,90 +56,148 @@ const CHECK_YOURSELF = [
   { name: "Kelley Blue Book", href: "https://www.kbb.com/whats-my-car-worth/" },
 ];
 
-/** Features 2 + 2b: "Is the price fair?" plus the live listing, behind one button. */
-export function PriceCheck({ a, carId, state, action, pending, valuation: v, guest = false, recordedAt = null }: Props) {
+/**
+ * Features 2 + 2b: the live listing, listing history and price. With a valid
+ * VIN it runs by itself (visitors once the "I'm human" check passes), so the
+ * car is always looked up online before the result claims anything.
+ */
+export function PriceCheck(props: Props) {
+  const { a, carId, state, action, pending, valuation: v, guest = false, recordedAt = null, purpose, vinOnly, details, onDetails, known, sell } = props;
   const l = a.listing;
   const d = a.decoded;
   // Client-only component (rendered after a check), so localStorage is safe here.
   const [zip, setZip] = useState(() => readBuyerZip().zip || l.zip || "");
   const [humanToken, setHumanToken] = useState<string | null>(null);
+  // A Turnstile token works once: a new widget for each try.
+  const [attempt, setAttempt] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const fired = useRef(false);
   const year = d?.year ?? l.year;
   const make = d?.make ?? l.make;
   const model = d?.model ?? l.model;
-  const canCheck = (l.vin && a.vinCheck?.ok) || (year && make && model);
-  if (!canCheck) return null;
+  const vinOk = !!(l.vin && a.vinCheck?.ok);
   const done = state.status === "done" ? state : null;
+  const selling = purpose === "sell";
+
+  // Look the VIN up straight away: no button to press, and nothing is claimed before it's checked.
+  const autoRun = vinOk && !recordedAt;
+  useEffect(() => {
+    if (!autoRun || fired.current || state.status !== "idle" || pending) return;
+    if (guest && !humanToken) return;
+    fired.current = true;
+    formRef.current?.requestSubmit();
+  }, [autoRun, state.status, pending, guest, humanToken]);
+
+  if (!(vinOk || (year && make && model))) return null;
+  // Looked up, but not priced yet (no ZIP anywhere): ask for one.
+  const needsZip = !!done && !done.sources && !!done.car && !recordedAt;
+  const zipOk = zip.length === 5 || (vinOk && zip.length === 0 && !done);
+  const shown = selling ? sell?.privateV ?? null : v;
+
+  const form = (
+    <form
+      ref={formRef}
+      action={action}
+      onSubmit={() => {
+        setAttempt((n) => n + 1);
+        setHumanToken(null);
+      }}
+      className="space-y-3"
+    >
+      {!done && (
+        <p className="max-w-2xl">
+          {vinOk
+            ? "Looking this VIN up online: where it's listed now, every place it was listed before, and what similar cars near you sold for."
+            : "Compares this car with similar ones that sold or are for sale near you."}
+        </p>
+      )}
+      <input type="hidden" name="vin" value={vinOk ? l.vin ?? "" : ""} />
+      <input type="hidden" name="year" value={year ?? ""} />
+      <input type="hidden" name="make" value={make ? make[0] + make.slice(1).toLowerCase() : ""} />
+      <input type="hidden" name="model" value={model ?? ""} />
+      <input type="hidden" name="trim" value={details.trim ?? d?.trim ?? ""} />
+      <input type="hidden" name="miles" value={details.miles ?? l.miles ?? ""} />
+      <input type="hidden" name="carId" value={carId ?? ""} />
+      <input type="hidden" name="price" value={l.price ?? ""} />
+      <input type="hidden" name="sellerType" value={l.sellerType} />
+      <input type="hidden" name="accident" value={l.accident} />
+      <input type="hidden" name="titleStatus" value={l.titleStatus} />
+      <input type="hidden" name="usage" value={l.usage} />
+      <input type="hidden" name="listingZip" value={l.zip ?? ""} />
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-40">
+          <span className="text-sm font-semibold">Your ZIP code</span>
+          <input
+            name="zip"
+            className="field mt-1"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            value={zip}
+            onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+            placeholder="08540"
+          />
+        </label>
+        <button type="submit" disabled={pending || !zipOk || (guest && !humanToken)} className="btn btn-primary">
+          {pending ? (vinOk && !done ? "Looking it up…" : "Checking prices…") : needsZip ? "Price it" : vinOk ? "Look it up" : "Check the price"}
+        </button>
+      </div>
+      {vinOk && !done && <p className="text-sm text-muted">The ZIP sets where prices are compared. Without one, it&apos;s priced where the car is listed.</p>}
+      {guest ? (
+        <>
+          <p className="text-sm text-muted">
+            Demo: two live lookups per visitor per day, and a few for everyone each day, because the listing data comes from free plans with small
+            monthly limits. It starts by itself once the &quot;I&apos;m human&quot; check passes. The example cars above include full lookups.
+          </p>
+          <Turnstile key={attempt} action="price" onToken={setHumanToken} />
+        </>
+      ) : (
+        <p className="text-sm text-muted">Uses up to 5 free listing-data lookups. The same car again today is free.</p>
+      )}
+      {state.status === "error" && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-bad">{state.message}</p>}
+    </form>
+  );
 
   return (
     <section className="border-t border-border pt-8" id="price-check">
-      <h2 className="section-title">Is the price fair?</h2>
+      <h2 className="section-title">{selling ? "What your car is worth" : "Is the price fair?"}</h2>
 
-      {!done && (
-        <form action={action} className="space-y-3">
-          <p className="max-w-2xl">
-            Compares this car with similar ones that sold or are for sale near you, plus a price model trained on real sales
-            {l.vin ? ", and finds where this exact car is listed now and every place it was listed before" : ""}.
-          </p>
-          <input type="hidden" name="vin" value={a.vinCheck?.ok ? l.vin ?? "" : ""} />
-          <input type="hidden" name="year" value={year ?? ""} />
-          <input type="hidden" name="make" value={make ? make[0] + make.slice(1).toLowerCase() : ""} />
-          <input type="hidden" name="model" value={model ?? ""} />
-          <input type="hidden" name="trim" value={d?.trim ?? ""} />
-          <input type="hidden" name="miles" value={l.miles ?? ""} />
-          <input type="hidden" name="carId" value={carId ?? ""} />
-          <input type="hidden" name="price" value={l.price ?? ""} />
-          <input type="hidden" name="sellerType" value={l.sellerType} />
-          <input type="hidden" name="accident" value={l.accident} />
-          <input type="hidden" name="titleStatus" value={l.titleStatus} />
-          <input type="hidden" name="usage" value={l.usage} />
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="w-36">
-              <span className="text-sm font-semibold">Your ZIP code</span>
-              <input
-                name="zip"
-                className="field mt-1"
-                inputMode="numeric"
-                autoComplete="postal-code"
-                value={zip}
-                onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                placeholder="08540"
-                required
-              />
-            </label>
-            <button type="submit" disabled={pending || zip.length !== 5 || (guest && !humanToken)} className="btn btn-primary">
-              {pending ? "Checking prices…" : l.vin ? "Check price & history" : "Check the price"}
-            </button>
-          </div>
-          {guest ? (
-            <>
-              <p className="text-sm text-muted">
-                Demo: one live price check per visitor per day, and a few for everyone each day, because the listing data comes from free plans
-                with small monthly limits. The example cars above include full price checks.
-              </p>
-              <Turnstile action="price" onToken={setHumanToken} />
-            </>
-          ) : (
-            <p className="text-sm text-muted">Uses up to 5 free listing-data lookups. Checking the same car again today is free.</p>
-          )}
-          {state.status === "error" && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-bad">{state.message}</p>}
-        </form>
-      )}
+      {!done && form}
 
       {done && (
         <div className="space-y-8">
           {recordedAt && (
             <p className="text-sm text-muted">
-              Example data recorded on {recordedAt} for ZIP {done.sources?.zip ?? "08540"}, from the same sources a live check uses.
+              Example data recorded on {recordedAt}
+              {done.sources ? ` for ZIP ${done.sources.zip}` : ""}, from the same sources a live check uses.
             </p>
           )}
-          {v ? <ValueSummary v={v} price={l.price} /> : done.sources && <p>Not enough similar cars nearby to price this one. Try the links below.</p>}
-          {done.live ? <LiveFacts l={done.live} /> : l.vin && <p className="text-muted">This exact car isn&apos;t listed on the sites we can check (common for Facebook and Craigslist cars).</p>}
-          {v && <Sources v={v} />}
+
+          {vinOk && <FoundOnline vin={l.vin!} live={done.live} history={done.history} guest={guest} />}
+
+          {vinOnly && done.car && <ConfirmDetails car={done.car} details={details} onDetails={onDetails} known={known} canReprice={!!done.sources?.comps} />}
+
+          {needsZip && form}
+
+          {selling ? (
+            sell?.privateV ? (
+              <SellValue privateV={sell.privateV} dealerV={sell.dealerV} live={done.live} active={sell.active} zip={done.sources!.zip} />
+            ) : (
+              done.sources && <p>Not enough similar cars nearby to price it. Try the links below.</p>
+            )
+          ) : v ? (
+            <ValueSummary v={v} price={l.price} />
+          ) : (
+            done.sources && <p>Not enough similar cars nearby to price this one. Try the links below.</p>
+          )}
+          {!selling && done.live && <LiveFacts l={done.live} />}
+          {shown && !shown.unpriced && <Sources v={shown} />}
           {done.sources?.marketDays && (
             <p>
               Similar cars near {done.sources.zip} sold in about <strong>{done.sources.marketDays} days</strong>
               {done.live?.daysOnMarket ? <>; this one has been listed for <strong>{done.live.daysOnMarket}</strong>.</> : "."}{" "}
-              <span className="text-muted">Cars that sit longer than usual have more room to negotiate.</span>
+              <span className="text-muted">
+                {selling ? "Priced inside the range, yours should sell in about that time." : "Cars that sit longer than usual have more room to negotiate."}
+              </span>
             </p>
           )}
           {done.sources && <SimilarCars comps={[...(done.sources.sold?.closest ?? []), ...(done.sources.active?.closest ?? [])]} />}
@@ -147,6 +221,14 @@ export function PriceCheck({ a, carId, state, action, pending, valuation: v, gue
 }
 
 function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
+  if (v.unpriced) {
+    return (
+      <div className="space-y-2">
+        <p className="rounded-md bg-warn-soft px-4 py-3">{v.unpriced}</p>
+        <p className="nums text-muted">For reference, the same car with a clean history: {fmt(v.low)}–{fmt(v.high)}.</p>
+      </div>
+    );
+  }
   // Where the asking price sits on a bar from 20% under the low end to 20% over the high end.
   const min = v.low * 0.8;
   const max = v.high * 1.2;
@@ -168,6 +250,12 @@ function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
         <p className="mt-1 text-sm text-muted">
           Confidence: <strong className="text-foreground">{v.confidence}</strong> ({v.confidenceWhy}).
         </p>
+        {v.assumesClean && (
+          <p className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-sm">
+            Priced as a car with no accidents and a clean title, which isn&apos;t confirmed yet. Record what the history report says (above) and
+            this updates.
+          </p>
+        )}
       </div>
 
       <div aria-hidden className="relative h-10">
@@ -225,7 +313,9 @@ function Sources({ v }: { v: Valuation }) {
       </ul>
       <p className="mt-2 text-sm text-muted">
         Clean-history dealer prices first, then this car&apos;s history and seller. Used cars usually sell 4–11% under their first
-        asking price, private sellers ask 10–20% less than dealers, and a reported accident takes about 10–30% off.
+        asking price, private sellers ask 10–20% less than dealers, and a past accident takes about 3–12% off (
+        <ExternalLink href="https://www.cargurus.com/press/20121213.html">CarGurus study, 2012</ExternalLink>), so damage is shown as that whole
+        range.
       </p>
     </div>
   );
@@ -254,6 +344,81 @@ function SimilarCars({ comps }: { comps: Comp[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/** After a VIN lookup: say plainly what was found online, and what wasn't. */
+function FoundOnline({ vin, live, history, guest }: { vin: string; live: LiveListing | null; history: HistoryRecord[] | null; guest: boolean }) {
+  if (live && !live.removedAt) return null; // the listing is shown in detail below
+  const past = history?.length ?? 0;
+  const searched = `listing data covering most US dealer websites (${guest ? "Auto.dev" : "Auto.dev and MarketCheck"}) and this VIN's listing history since 2015 (MarketCheck)`;
+  return (
+    <div className="rounded-md border border-border bg-surface px-4 py-3">
+      <p className="font-semibold">{past > 0 || live ? "Not for sale online right now" : `No online listing found for VIN ${vin}`}</p>
+      <p className="mt-1 text-sm">
+        We searched {searched}.{" "}
+        {past > 0
+          ? `It was listed ${past} time${past === 1 ? "" : "s"} before: see "Where this car has been listed" below.`
+          : live
+            ? "Its last listing has ended."
+            : "It hasn't been listed on any of them."}
+      </p>
+      <p className="mt-1 text-sm text-muted">
+        Facebook Marketplace and most Craigslist ads aren&apos;t in this data. If it&apos;s listed there, paste the listing text or screenshots at the
+        top for the full check. Otherwise confirm the details below to price it.
+      </p>
+    </div>
+  );
+}
+
+/** VIN only: what the VIN says, plus the miles and trim to price it at. Edits re-price instantly. */
+function ConfirmDetails({ car, details, onDetails, known, canReprice }: {
+  car: { year: number; make: string; model: string };
+  details: Details;
+  onDetails: (d: Details) => void;
+  known: Props["known"];
+  canReprice: boolean;
+}) {
+  const miles = details.miles ?? known.miles?.toString() ?? "";
+  const trim = details.trim ?? known.trim ?? "";
+  return (
+    <div>
+      <h3 className="font-semibold">Confirm the details</h3>
+      <p className="mt-1 text-sm text-muted">
+        Year, make and model come from the VIN (NHTSA decode). Check the miles and trim: they move the price most.
+        {canReprice ? " Changes re-price instantly from the same similar cars, with no new lookup." : ""}
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <p className="min-w-40">
+          <span className="block text-sm font-semibold">Car (from the VIN)</span>
+          <span className="mt-1 block py-2">
+            {car.year} {car.make[0].toUpperCase() + car.make.slice(1).toLowerCase()} {car.model}
+          </span>
+        </p>
+        <label className="w-40">
+          <span className="text-sm font-semibold">Trim</span>
+          <input
+            className="field mt-1"
+            value={trim}
+            maxLength={40}
+            onChange={(e) => onDetails({ ...details, trim: e.target.value.replace(/[^\w .\/-]/g, "") })}
+            placeholder="e.g. LE, EX-L"
+          />
+        </label>
+        <label className="w-36">
+          <span className="text-sm font-semibold">Miles</span>
+          <input
+            className="field mt-1"
+            inputMode="numeric"
+            value={miles}
+            onChange={(e) => onDetails({ ...details, miles: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+            placeholder="e.g. 95000"
+          />
+        </label>
+      </div>
+      {details.miles === null && known.milesFrom && <p className="mt-1 text-sm text-muted">Miles {known.milesFrom}. Change them if the odometer says otherwise.</p>}
+      <p className="mt-2 text-sm text-muted">Accidents and title: set them under the history report above.</p>
     </div>
   );
 }

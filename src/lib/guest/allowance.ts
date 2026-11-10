@@ -41,7 +41,7 @@ export async function takeGuestAllowance(kind: GuestKind): Promise<Allowance> {
 /** What to tell a demo visitor when they're over a limit. */
 export function allowanceMessage(a: Exclude<Allowance, "ok">, kind: GuestKind): string {
   if (kind === "price") {
-    if (a === "visitor") return "Demo limit: one live price check per visitor per day. Try the example cars above: they include full price checks.";
+    if (a === "visitor") return "Demo limit: two live lookups per visitor per day. Try the example cars above: they include full lookups.";
     if (a === "global") return "Today's live price checks for the demo are used up. The example cars above show full price checks; try again tomorrow.";
     if (a === "month") return "This month's live price checks for the demo are used up. The example cars above show full price checks.";
     return "Live price checks aren't available in the demo right now. The example cars above show full price checks.";

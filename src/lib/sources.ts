@@ -28,6 +28,7 @@ export const REF = {
   fhwa: { name: "FHWA: average miles driven per year", href: "https://www.fhwa.dot.gov/ohim/onh00/bar8.htm" },
   vinRule: { name: "49 CFR Part 565: the federal VIN standard", href: "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-V/part-565" },
   nhtsaRecalls: { name: "NHTSA recall lookup", href: "https://www.nhtsa.gov/recalls" },
+  cargurusAccident: { name: "CarGurus study (2012): a past accident lowers value about 3–12%", href: "https://www.cargurus.com/press/20121213.html" },
 } satisfies Record<string, SourceRef>;
 
 /** Warnings that point at another part of the result instead of a website. */
@@ -44,6 +45,9 @@ export const ON_PAGE: Record<string, { name: string; anchor: string }> = {
   "live-price-differs": { name: "the live listing, below", anchor: "#price-check" },
   "live-miles-lower": { name: "the live listing, below", anchor: "#price-check" },
   "live-ended": { name: "the live listing, below", anchor: "#price-check" },
+  "report-damage": { name: "the history report you checked", anchor: "#history-report" },
+  "report-title": { name: "the history report you checked", anchor: "#history-report" },
+  "report-commercial": { name: "the history report you checked", anchor: "#history-report" },
 };
 
 /** The official guidance behind each scam/safety rule (src/lib/scam/rules.ts ids). */

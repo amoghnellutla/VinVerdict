@@ -17,6 +17,8 @@ vi.mock("next/cache", () => ({ cacheLife: () => {}, cacheTag: () => {} }));
 
 const RUN = process.env.RECORD_DEMO === "1";
 const FREE_ONLY = process.env.RECORD_DEMO === "analysis";
+// RECORD_ONLY=lexus,camry re-records just those examples (fewer calls).
+const ONLY = process.env.RECORD_ONLY?.split(",").map((x) => x.trim()) ?? null;
 const ZIP = "08540";
 const DIR = join(__dirname, "data");
 
@@ -63,6 +65,7 @@ describe.skipIf(!RUN)("record demo examples (spends API quota)", () => {
     }
 
     for (const ex of examples) {
+      if (ONLY && !ONLY.includes(ex.id)) continue;
       const analysis = await analyzeListing(ex.text);
       const l = analysis.listing;
       const d = analysis.decoded;
@@ -83,7 +86,7 @@ describe.skipIf(!RUN)("record demo examples (spends API quota)", () => {
       expect(year && make && model, `${ex.id}: year/make/model`).toBeTruthy();
       const sources = await fetchPriceSources({ vin, year: year!, make: make!, model: model!, trim: d?.trim ?? live?.trim ?? null, miles, zip: ZIP });
       if (sources.failed.length) notes.push(`Couldn't reach ${sources.failed.join(", ")} when this example was recorded.`);
-      const price = { status: "done", live, history, sources, car: { year, make, model }, notes };
+      const price = { status: "done", live, history, sources, car: { year, make, model, trim: d?.trim ?? live?.trim ?? null, miles }, notes };
       writeFileSync(join(DIR, `${ex.id}.json`), JSON.stringify({ recordedAt: new Date().toISOString().slice(0, 10), zip: ZIP, analysis, price }) + "\n");
       console.log(`${ex.id}: ${year} ${make} ${model} · live ${live ? "yes" : "no"} · history ${history?.length ?? "-"} · sold ${sources.sold?.n ?? 0} · for sale ${sources.active?.n ?? 0} · model ${sources.predicted ?? "-"}`);
     }

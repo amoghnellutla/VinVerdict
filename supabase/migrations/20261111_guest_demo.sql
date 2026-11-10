@@ -54,7 +54,7 @@ begin
   if p_kind = 'check' then        -- free checks (NHTSA only): generous
     per_visitor := 30;  per_day := 3000; per_month := null;
   elsif p_kind = 'price' then     -- live price checks: ~2 MarketCheck + 2 Auto.dev each
-    per_visitor := 1;   per_day := 3;    per_month := 95;
+    per_visitor := 2;   per_day := 6;    per_month := 95;
   else
     return 'invalid';
   end if;

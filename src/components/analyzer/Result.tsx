@@ -2,54 +2,67 @@
 
 import { useActionState, useMemo, useState, type ReactNode } from "react";
 import { priceCheckAction, type PriceState } from "@/app/actions/price";
+import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
+import { accidentHistoryConfirmed, EMPTY_REPORT, type ReportAnswers } from "@/lib/history-report";
 import { recentMiles, summarizeHistory } from "@/lib/history/summary";
+import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import type { LiveListing as Live } from "@/lib/live/parse";
 import type { RuleAction, RuleHit, SellerChecklist, Verdict } from "@/lib/scam/rules";
-import { valueCar, DEAL_TEXT, fmt, type Valuation } from "@/lib/value/estimate";
-import { buildVerdict } from "@/lib/verdict";
-import { ExternalLink } from "@/components/ExternalLink";
 import { ON_PAGE, raw, RULE_SOURCE } from "@/lib/sources";
+import { DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
+import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
-import { CheckYourself } from "./CheckYourself";
-import { ReportSources } from "./ReportSources";
-import { Safety } from "./Safety";
-import { SellerMessage } from "./SellerMessage";
 import { BuyerProtection } from "./BuyerProtection";
 import { BuyingDay } from "./BuyingDay";
+import { CheckYourself } from "./CheckYourself";
 import { Checklist } from "./Checklist";
+import { CostPerYear } from "./CostPerYear";
+import { HistoryReport } from "./HistoryReport";
 import { InspectionList } from "./InspectionList";
 import { ListingHistory } from "./ListingHistory";
-import { CostPerYear } from "./CostPerYear";
-import { PriceCheck } from "./PriceCheck";
 import { OutTheDoor } from "./OutTheDoor";
+import { PriceCheck, type Details } from "./PriceCheck";
+import { ReportSources } from "./ReportSources";
 import { RunningCost } from "./RunningCost";
+import { Safety } from "./Safety";
+import { SellerMessage } from "./SellerMessage";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 const miles = (n: number | null) => (n == null ? null : `${n.toLocaleString("en-US")} mi`);
 const cap = (s: string | null) => (s ? s[0].toUpperCase() + s.slice(1) : null);
 
+type Box = { label: string; text: string; tone: string; title: string };
+
 // tone = colored left bar + soft background; title color matches.
-const VERDICT: Record<Verdict, { label: string; text: string; tone: string; title: string }> = {
+const VERDICT: Record<Verdict, Box> = {
   hide: { label: "Walk away", text: "There's at least one deal-breaker below.", tone: "border-l-bad bg-bad-soft", title: "text-bad" },
   verify: { label: "Check it in person first", text: "Looks clean, but a price this low needs a reason. See the car, title and seller's ID before paying.", tone: "border-l-warn bg-warn-soft", title: "text-warn" },
   caution: { label: "Go carefully", text: "No deal-breakers, but ask the seller about the points below.", tone: "border-l-warn bg-warn-soft", title: "text-warn" },
-  clear: { label: "No red flags found", text: "Still have a mechanic inspect it and check the title in person.", tone: "border-l-good bg-good-soft", title: "text-good" },
+  clear: { label: "No red flags found", text: "The history report shows no damage. Still have a mechanic inspect it and check the title in person.", tone: "border-l-good bg-good-soft", title: "text-good" },
+};
+
+// "No red flags" needs the accident history confirmed: free records and listing feeds can't show it.
+const UNCONFIRMED: Box = {
+  label: "No red flags so far",
+  text: "Nothing wrong in the listing or the free records, but its accident history isn't confirmed. Check the history report below before you trust this.",
+  tone: "border-l-border-strong bg-surface",
+  title: "text-foreground",
+};
+
+// A bare VIN with nothing wrong isn't "no red flags": the deal hasn't been checked yet.
+const VIN_ONLY_CLEAR: Box = {
+  label: "The car checks out so far",
+  text: "A VIN shows the car, not the deal. It's looked up online below; paste the listing too for the seller and scam checks.",
+  tone: "border-l-border-strong bg-surface",
+  title: "text-foreground",
 };
 
 const ACTION_STYLE: Record<RuleAction, { badge: string; label: string }> = {
   hide: { badge: "bg-bad-soft text-bad", label: "Deal-breaker" },
   flag: { badge: "bg-warn-soft text-warn", label: "Ask about it" },
   info: { badge: "bg-surface-muted text-muted", label: "Good to know" },
-};
-
-// A bare VIN with nothing wrong isn't "no red flags": the deal hasn't been checked yet.
-const VIN_ONLY_CLEAR = {
-  label: "The car checks out so far",
-  text: "A VIN shows the car, not the deal. Press \"Check price & history\" below, or paste the listing, to check the price, history and seller.",
-  tone: "border-l-border-strong bg-surface",
-  title: "text-foreground",
 };
 
 export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null }: {
@@ -63,33 +76,63 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   recorded?: { price: PriceState; recordedAt: string } | null;
 }) {
   const [checklist, setChecklist] = useState<SellerChecklist>({});
+  const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
+  const [purpose, setPurpose] = useState<"buy" | "sell">("buy");
+  const [details, setDetails] = useState<Details>({ miles: null, trim: null });
   const [liveState, priceAction, pricePending] = useActionState(priceCheckAction, { status: "idle" } as PriceState);
   const priceState = recorded?.price ?? liveState;
-  const live = priceState.status === "done" ? priceState.live : null;
-  const sources = priceState.status === "done" ? priceState.sources : null;
-  const rawHistory = priceState.status === "done" ? priceState.history : null;
+  const done = priceState.status === "done" ? priceState : null;
+  const live = done?.live ?? null;
+  const sources = done?.sources ?? null;
+  const rawHistory = done?.history ?? null;
   const history = useMemo(() => (rawHistory ? summarizeHistory(rawHistory) : null), [rawHistory]);
-  // Panels below see the pasted facts with gaps filled from the live listing.
-  // Unknown miles (a bare VIN) come from the latest listing in its history, as the price check did.
-  const m = useMemo(() => {
-    const l = mergeLive(a.listing, live);
-    return { ...a, listing: l.miles === null && rawHistory ? { ...l, miles: recentMiles(rawHistory)?.miles ?? null } : l };
-  }, [a, live, rawHistory]);
-  const { result, valuation } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history }, checklist);
-    if (!sources) return { result: first, valuation: null };
+  const vinOnly = a.listing.kind === "vin";
+  const selling = vinOnly && purpose === "sell";
+
+  // What's known about miles and trim: the listing, then the live listing, then its listing history.
+  // A VIN-only check can correct them; the price follows instantly (revalue).
+  const known = useMemo(() => {
+    const merged = mergeLive(a.listing, live);
+    const seen = rawHistory ? recentMiles(rawHistory) : null;
+    const carMiles = done?.car?.miles ?? null;
+    const milesFound = merged.miles ?? seen?.miles ?? carMiles;
+    const milesFrom = a.listing.miles !== null ? null
+      : live?.miles != null ? `from its listing on ${live.source}`
+        : seen ? `from its last listing (${seen.date})` : null;
+    return { merged, miles: milesFound, milesFrom, trim: a.decoded?.trim ?? live?.trim ?? done?.car?.trim ?? null };
+  }, [a, live, rawHistory, done]);
+  const milesUsed = vinOnly && details.miles !== null ? (details.miles ? Number(details.miles) : null) : known.miles;
+  const trimUsed = vinOnly && details.trim !== null ? details.trim.trim() || null : known.trim;
+  const m: Analysis = useMemo(() => ({ ...a, listing: { ...known.merged, miles: milesUsed } }), [a, known, milesUsed]);
+
+  const { result, valuation, sellV } = useMemo(() => {
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report }, checklist);
+    if (!sources) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
-    // The seller's checklist answer about accidents counts too.
-    const accident = checklist.anyAccidents === true ? "reported" : checklist.anyAccidents === false && l.accident === "unknown" ? "none" : l.accident;
-    const valuation = valueCar(sources, {
-      price: l.price, miles: l.miles, sellerType: l.sellerType, accident, titleStatus: l.titleStatus, usage: l.usage,
+    const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
+    const srcs = revalue(sources, { year, miles: milesUsed, trim: trimUsed });
+    // Accidents: the history report first, then the listing; a seller admitting one counts too.
+    const accident: AccidentStatus = checklist.anyAccidents === true ? "reported" : l.accident;
+    const titleStatus: TitleStatus = report.title === "branded" ? "branded" : report.title === "clean" && l.titleStatus === "unknown" ? "clean" : l.titleStatus;
+    const usage: Usage = report.commercial ? "fleet" : l.usage;
+    const base: ValueInput = {
+      price: l.price, miles: milesUsed, sellerType: l.sellerType, accident, titleStatus, usage, damage: report.damage,
       daysOnMarket: live?.daysOnMarket ?? history?.daysListed ?? null, highMiles: first.hits.some((h) => h.id === "high-miles"),
       priceCut: history?.priceCut ?? null,
-    });
+    };
+    const valuation = valueCar(srcs, base);
+    // Selling your own car: what a private buyer pays, and a dealer's retail for comparison.
+    const sellV = vinOnly
+      ? {
+          privateV: valueCar(srcs, { ...base, price: null, sellerType: "private", daysOnMarket: null, priceCut: null }),
+          dealerV: valueCar(srcs, { ...base, price: null, sellerType: "dealer", daysOnMarket: null, priceCut: null }),
+          active: srcs.active,
+        }
+      : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, valuePct: valuation.pctUnder }, checklist) : first;
-    return { result, valuation };
-  }, [a, m, live, sources, history, checklist, phoneMatches]);
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report, valuePct: valuation.pctUnder }, checklist) : first;
+    return { result, valuation, sellV };
+  }, [a, m, live, sources, history, checklist, phoneMatches, report, milesUsed, trimUsed, done, vinOnly]);
 
   if (a.listing.kind === "url") {
     return <LinkOnly host={a.listing.sourceHost} />;
@@ -97,10 +140,32 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
 
   const order: RuleAction[] = ["hide", "flag", "info"];
   const hits = [...result.hits].sort((x, y) => order.indexOf(x.action) - order.indexOf(y.action));
-  const vinOnly = a.listing.kind === "vin";
-  const v = vinOnly && !live && result.verdict === "clear" ? VIN_ONLY_CLEAR : VERDICT[result.verdict];
+  const confirmed = accidentHistoryConfirmed(m.listing, report);
+  const v = result.verdict === "clear" && !confirmed ? (vinOnly && !live ? VIN_ONLY_CLEAR : UNCONFIRMED) : VERDICT[result.verdict];
   const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
   const make = a.decoded?.make ?? a.listing.make;
+  const recordedAt = recorded?.recordedAt ?? null;
+
+  const priceCheck = (
+    <PriceCheck
+      a={m}
+      carId={carId}
+      state={priceState}
+      action={priceAction}
+      pending={pricePending}
+      valuation={valuation}
+      guest={guest}
+      recordedAt={recordedAt}
+      purpose={selling ? "sell" : "buy"}
+      vinOnly={vinOnly}
+      details={details}
+      onDetails={setDetails}
+      known={{ miles: known.miles, trim: known.trim, milesFrom: known.milesFrom }}
+      sell={sellV}
+    />
+  );
+  const historyReport = <HistoryReport value={report} onChange={setReport} live={live} vin={goodVin} selling={selling} />;
+  const sourcesList = <ReportSources a={m} hits={selling ? [] : hits} live={live} sources={sources} history={rawHistory} recordedAt={recordedAt} report={report} />;
 
   return (
     <div className="space-y-10">
@@ -112,48 +177,69 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
             <PrintButton />
           </span>
         </div>
-        <section className={`mt-3 rounded-md border-l-4 px-5 py-4 ${v.tone}`}>
-          <h2 className={`text-2xl sm:text-3xl ${v.title}`}>{v.label}</h2>
-          <p className="mt-1 text-[1.05rem]">{v.text}</p>
-          <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
-          <p className="mt-2 text-sm text-muted">
-            Risk score {result.risk} out of 100 · every finding below names its source, and{" "}
-            <a href="#check-yourself" className="link">you can check the car yourself</a>
-          </p>
-        </section>
+        {vinOnly && <PurposeToggle value={purpose} onChange={setPurpose} />}
 
-        {hits.length > 0 && (
-          <ul className="mt-6 divide-y divide-border">
-            {hits.map((h) => (
-              <HitRow key={h.id} hit={h} vin={goodVin} />
-            ))}
-          </ul>
+        {selling ? (
+          <SellBox v={sellV?.privateV ?? null} looking={!done} />
+        ) : (
+          <>
+            <section className={`mt-3 rounded-md border-l-4 px-5 py-4 ${v.tone}`}>
+              <h2 className={`text-2xl sm:text-3xl ${v.title}`}>{v.label}</h2>
+              <p className="mt-1 text-[1.05rem]">{v.text}</p>
+              <Summary hits={hits} valuation={valuation} price={m.listing.price} walkAway={result.verdict === "hide"} />
+              <p className="mt-2 text-sm text-muted">
+                Risk score {result.risk} out of 100 · every finding below names its source, and{" "}
+                <a href="#check-yourself" className="link">you can check the car yourself</a>
+              </p>
+            </section>
+
+            {hits.length > 0 && (
+              <ul className="mt-6 divide-y divide-border">
+                {hits.map((h) => (
+                  <HitRow key={h.id} hit={h} vin={goodVin} />
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </div>
 
-      <PriceCheck a={m} carId={carId} state={priceState} action={priceAction} pending={pricePending} valuation={valuation} guest={guest} recordedAt={recorded?.recordedAt ?? null} />
+      {historyReport}
+      {priceCheck}
       {history && <ListingHistory h={history} />}
-      <CheckYourself vin={goodVin} make={make} />
-      <BuyerProtection a={m} />
-      <Facts a={a} live={live} />
-      {/* key: start the calculator again with the live price once it arrives */}
-      <OutTheDoor key={live ? "live" : "pasted"} a={m} />
-      <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} />
-      <RunningCost a={m} />
-      <Safety a={m} />
-      <InspectionList a={m} />
-      <Checklist value={checklist} onChange={setChecklist}>
-        <SellerMessage
-          carName={carName(m)}
-          listing={m.listing}
-          hits={hits}
-          checklist={checklist}
-          recallCount={a.recalls?.length ?? null}
-          topComplaint={a.complaints?.topComponents[0]?.component ?? null}
-        />
-      </Checklist>
-      <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} />
-      <ReportSources a={m} hits={hits} live={live} sources={sources} history={rawHistory} recordedAt={recorded?.recordedAt ?? null} />
+
+      {selling ? (
+        <>
+          <Facts a={a} live={live} />
+          <Safety a={m} />
+          <CheckYourself vin={goodVin} make={make} />
+          {sourcesList}
+        </>
+      ) : (
+        <>
+          <CheckYourself vin={goodVin} make={make} />
+          <BuyerProtection a={m} />
+          <Facts a={a} live={live} />
+          {/* key: start the calculator again with the live price once it arrives */}
+          <OutTheDoor key={live ? "live" : "pasted"} a={m} />
+          <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} />
+          <RunningCost a={m} />
+          <Safety a={m} />
+          <InspectionList a={m} />
+          <Checklist value={checklist} onChange={setChecklist}>
+            <SellerMessage
+              carName={carName(m)}
+              listing={m.listing}
+              hits={hits}
+              checklist={checklist}
+              recallCount={a.recalls?.length ?? null}
+              topComplaint={a.complaints?.topComponents[0]?.component ?? null}
+            />
+          </Checklist>
+          <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} />
+          {sourcesList}
+        </>
+      )}
 
       <p className="border-t border-border pt-6 text-sm text-muted">
         {carId ? (
@@ -171,6 +257,43 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         </ul>
       )}
     </div>
+  );
+}
+
+/** VIN only: checking a car to buy, or valuing your own. */
+function PurposeToggle({ value, onChange }: { value: "buy" | "sell"; onChange: (v: "buy" | "sell") => void }) {
+  const opts: ["buy" | "sell", string][] = [["buy", "I'm thinking of buying it"], ["sell", "It's mine: what's it worth?"]];
+  return (
+    <fieldset className="mt-3 flex flex-wrap gap-1.5 print:hidden">
+      <legend className="sr-only">Buying or selling</legend>
+      {opts.map(([v, label]) => (
+        <label
+          key={v}
+          className={`cursor-pointer rounded-md border px-3 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/40 ${
+            value === v ? "border-foreground bg-foreground font-semibold text-background" : "border-border-strong text-muted hover:border-foreground hover:text-foreground"
+          }`}
+        >
+          <input type="radio" name="purpose" className="sr-only" checked={value === v} onChange={() => onChange(v)} />
+          {label}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+/** Selling: the headline value, in the same place the buyer's verdict goes. */
+function SellBox({ v, looking }: { v: Valuation | null; looking: boolean }) {
+  const title = v?.unpriced ? "Needs an in-person appraisal" : v ? `About ${fmt(v.fair)} to a private buyer` : looking ? "Looking it up…" : "Confirm the details to price it";
+  const text = v?.unpriced
+    ? "Severe damage can't be priced from listing data. Details below."
+    : v
+      ? `Range ${fmt(v.low)}–${fmt(v.high)}, from similar cars that sold or are for sale near you.${v.assumesClean ? " Priced as a car with no accidents: set the history report below if it has any." : ""}`
+      : "VinVerdict looks the VIN up online, then prices it from similar cars near you.";
+  return (
+    <section className="mt-3 rounded-md border-l-4 border-l-accent bg-accent-soft px-5 py-4">
+      <h2 className="nums text-2xl sm:text-3xl">{title}</h2>
+      <p className="mt-1 text-[1.05rem]">{text}</p>
+    </section>
   );
 }
 
@@ -259,7 +382,8 @@ function Facts({ a, live }: { a: Analysis; live: Live | null }) {
   const l = a.listing;
   const d = a.decoded;
   const vinStatus = !l.vin ? null : a.vinCheck?.ok ? (d?.clean === false ? "Decoded with warnings" : "Valid") : "Invalid check digit";
-  const liveAccidents = live?.accidentCount == null ? null : live.accidentCount === 0 ? "None reported" : `${live.accidentCount} reported`;
+  // A feed's "0 accidents" isn't a history report, so it's never shown as "none".
+  const liveAccidents = live?.accidentCount ? `${live.accidentCount} reported` : live ? "Not confirmed" : null;
   // [label, listing says, VIN decode, live listing]
   const rows: [string, string | null, string | null, string | null][] = [
     ["Year", l.year?.toString() ?? null, d?.year?.toString() ?? null, live?.year?.toString() ?? null],
@@ -272,11 +396,11 @@ function Facts({ a, live }: { a: Analysis; live: Live | null }) {
     ["Fuel", null, d?.fuel ?? null, null],
     ["Price", money(l.price), null, money(live?.price ?? null)],
     ["Miles", miles(l.miles), null, miles(live?.miles ?? null)],
-    ["Title", l.titleStatus === "unknown" ? null : cap(l.titleStatus), null, live?.cleanTitle ? "Clean (Carfax flag)" : null],
+    ["Title", l.titleStatus === "unknown" ? null : cap(l.titleStatus), null, live?.cleanTitle ? "Carfax clean-title flag on the listing" : null],
     ["Accidents", l.accident === "unknown" ? null : l.accident === "none" ? "None mentioned" : "Reported", null, liveAccidents],
     ["Exterior", cap(l.exteriorColor), null, live?.exteriorColor ?? null],
-    ["Owners", l.ownerCount?.toString() ?? null, null, live?.ownerCount?.toString() ?? null],
-    ["Prior use", USAGE_LABEL[l.usage], null, live ? USAGE_LABEL[live.usage] : null],
+    ["Owners", l.ownerCount?.toString() ?? null, null, null],
+    ["Prior use", USAGE_LABEL[l.usage], null, live && (live.usage === "fleet" || live.usage === "rental") ? USAGE_LABEL[live.usage] : null],
     ["Seller", l.sellerType === "unknown" ? null : cap(l.sellerType), null, live?.sellerName ?? (live?.sellerType !== "unknown" ? cap(live?.sellerType ?? null) : null)],
     ["Distance", miles(l.distanceMiles), null, null],
     ["VIN", l.vin, vinStatus, null],

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseListing } from "@/lib/listing/parse";
 import { rateLimit } from "@/lib/rate-limit";
+import { accidentHistoryConfirmed, EMPTY_REPORT } from "@/lib/history-report";
+import { mergeLive } from "@/lib/live/merge";
 import { buildVerdict } from "./verdict";
 
 const NOW = new Date("2026-11-08T12:00:00Z");
@@ -46,5 +48,44 @@ describe("same phone on several listings", () => {
     const dealer = "2016 Honda Civic $9,000 90,000 miles. Stock # A12. Dealer. 732-555-0100 VIN 19XFC2F52GE012345";
     const d = buildVerdict({ text: dealer, listing: parseListing(dealer), decoded: null, phoneMatches: [{ title: "x" }] }, {}, NOW);
     expect(d.hits.map((h) => h.id)).not.toContain("same-phone");
+  });
+});
+
+describe("history report and listing feeds", () => {
+  const VIN = "2T2BZMCA2GC041915";
+  // The recorded 2016 RX 350: Auto.dev said 0 accidents and 1 owner; the dealer's Carfax showed minor damage and 3 owners.
+  const feed = {
+    source: "Auto.dev" as const, vin: VIN, year: 2016, make: "Lexus", model: "RX", trim: null, price: 21559, miles: 94767,
+    sellerType: "dealer" as const, sellerName: "Westchester Motors", city: "Yonkers", state: "NY", zip: "10704", url: null, carfaxUrl: null,
+    exteriorColor: "Brown", accidentCount: 0, ownerCount: 1, usage: "personal" as const, certified: false, cleanTitle: null, daysOnMarket: null, removedAt: null,
+  };
+  const base = { text: VIN, listing: parseListing(VIN), decoded: null, live: feed };
+
+  it("a feed's 0 accidents doesn't clear the car, and says why", () => {
+    const r = buildVerdict(base, {}, NOW);
+    const unknown = r.hits.find((h) => h.id === "accident-unknown");
+    expect(unknown?.reason).toMatch(/listing feeds often miss damage/);
+    expect(accidentHistoryConfirmed(mergeLive(base.listing, feed), EMPTY_REPORT)).toBe(false);
+  });
+
+  it("minor damage on the report is a deal-breaker for a buyer with a no-accidents rule", () => {
+    const r = buildVerdict({ ...base, report: { damage: "minor", title: "clean", commercial: true } }, {}, NOW);
+    const ids = r.hits.map((h) => h.id);
+    expect(r.verdict).toBe("hide");
+    expect(ids).toContain("report-damage");
+    expect(ids).toContain("report-commercial");
+    expect(ids).not.toContain("accident-unknown");
+  });
+
+  it("a clean report confirms the history", () => {
+    const report = { damage: "none" as const, title: "clean" as const, commercial: false };
+    const r = buildVerdict({ ...base, report }, {}, NOW);
+    expect(r.hits.map((h) => h.id)).not.toContain("accident-unknown");
+    expect(accidentHistoryConfirmed(base.listing, report)).toBe(true);
+  });
+
+  it("a seller who admits an accident wins over a clean report", () => {
+    const r = buildVerdict({ ...base, report: { damage: "none", title: "clean", commercial: null } }, { anyAccidents: true }, NOW);
+    expect(r.verdict).toBe("hide");
   });
 });

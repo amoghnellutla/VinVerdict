@@ -5,6 +5,7 @@
  * another server call.
  */
 
+import { damaged, DAMAGE_LABEL, EMPTY_REPORT, type ReportAnswers } from "@/lib/history-report";
 import { historyRuleHits, type HistorySummary } from "@/lib/history/summary";
 import type { ParsedListing } from "@/lib/listing/parse";
 import { liveRuleHits, mergeLive } from "@/lib/live/merge";
@@ -23,11 +24,19 @@ export type VerdictInput = {
   history?: HistorySummary | null;
   /** Other saved cars whose listing had the same phone number (PLAN.md §6). */
   phoneMatches?: { title: string }[];
+  /** What the vehicle history report says, as recorded on the page. */
+  report?: ReportAnswers;
 };
 
-export function buildVerdict(a: VerdictInput, checklist: SellerChecklist, now?: Date): ScamResult {
+export function buildVerdict(a: VerdictInput, sellerAnswers: SellerChecklist, now?: Date): ScamResult {
   const live = a.live ?? null;
+  const report = a.report ?? EMPTY_REPORT;
   const listing = mergeLive(a.listing, live);
+  // The history report settles "any accident?" unless the seller already admitted one.
+  const checklist: SellerChecklist = {
+    ...sellerAnswers,
+    anyAccidents: sellerAnswers.anyAccidents === true ? true : report.damage === "none" ? false : sellerAnswers.anyAccidents,
+  };
   const result = evaluateScamRules({ text: a.text, listing, decoded: a.decoded, valuePct: a.valuePct, checklist, now });
   const extra = liveRuleHits(a.listing, live);
 
@@ -37,6 +46,41 @@ export function buildVerdict(a: VerdictInput, checklist: SellerChecklist, now?: 
     hits = hits.filter((h) => h.id !== "accident-reported");
   }
   hits = [...hits, ...extra];
+
+  // A feed showing no accidents isn't a history report: say so instead of staying quiet.
+  if (live?.accidentCount === 0) {
+    hits = hits.map((h) => h.id === "accident-unknown"
+      ? { ...h, reason: `${live.source}'s listing data shows no accidents, but listing feeds often miss damage that Carfax or AutoCheck show. Open the history report and record what it says.` }
+      : h);
+  }
+
+  // What the history report says (recorded by the person checking).
+  if (damaged(report.damage)) {
+    // The report's own answer replaces the vaguer "an accident was mentioned / is in the feed".
+    hits = hits.filter((h) => h.id !== "accident-reported" && h.id !== "accident-unknown" && h.id !== "live-accident");
+    hits.push({
+      id: "report-damage",
+      action: "hide",
+      title: `History report: ${DAMAGE_LABEL[report.damage].toLowerCase()}`,
+      reason: `${report.damage === "severe" ? "Structural or airbag damage can weaken the car in a future crash. " : ""}You're looking for cars with no reported accidents. If you still consider it, get the repair records and have a body shop inspect the repair, and pay less: the price check below accounts for it.`,
+    });
+  }
+  if (report.title === "branded" && !hits.some((h) => h.id === "title-brand")) {
+    hits.push({
+      id: "report-title",
+      action: "hide",
+      title: "History report: branded title",
+      reason: "A salvage, rebuilt, flood or junk brand means an insurer once wrote the car off or it had major damage. Hard to insure and resell.",
+    });
+  }
+  if (report.commercial === true && !hits.some((h) => h.id === "fleet")) {
+    hits.push({
+      id: "report-commercial",
+      action: "flag",
+      title: "History report: rental, fleet or commercial use",
+      reason: "Many drivers, often driven hard. Ask for maintenance records and get a pre-purchase inspection.",
+    });
+  }
 
   // Listing history: the stronger evidence wins over the single live listing.
   const past = historyRuleHits(a.listing, a.history ?? null, now);
@@ -62,9 +106,11 @@ export function buildVerdict(a: VerdictInput, checklist: SellerChecklist, now?: 
         h.id === "accident-unknown"
           ? {
               ...h,
-              reason: live
-                ? `${live.source} has no accident data for this VIN. Check the history box on the listing (most dealer sites show one), then answer "any accident?" in the seller checklist below.`
-                : "A VIN alone can't show accident history: Carfax and AutoCheck are paid, and no free government source has it. Press \"Check price & history\" below, check the history box on the listing, then answer \"any accident?\" in the seller checklist.",
+              reason: live?.accidentCount === 0
+                ? h.reason
+                : live
+                  ? `${live.source} has no accident data for this VIN. Open the history report (most dealer listings link a free one) and record what it says below.`
+                  : "A VIN alone can't show accident history: Carfax and AutoCheck are paid, and no free government source has it. Get the history report and record what it says below.",
             }
           : h,
       );

@@ -97,7 +97,15 @@ describe("merging a live listing into the check", () => {
     const ended: LiveListing = { ...autoDev(), removedAt: "2026-10-02T00:00:00Z", accidentCount: 0 };
     const hits = liveRuleHits(parseListing(`VIN ${VIN}`), ended);
     expect(hits.map((h) => h.id)).toEqual(["live-ended"]);
-    expect(mergeLive(parseListing(`VIN ${VIN}`), ended).accident).toBe("none");
+    // A feed's "0 accidents" is not a history report: it never clears the car.
+    expect(mergeLive(parseListing(`VIN ${VIN}`), ended).accident).toBe("unknown");
+  });
+
+  it("takes only bad news from a feed (accidents, fleet use), never good news", () => {
+    const rosy: LiveListing = { ...autoDev(), accidentCount: 0, ownerCount: 1, usage: "personal", cleanTitle: true };
+    const m = mergeLive(parseListing(`VIN ${VIN}`), rosy);
+    expect(m).toMatchObject({ accident: "unknown", ownerCount: null, usage: "unknown", titleStatus: "unknown" });
+    expect(mergeLive(parseListing(`VIN ${VIN}`), { ...rosy, accidentCount: 1, usage: "rental" })).toMatchObject({ accident: "reported", usage: "rental" });
   });
 
   it("keeps the pasted facts when they exist", () => {

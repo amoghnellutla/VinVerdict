@@ -324,7 +324,8 @@ function findUsage(text: string): Usage {
   if (/\bfleet vehicle:? yes\b.{0,20}\brental\b/.test(text) ||
       hasUnnegated(text, /\b(?:previous|former|prior|ex-?) ?rental\b|\brental (?:car|vehicle|use|history|unit)\b/)) return "rental";
   if (/\bfleet (?:vehicle|use|car)?:? ?yes\b/.test(text) ||
-      hasUnnegated(text, /\b(?:ex-?|former |previous )fleet\b|\bfleet (?:vehicle|car|use)\b(?!:? ?no)|\bcommercial use\b|\b(?:uber|lyft|rideshare|taxi|police)\b/)) {
+      // Police and taxi only when they describe the car: "meet at a police station" is safety advice.
+      hasUnnegated(text, /\b(?:ex-?|former |previous )fleet\b|\bfleet (?:vehicle|car|use)\b(?!:? ?no)|\bcommercial use\b|\b(?:uber|lyft|rideshare)\b|\b(?:ex-?|former |retired )(?:police|taxi|cab)\b|\b(?:police|taxi) (?:car|vehicle|interceptor|cruiser|package|unit|use|cab)\b/)) {
     return "fleet";
   }
   if (/\bpersonal use(?: only)?(?::? yes)?\b(?!:? ?no)|\bnot a fleet or rental\b/.test(text)) return "personal";

@@ -5,7 +5,8 @@ import { AAA_MAINTENANCE } from "@/lib/costs/running";
 import type { HistoryRecord } from "@/lib/history/parse";
 import type { LiveListing } from "@/lib/live/parse";
 import type { RuleHit } from "@/lib/scam/rules";
-import { raw, RULE_SOURCE, SOURCES_CHECKED, type SourceRef } from "@/lib/sources";
+import { DAMAGE_LABEL, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
+import { raw, REF, RULE_SOURCE, SOURCES_CHECKED, type SourceRef } from "@/lib/sources";
 import type { PriceSources } from "@/lib/value/estimate";
 
 type Props = {
@@ -16,13 +17,15 @@ type Props = {
   history: HistoryRecord[] | null;
   /** Demo example: when its data was recorded. */
   recordedAt: string | null;
+  /** What the person read on the vehicle history report. */
+  report: ReportAnswers;
 };
 
 /**
  * Every source behind this result, numbered, with a link to check each one.
  * Government data links go to the exact public request VinVerdict made.
  */
-export function ReportSources({ a, hits, live, sources, history, recordedAt }: Props) {
+export function ReportSources({ a, hits, live, sources, history, recordedAt, report }: Props) {
   const key = a.nhtsaVehicle ?? a.vehicle;
   const vin = a.vinCheck?.ok ? a.listing.vin : null;
   const when = recordedAt ? `recorded ${recordedAt}` : a.checkedAt ? `checked ${a.checkedAt}` : "checked today";
@@ -78,8 +81,18 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt }: P
     });
   }
 
+  const answered = [report.damage !== "unknown" && DAMAGE_LABEL[report.damage], report.title !== "unknown" && TITLE_LABEL[report.title], report.commercial !== null && (report.commercial ? "rental, fleet or commercial use" : "no rental or fleet use")].filter(Boolean);
+  items.push({
+    what: answered.length ? `Accident and title history: ${answered.join(", ").toLowerCase()}` : "Accident and title history: not confirmed",
+    from: answered.length
+      ? "What you recorded from the vehicle history report (Carfax or AutoCheck), which VinVerdict can't open itself"
+      : "No free source has it. Listing feeds aren't history reports, so their \"no accidents\" isn't used",
+    links: live?.carfaxUrl ? [<ExternalLink key="cf" href={live.carfaxUrl}>the dealer&apos;s free Carfax report</ExternalLink>] : [],
+  });
+
   // The official guidance behind each warning shown, once each.
   const guidance = new Map<string, SourceRef>();
+  if (report.damage !== "unknown" && report.damage !== "none") guidance.set(REF.cargurusAccident.href, REF.cargurusAccident);
   for (const h of hits) {
     const s = RULE_SOURCE[h.id];
     if (s) guidance.set(s.href, s);

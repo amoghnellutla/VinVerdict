@@ -90,6 +90,11 @@ export async function fetchPriceSources(car: PriceCar, opts: { skipPriceModel?: 
     sold: s.status === "fulfilled" ? estimateFromComps(s.value, target) : null,
     active: a.status === "fulfilled" ? estimateFromComps(a.value, target) : null,
     zip: car.zip,
+    comps: {
+      sold: s.status === "fulfilled" ? s.value : [],
+      active: a.status === "fulfilled" ? a.value : [],
+      target,
+    },
     failed,
     calls: (car.vin && car.miles !== null && !opts.skipPriceModel ? 1 : 0) + 2,
   };

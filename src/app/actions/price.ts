@@ -29,7 +29,8 @@ export type PriceState =
       history: HistoryRecord[] | null;
       /** null when year/make/model are unknown even after the live lookup. */
       sources: PriceCheck | null;
-      car: { year: number; make: string; model: string } | null;
+      /** What was priced (the page re-prices from the comps if the details are edited). */
+      car: { year: number; make: string; model: string; trim: string | null; miles: number | null } | null;
       notes: string[];
     };
 
@@ -53,11 +54,14 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
   // Owner (two-step login) or demo visitor. Visitors get a lean, rationed check (below).
   const owner = await currentUser();
 
-  const zip = text(form.get("zip"), 5);
-  if (!/^\d{5}$/.test(zip) || !zipToState(zip)) return { status: "error", message: "Enter your 5-digit US ZIP code, so prices are local." };
-
   const vinRaw = normalizeVin(text(form.get("vin"), 40));
   const vin = vinRaw && checkVin(vinRaw).ok ? vinRaw : null;
+  // ZIP for local prices. With a VIN it may be left out: the car is still looked up
+  // online, and priced where it's listed (or not priced until a ZIP is given).
+  const validZip = (z: string | null | undefined) => (z && /^\d{5}$/.test(z) && zipToState(z) ? z : null);
+  const zipIn = text(form.get("zip"), 5);
+  let zip = validZip(zipIn) ?? validZip(text(form.get("listingZip"), 5));
+  if (!zip && (zipIn || !vin)) return { status: "error", message: "Enter your 5-digit US ZIP code, so prices are local." };
   let year = int(form.get("year"), 1981, new Date().getFullYear() + 1);
   let make = text(form.get("make"), 40) || null;
   let model = text(form.get("model"), 60) || null;
@@ -121,6 +125,11 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
       if (owner) await recordUsage(lookupCalls);
       return { status: "done", live, history, sources: null, car: null, notes: [...notes, "Couldn't tell the year, make and model, so there's no price check. Paste the listing text too."] };
     }
+    zip ??= validZip(live?.zip);
+    if (!zip) {
+      if (owner) await recordUsage(lookupCalls);
+      return { status: "done", live, history, sources: null, car: { year, make, model, trim: trim ?? live?.trim ?? null, miles }, notes };
+    }
     // Visitors skip MarketCheck's price model (1 call): sold + for-sale comps still price the car.
     const sources = await fetchPriceSources({ vin, year, make, model, trim: trim ?? live?.trim ?? null, miles, zip }, { skipPriceModel: !owner });
     // The owner's meter is per login; visitor use is counted by the guest allowance.
@@ -159,7 +168,7 @@ export async function priceCheckAction(_prev: PriceState, form: FormData): Promi
       }
       if (v) await saveValue(carId, { fairLow: v.low, fairHigh: v.high, dealLabel: v.label, fair: v.fair }, live && !live.removedAt ? { price: live.price, source: live.source } : null, kept);
     }
-    return { status: "done", live, history, sources, car: { year, make, model }, notes };
+    return { status: "done", live, history, sources, car: { year, make, model, trim: trim ?? live?.trim ?? null, miles }, notes };
   } catch (err) {
     console.error("priceCheckAction failed", err instanceof Error ? err.message : "unknown error");
     return { status: "error", message: "Something went wrong while checking the price. Try again." };

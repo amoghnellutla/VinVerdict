@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { estimateFromComps, type Comp } from "./comps";
-import { dealLabel, valueCar, type PriceSources, type ValueInput } from "./estimate";
+import { dealLabel, revalue, valueCar, type PriceSources, type ValueInput } from "./estimate";
 import { parseAutoDevComps, parseMarketCheckComps } from "./parse";
 
 const comp = (price: number, miles: number, year = 2021, extra: Partial<Comp> = {}): Comp => ({
@@ -63,11 +63,40 @@ describe("valueCar", () => {
 
   it("takes an accident and a private seller off the value, and says why in the offer", () => {
     const v = valueCar(src, { ...clean, accident: "reported", sellerType: "private", daysOnMarket: 60 })!;
-    expect(v.adjustments.map((a) => a.label)).toEqual(["Reported accident", "Private seller (no dealer markup)"]);
-    expect(v.fair).toBeLessThanOrEqual(9_100);
+    expect(v.adjustments.map((a) => a.label)).toEqual(["Reported damage", "Private seller (no dealer markup)"]);
+    expect(v.assumesClean).toBe(false);
     expect(v.label).toBe("over");
     expect(v.offer!.open).toBeLessThanOrEqual(v.offer!.max);
     expect(v.offer!.reasons.join(" ")).toMatch(/accident.*60 days/i);
+  });
+
+  it("prices damage as the 3–12% range, and doesn't price severe damage", () => {
+    const cleanV = valueCar(src, { ...clean, price: null, damage: "none" })!;
+    const minor = valueCar(src, { ...clean, price: null, damage: "minor" })!;
+    expect(cleanV.assumesClean).toBe(false);
+    expect(minor.fair).toBe(Math.round((cleanV.fair * 0.925) / 100) * 100);
+    // The range covers the whole study range, wider than the clean car's.
+    expect(minor.low).toBeLessThanOrEqual(Math.round(cleanV.low * 0.88 / 100) * 100 + 100);
+    expect(minor.high).toBeGreaterThanOrEqual(Math.round(cleanV.high * 0.97 / 100) * 100 - 100);
+    const severe = valueCar(src, { ...clean, damage: "severe" })!;
+    expect(severe.label).toBeNull();
+    expect(severe.offer).toBeNull();
+    expect(severe.unpriced).toMatch(/Severe damage/);
+  });
+
+  it("says when it assumed a clean history", () => {
+    expect(valueCar(src, { ...clean, accident: "unknown" })!.assumesClean).toBe(true);
+    expect(valueCar(src, { ...clean, accident: "none" })!.assumesClean).toBe(false);
+  });
+
+  it("re-prices from the comps at new miles without a new lookup", () => {
+    const comps = Array.from({ length: 12 }, (_, i) => ({ price: 20_000 - i * 500, miles: 40_000 + i * 8_000, year: 2019, trim: "LE", sellerType: "dealer" as const, sold: true, url: null, city: null, state: null, daysOnMarket: null, seen: null }));
+    const base = { predicted: 18_000, sold: null, active: null, zip: "08540", comps: { sold: comps, active: [], target: { year: 2019, miles: 60_000, trim: "LE" } } };
+    const low = revalue(base, { year: 2019, miles: 50_000, trim: "LE" });
+    const high = revalue(base, { year: 2019, miles: 110_000, trim: "LE" });
+    expect(low.sold!.value).toBeGreaterThan(high.sold!.value);
+    expect(low.predicted).toBeNull(); // priced for 60k, not 50k
+    expect(revalue(base, { year: 2019, miles: 60_000, trim: "LE" })).toBe(base);
   });
 
   it("is low confidence with one source and still works without a price", () => {

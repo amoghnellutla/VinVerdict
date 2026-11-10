@@ -268,7 +268,7 @@ function Examples({ onOpen, loading, current }: { onOpen: (id: ExampleId) => voi
   return (
     <section className="mb-8 print:hidden" aria-labelledby="examples-title">
       <h2 id="examples-title" className="section-title">Try an example</h2>
-      <p className="-mt-2 mb-4 text-muted">Real listings checked with real data. One click, no sign-up.</p>
+      <p className="-mt-2 mb-4 text-muted">Two real cars and three typical ads, all checked with real recall, complaint and price data. One click, no sign-up.</p>
       <ul className="grid gap-3 sm:grid-cols-2">
         {EXAMPLES.map((e) => (
           <li key={e.id}>

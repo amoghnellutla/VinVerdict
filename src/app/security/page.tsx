@@ -32,7 +32,7 @@ const LAYERS: { title: string; what: string; stops: string }[] = [
   },
   {
     title: "\"I'm human\" check and daily limits for the demo",
-    what: "A live price check spends free-plan data lookups, so demo visitors pass a Cloudflare Turnstile check first, get one live check a day, and share a small daily budget. The limits are kept in the database, so they hold across every server.",
+    what: "A live price check spends free-plan data lookups, so demo visitors pass a Cloudflare Turnstile check first, get two live lookups a day, and share a small daily budget. The limits are kept in the database, so they hold across every server.",
     stops: "Bots and scripts using up the free data plan.",
   },
   {
