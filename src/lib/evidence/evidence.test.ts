@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { summarizeProof, savedProof, type Proof } from "./combine";
 import { classifyProof, readProof } from "./parse";
 
-// Text as it reads off real pages Amogh checked on 2026-11-09 (screenshots of the
+// Text as it reads off real pages checked by hand on 2026-11-09 (screenshots of the
 // 2010 Camry Hybrid 4T1BB3EK2AU119768 on NICB and AutoCheck, and the 2016 Lexus RX 350 Carfax).
 const NICB = `Look up a VIN VINCheck® Results VIN: 4T1BB3EK2AU119768
 VINCheck® Theft Record VIN: 4T1BB3EK2AU119768 has not been identified as a vehicle listed in the VINCheck® Theft Records.

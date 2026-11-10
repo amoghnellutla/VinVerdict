@@ -1,4 +1,4 @@
 {
-  "note": "Amogh's case 1: a link with no VIN. Its makeCode/modelCode/startYear are search filters, not this car, so they must not be read as facts.",
+  "note": "Reported case: a link with no VIN. Its makeCode/modelCode/startYear are search filters, not this car, so they must not be read as facts.",
   "expect": { "kind": "url", "sourceHost": "autotrader.com", "vin": null, "year": null, "make": null, "model": null, "price": null }
 }

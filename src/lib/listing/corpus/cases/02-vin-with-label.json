@@ -1,5 +1,5 @@
 {
-  "note": "Amogh's case 2: a labelled VIN must be a VIN lookup, not a listing with 'No price'.",
+  "note": "Reported case: a labelled VIN must be a VIN lookup, not a listing with 'No price'.",
   "expect": { "kind": "vin", "vin": "4T1C11AK3MU436772", "price": null, "accident": "unknown" },
   "verdict": "clear",
   "mustHit": ["vin-only", "accident-unknown"],

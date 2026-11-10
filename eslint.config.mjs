@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // OCR library files copied from node_modules (scripts/copy-ocr-assets.mjs).
     "public/ocr/**",
+    // Local dot-folders (editor and tool settings) aren't app code.
+    ".*/**",
   ]),
 ]);
 

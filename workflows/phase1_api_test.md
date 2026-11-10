@@ -5,7 +5,7 @@
 ## Inputs
 - `.env` with `MARKETCHECK_API_KEY` and `AUTODEV_API_KEY` (docs/SETUP.md).
 - Python venv: `python -m venv .venv` then `.venv\Scripts\python -m pip install -r tools/requirements.txt`.
-- the owner's go-ahead. MarketCheck and Auto.dev calls cost monthly quota.
+- The owner's go-ahead. MarketCheck and Auto.dev calls cost monthly quota.
 
 ## Call budget
 At most **10 calls per provider** for all of Phase 1. Every probe is a dry run unless `--confirm` is passed. Log each confirmed call in the table at the bottom.

@@ -35,4 +35,4 @@ Listing corpus scorecard (26 cases)
 
 ## Privacy
 
-Listings are public, but remove phone numbers, emails and personal names before saving a case. Cases 02 and 18 are Amogh's exact inputs. Case 01 is rebuilt from the real AutoTrader listing in Amogh's screenshots, with some typical page text added (seller notes, stock number). The others are realistic reconstructions of each site's format, with made-up VINs that pass the check digit. Real pasted pages are better than reconstructions, so replace or add to them as you check real cars.
+Listings are public, but remove phone numbers, emails and personal names before saving a case. Cases 02 and 18 are the owner's exact inputs. Case 01 is rebuilt from the real AutoTrader listing in Amogh's screenshots, with some typical page text added (seller notes, stock number). The others are realistic reconstructions of each site's format, with made-up VINs that pass the check digit. Real pasted pages are better than reconstructions, so replace or add to them as you check real cars.
