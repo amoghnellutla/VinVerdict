@@ -358,6 +358,126 @@
       "basis": "ftcApps",
       "text": "2017 Toyota RAV4 $5,200\n77k miles\nTo set up a viewing I ask for a refundable $150 fee by Cash App first, too many time wasters.",
       "note": "Moved from the held-out set: missed on the first held-out run (2026-11-10), rule fixed."
+    },
+    {
+      "id": "s27-holding-payment-apple-pay",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ftcApps",
+      "text": "2018 Toyota Camry LE $5,100\n59,000 miles\nI have a lot of interest so I need a small holding payment through Apple Pay Cash before I give you the address. Car comes with a clean title.",
+      "note": "Moved from the held-out set: regressed when Apple Pay was added as a payment app (2026-11-10), rule fixed."
+    },
+    {
+      "id": "s28-cant-meet-drop-off",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2018 Honda Accord Sport $5,200\n61,000 miles\nI can't meet in person, I'm on a business trip. My brother will drop it off after you pay.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s29-shipped-once-paid",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2017 Toyota Camry $4,900\n70,000 miles\nCar is at my uncle's in another state, he can have it shipped once payment clears.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s30-shorthand-zelle-first",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2019 Honda Civic $5,100\n44k miles\nPay w/ Zelle 1st then I send the address.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s31-working-overseas",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2016 Toyota RAV4 $4,800\n80,000 miles\nIm a nurse working overseas, car is w a shipping co. Pay them and they bring it.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s32-send-money-mail-title",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2018 Mazda CX-5 $5,500\n55,000 miles\nI won't be able to show it, I'm out of town. Send the money and I'll mail the title and keys.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s33-ebay-buyer-protection",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2019 Toyota Corolla $5,000\n38,000 miles\nBuyer protection through eBay, you get 5 days to return it.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s34-google-play-cards",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2017 Honda CR-V $4,600\n76,000 miles\nYou can pay with Google Play cards, I'll accept that as payment.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s35-holding-fee-venmo",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2018 Subaru Outback $5,400\n60,000 miles\nRefundable holding fee of $150 via Venmo to schedule a viewing.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "s36-chime-half",
+      "origin": "synthetic",
+      "scam": true,
+      "basis": "ic3",
+      "text": "2016 Honda Pilot $5,300\n95,000 miles\nSend half via Chime and the rest on delivery.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "l26-cant-meet-until",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2017 Honda Accord LX $11,900\n88,000 miles\nI can't meet until Saturday, but come see it then and bring a mechanic.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "l27-deliver-after-seen",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2018 Toyota Camry SE $15,400\n66,000 miles\nI can deliver it after you've seen it and paid at the bank.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "l28-no-chime",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2016 Mazda Mazda3 $9,800\n90,000 miles\nNo Chime or Apple Pay, cash only when you see it.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "l29-son-working-overseas",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2017 Honda Civic EX $12,200\n71,000 miles\nMy son is working overseas, I'm selling his car here in Edison. Come by.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
+    },
+    {
+      "id": "l30-half-the-reason",
+      "origin": "synthetic",
+      "scam": false,
+      "basis": "legit",
+      "text": "2015 Toyota Highlander $14,900\n120,000 miles\nHalf the reason I'm selling is the gas mileage, the rest is I need a truck.",
+      "note": "Paraphrase probe (2026-11-10): written to find wording gaps, used for tuning."
     }
   ]
 }

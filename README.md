@@ -136,8 +136,8 @@ These limits are deliberate. A tool that sounds sure when it isn't does more har
 | Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
 | --- | --- | --- | --- |
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 of 12 | 0 of 13 | 100% |
-| VinVerdict, tuning ads | 28 of 28 | 0 of 46 | 100% |
-| A keyword filter (payment app, shipping, deposit, away) | 27 of 28 | **19 of 46** | 59% |
+| VinVerdict, tuning ads | 38 of 38 | 0 of 51 | 100% |
+| A keyword filter (payment app, shipping, deposit, away) | 33 of 38 | **21 of 51** | 61% |
 | VinVerdict, **seller replies** (written before the first measurement) | 12 of 12 | 0 of 13 | 100% |
 | The keyword filter, same replies | 10 of 12 | **7 of 13** | 59% |
 

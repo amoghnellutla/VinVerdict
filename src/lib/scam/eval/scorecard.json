@@ -2,28 +2,28 @@
   "generated": "2026-11-10",
   "definition": "Flagged = VinVerdict says 'Stop: serious warning' because of the listing or the payment. Baseline = flags any ad mentioning a payment app, shipping, a deposit, a wire, escrow or the seller being away.",
   "vinverdict": {
-    "cases": 74,
-    "scams": 28,
-    "legit": 46,
-    "tp": 28,
+    "cases": 89,
+    "scams": 38,
+    "legit": 51,
+    "tp": 38,
     "fp": 0,
     "fn": 0,
-    "tn": 46,
+    "tn": 51,
     "precision": 1,
     "recall": 1,
     "falseAlarmRate": 0
   },
   "baseline": {
-    "cases": 74,
-    "scams": 28,
-    "legit": 46,
-    "tp": 27,
-    "fp": 19,
-    "fn": 1,
-    "tn": 27,
-    "precision": 0.587,
-    "recall": 0.964,
-    "falseAlarmRate": 0.413
+    "cases": 89,
+    "scams": 38,
+    "legit": 51,
+    "tp": 33,
+    "fp": 21,
+    "fn": 5,
+    "tn": 30,
+    "precision": 0.611,
+    "recall": 0.868,
+    "falseAlarmRate": 0.412
   },
   "byOrigin": {
     "real": {
@@ -39,13 +39,13 @@
       "falseAlarmRate": 0
     },
     "synthetic": {
-      "cases": 73,
-      "scams": 28,
-      "legit": 45,
-      "tp": 28,
+      "cases": 88,
+      "scams": 38,
+      "legit": 50,
+      "tp": 38,
       "fp": 0,
       "fn": 0,
-      "tn": 45,
+      "tn": 50,
       "precision": 1,
       "recall": 1,
       "falseAlarmRate": 0

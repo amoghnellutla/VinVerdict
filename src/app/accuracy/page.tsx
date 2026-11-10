@@ -115,6 +115,12 @@ export default function AccuracyPage() {
             of them exposed a gap, it moved to the tuning set and a new held-out ad replaced it. First held-out run: {holdout.firstRun.replace(/^[\d-]+: /, "").replace(/ \(moved to cases\.json after the fix\)/, "; that ad then joined the tuning set")}
           </li>
           <li>
+            <strong>The held-out ads also catch regressions.</strong> Adding Apple Pay and Chime as payment apps made one held-out scam (a &quot;holding payment&quot;
+            through Apple Pay Cash) slip to a weaker warning; it was fixed, moved to the tuning set and replaced. Rewording probes (&quot;w/ Zelle 1st&quot;,
+            &quot;can&apos;t meet in person&quot;, &quot;Google Play cards&quot;) found nine more gaps, now fixed and kept as tuning ads, next to honest look-alikes such
+            as &quot;can&apos;t meet until Saturday&quot;.
+          </li>
+          <li>
             <strong>Getting better was measurable.</strong> Before context-aware rules (the same week), the tuning ads scored 100% caught but <strong>20% false
             alarms</strong> (9 of 46 honest ads told to stop), against 41% for the keyword filter.
           </li>

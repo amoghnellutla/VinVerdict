@@ -69,9 +69,21 @@ const sentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/);
 const CAN_SEE =
   /come (and |by )?see|see it (in person|first|any)|test drive|bring (a |your )?mechanic|(after|once) you('ve| have)? (seen|inspected|test)|welcome to come|for a viewing|come by/;
 
+/** Chat shorthand spelled out, so "pay w/ zelle 1st" reads like "pay with zelle first". */
+function expandShorthand(t: string): string {
+  return t
+    .replace(/\bw\/\s?/g, "with ")
+    .replace(/\b1st\b/g, "first")
+    .replace(/\bb4\b/g, "before")
+    .replace(/\bthru\b/g, "through")
+    .replace(/\b(shipping|transport|trucking) co\b\.?/g, "$1 company")
+    .replace(/\bw (a|an|the|my) /g, "with $1 ")
+    .replace(/\bim\b/g, "i'm");
+}
+
 export function evaluateScamRules(input: ScamInput): ScamResult {
   const { listing: l, decoded, checklist: c = {} } = input;
-  const t = normalizeText(input.text);
+  const t = expandShorthand(normalizeText(input.text));
   const hits: RuleHit[] = [];
   const add = (id: string, action: RuleAction, title: string, reason: string) => hits.push({ id, action, title, reason });
 
@@ -123,7 +135,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // Gift cards as payment, not in passing ("the unused car wash gift card") or in a
   // warning ("scammers asking about gift cards, don't bother").
   const giftPay = sentences(t).some((x) => {
-    const m = /\bgift ?cards?\b/.exec(x);
+    const m = /\bgift ?cards?\b|\b(google play|itunes|steam|vanilla|razer gold) (gift )?cards?\b/.exec(x);
     if (!m || /scam/.test(x)) return false;
     const before = x.slice(0, m.index);
     return /\b(pay|payment|deposit|accept\w*|send|only|card numbers?)\b/.test(x) && !/\b(no|not|don'?t|won'?t|never|without)\b[^.!?]{0,25}$/.test(before);
@@ -141,9 +153,9 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   const dealer = l.sellerType === "dealer";
   // Money before seeing the car, however it's named: a deposit, a "refundable viewing fee", "send it first".
   const upfront =
-    /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)|\b(viewing|showing|reservation) fee\b|fee (to|for) (see|view|set up|schedule)|to set up a viewing|(cash ?app|zelle|venmo|paypal)[^.!?]{0,15}\bfirst\b/.test(t);
+    /\bdeposit\b|\bupfront\b|up front|in advance|before (you )?(see|view|come)|to hold (it|the car)|\b(viewing|showing|reservation|holding|hold) fee\b|fee[^.!?]{0,30}\bto (see|view|set up|schedule)|to (set up|schedule) a viewing|(cash ?app|zelle|venmo|paypal|chime)[^.!?]{0,15}\bfirst\b|\bholding (payment|deposit)\b|before i (give|send|text) you the address|\b(half|part)\b[^.!?]{0,25}\b(rest|balance|remainder)\b[^.!?]{0,15}\b(on|at|upon|after) (delivery|pickup)/.test(t);
   // "I don't take Zelle or Venmo, cash only" isn't a payment-app request.
-  if (hasUnnegated(t, /\b(zelle|cash ?app|venmo|paypal|crypto|bitcoin)\b/)) {
+  if (hasUnnegated(t, /\b(zelle|cash ?app|venmo|paypal|chime|apple (pay|cash)|crypto|bitcoin|usdt)\b/)) {
     if (upfront && !dealer) {
       add("pay-app-upfront", "hide", "Payment-app deposit upfront",
         "Asking for Zelle/Cash App/Venmo money before you see the car is the most common used-car scam.");
@@ -159,18 +171,32 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // car, not "also listed on eBay Motors" or "in storage for the winter".
   const shippingStory =
     /ebay motors[^.!?]{0,80}(protection|escrow|agent|ship|warehouse|deliver)|(protection|escrow|agent|shipping company)[^.!?]{0,40}ebay motors/.test(t) ||
+    /(buyer|purchase|vehicle) protection[^.!?]{0,30}\bebay\b|\bebay\b[^.!?]{0,30}(buyer|purchase|vehicle) protection/.test(t) ||
     /(car|vehicle) is (already )?(in|at|with) (a |an |the |their )?(shipping company|warehouse|transport company)/.test(t) ||
     (/\bstorage\b/.test(t) && /(transport|shipping) company|escrow|\bagent\b/.test(t));
   const shipsOnly = /\b(will|can|i'll|we'll|free) ship\b|shipping (only|included|available|is free)|delivery only/.test(t);
   // "I can ship it after you've inspected it" is a service, not the scam.
-  if (shippingStory || (shipsOnly && !dealer && !CAN_SEE.test(t))) {
-    add("shipping-only", "hide", "Shipping only", "A seller who can only ship the car (not show it) is a classic scam.");
+  // "My brother will drop it off after you pay", "shipped once payment clears", "send the money and I'll mail the title":
+  // payment first, car delivered later, from someone who doesn't offer a viewing.
+  const payThenDeliver =
+    /(drop (it|the car) off|deliver(ed)?|bring (it|the car)|ship(ped)?|mail(ed)?)\b[^.!?]{0,40}\b(after|once|when) (you )?(pay|send|the payment|payment|the money|funds)/.test(t) ||
+    /\b(after|once) (you )?(pay|send the money|payment (clears|is made|is complete))\b[^.!?]{0,40}\b(deliver|ship|drop|bring|mail)/.test(t) ||
+    /\bsend (me )?(the )?(money|payment|funds)\b[^.!?]{0,40}\b(mail|ship|deliver|drop)/.test(t);
+  if (shippingStory || (shipsOnly && !dealer && !CAN_SEE.test(t)) || (payThenDeliver && !dealer && !CAN_SEE.test(t))) {
+    add("shipping-only", "hide", "Shipping only", "A seller who can only ship or drop off the car after payment (not show it) is a classic scam.");
   }
   // The seller is away *now* ("I am deployed overseas", "I'm out of the country"), not
   // "I'm stationed at Joint Base McGuire, see it any evening" or "moving out of state next month".
   const awayNow =
     /\b(i'?m|i am|we'?re|we are|currently|now) (currently |now )?(deployed|overseas|out of the country|abroad|stationed overseas|on (a )?(military )?(deployment|mission))\b|deployed overseas|stationed overseas|mission trip abroad|i('m| am) (currently )?(out of state|not local)|seller is (out of state|abroad)/;
-  if (awayNow.test(t) || c.meetsInPersonLocally === false) {
+  // "I'm a nurse working overseas" (first person only: "my daughter is stationed in Germany, I'm selling it here" is fine).
+  const workingAway = /\bi('m| am) (a [a-z]+ )?(working|living|based|serving|stationed) (overseas|abroad|out of the country|in (germany|japan|korea|italy|alaska|hawaii|another state))\b/;
+  // "I can't meet in person", "I won't be able to show it": never, not "can't meet until Saturday".
+  const cantMeet = sentences(t).some((x) => {
+    const m = /\b(can'?t|cannot|won'?t be able to|unable to|not able to) (meet( in person| up)?|show (it|the car|you the car)|do (any )?viewings?|let you see (it|the car))\b/.exec(x);
+    return !!m && !/\b(until|till|before|today|tonight|tomorrow|this (week|weekend)|but|on (mon|tue|wed|thu|fri|sat|sun))/.test(x.slice(m.index + m[0].length, m.index + m[0].length + 40));
+  });
+  if (awayNow.test(t) || workingAway.test(t) || cantMeet || c.meetsInPersonLocally === false) {
     add("seller-remote", "hide", "Seller isn't local",
       "The seller is out of state, overseas or won't meet in person. That's the most common fake-listing story: you can't see the car or the title, so don't send money.");
   }

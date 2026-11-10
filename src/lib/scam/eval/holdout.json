@@ -9,11 +9,11 @@
       "text": "2018 Honda Accord LX $4,800\n63,000 miles\nI travel for work and I'm currently overseas, the car is handled by my logistics partner who delivers nationwide. Send the payment and they dispatch it the same day."
     },
     {
-      "id": "h13-hold-fee-apple-pay",
+      "id": "h14-pay-then-dropoff",
       "origin": "synthetic",
       "scam": true,
-      "basis": "ftcApps",
-      "text": "2018 Toyota Camry LE $5,100\n59,000 miles\nI have a lot of interest so I need a small holding payment through Apple Pay Cash before I give you the address. Car comes with a clean title."
+      "basis": "ic3",
+      "text": "2017 Honda HR-V $4,700\n58,000 miles\nI'm away for work right now. Once you send the payment my friend can drop it off at your place with the title."
     },
     {
       "id": "h03-target-cards",
@@ -177,5 +177,6 @@
       "text": "2019 Honda HR-V $16,700\n41,000 miles\nCome see it first in New Brunswick. If you buy it, I can deliver it within 20 miles for free."
     }
   ],
-  "firstRun": "2026-11-10: precision 100%, recall 92% (11 of 12), false alarms 0% (0 of 13). Missed: a refundable viewing fee by Cash App (moved to cases.json after the fix)."
+  "firstRun": "2026-11-10: precision 100%, recall 92% (11 of 12), false alarms 0% (0 of 13). Missed: a refundable viewing fee by Cash App (moved to cases.json after the fix).",
+  "secondRun": "2026-11-10: after adding Apple Pay and Chime as payment apps, h13 (a holding payment through Apple Pay Cash) slipped from deposit-first to a weaker rule; fixed, moved to cases.json, replaced by h14."
 }
