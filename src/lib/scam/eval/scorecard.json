@@ -2,38 +2,38 @@
   "generated": "2026-11-10",
   "definition": "Flagged = VinVerdict says 'Stop: serious warning' because of the listing or the payment. Baseline = flags any ad mentioning a payment app, shipping, a deposit, a wire, escrow or the seller being away.",
   "vinverdict": {
-    "cases": 91,
+    "cases": 92,
     "scams": 38,
-    "legit": 53,
+    "legit": 54,
     "tp": 38,
     "fp": 0,
     "fn": 0,
-    "tn": 53,
+    "tn": 54,
     "precision": 1,
     "recall": 1,
     "falseAlarmRate": 0
   },
   "baseline": {
-    "cases": 91,
+    "cases": 92,
     "scams": 38,
-    "legit": 53,
+    "legit": 54,
     "tp": 33,
-    "fp": 23,
+    "fp": 24,
     "fn": 5,
     "tn": 30,
-    "precision": 0.589,
+    "precision": 0.579,
     "recall": 0.868,
-    "falseAlarmRate": 0.434
+    "falseAlarmRate": 0.444
   },
   "byOrigin": {
     "real": {
-      "cases": 3,
+      "cases": 4,
       "scams": 0,
-      "legit": 3,
+      "legit": 4,
       "tp": 0,
       "fp": 0,
       "fn": 0,
-      "tn": 3,
+      "tn": 4,
       "precision": 0,
       "recall": 0,
       "falseAlarmRate": 0
@@ -88,18 +88,18 @@
     "falseAlarmRate": 0.538
   },
   "learned": {
-    "trainedOn": 91,
+    "trainedOn": 92,
     "crossValidated": {
-      "cases": 91,
+      "cases": 92,
       "scams": 38,
-      "legit": 53,
-      "tp": 32,
+      "legit": 54,
+      "tp": 30,
       "fp": 4,
-      "fn": 6,
-      "tn": 49,
-      "precision": 0.889,
-      "recall": 0.842,
-      "falseAlarmRate": 0.075
+      "fn": 8,
+      "tn": 50,
+      "precision": 0.882,
+      "recall": 0.789,
+      "falseAlarmRate": 0.074
     },
     "heldOut": {
       "cases": 25,
@@ -128,16 +128,16 @@
     "topFeatures": [
       "to you",
       "it to",
-      "the car",
       "send",
       "will",
       "i'm out",
       "so i",
       "will ship",
+      "the car",
       "a $#",
       "agent",
-      "am",
-      "and i'll"
+      "and i'll",
+      "buyer"
     ]
   },
   "misses": []

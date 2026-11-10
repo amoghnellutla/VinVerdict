@@ -14,22 +14,32 @@ const QUESTIONS: { key: Key; q: string; good: boolean }[] = [
   { key: "meetsInPersonLocally", q: "Will they meet in person, locally, with the title in hand?", good: true },
 ];
 
+/** Private-seller questions that don't fit a dealer: a dealer's title paperwork and a far-away showroom are normal. */
+export const PRIVATE_ONLY: Key[] = ["titleInSellerName", "meetsInPersonLocally"];
+
 const ALSO_ASK = [
   "Do you have service records?",
   "How many owners has it had?",
   "Why are you selling?",
   "Any warning lights, leaks or noises?",
 ];
+const ALSO_ASK_DEALER = [
+  "Do you have its service records?",
+  "How many owners has it had?",
+  "What's the out-the-door price with every fee, in writing?",
+  "Any warning lights, leaks or noises?",
+];
 
-type Props = { value: SellerChecklist; onChange: (next: SellerChecklist) => void; children?: ReactNode };
+type Props = { value: SellerChecklist; onChange: (next: SellerChecklist) => void; dealer?: boolean; children?: ReactNode };
 
-export function Checklist({ value, onChange, children }: Props) {
+export function Checklist({ value, onChange, dealer = false, children }: Props) {
+  const questions = dealer ? QUESTIONS.filter((x) => !PRIVATE_ONLY.includes(x.key)) : QUESTIONS;
   return (
     <section className="border-t border-border pt-8">
       <h2 className="section-title">Ask the seller</h2>
       <p className="mt-1 text-sm text-muted">Record their answers. The verdict above updates as you go.</p>
       <ul className="mt-4 divide-y divide-border">
-        {QUESTIONS.map(({ key, q, good }) => {
+        {questions.map(({ key, q, good }) => {
           const answer = value[key];
           const set = (v: boolean | null) => onChange({ ...value, [key]: v });
           const bad = answer != null && answer !== good;
@@ -53,7 +63,7 @@ export function Checklist({ value, onChange, children }: Props) {
           );
         })}
       </ul>
-      <p className="mt-4 text-sm text-muted">Also ask: {ALSO_ASK.join(" · ")}</p>
+      <p className="mt-4 text-sm text-muted">Also ask: {(dealer ? ALSO_ASK_DEALER : ALSO_ASK).join(" ")}</p>
       {children}
     </section>
   );

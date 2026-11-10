@@ -26,6 +26,17 @@ describe("sellerMessage", () => {
     expect(sellerMessage({ ...base, hits: hit("odometer-unknown") })).toMatch(/title say about the mileage/);
   });
 
+  it("asks about a branded title and an auction the ad admits, instead of 'is it clean?' (real case 29)", () => {
+    const hits = [
+      { id: "title-brand", action: "hide" as const, title: "Rebuilt title", reason: "" },
+      { id: "auction", action: "hide" as const, title: "Auction car", reason: "" },
+    ];
+    const text = sellerMessage({ ...base, hits });
+    expect(text).toMatch(/The ad says it has a rebuilt title\. What happened to it, what was repaired/);
+    expect(text).toMatch(/auction listing or its photos/);
+    expect(text).not.toMatch(/is it clean/);
+  });
+
   it("makes three-word phrases from the word list", () => {
     let i = 0;
     const seq = [0, 24, 47];

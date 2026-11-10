@@ -90,15 +90,22 @@ function parseNumber(num: string, k?: string): number {
   return k ? Math.round(n * 1000) : n;
 }
 
+// Links a listing page often contains that are never the listing itself: the seller's
+// walk-around video, social profiles, photo albums, maps, and history-report links.
+const NOT_LISTING_HOST = /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|imgur\.com|dropbox\.com|maps\.app\.goo\.gl|goo\.gl|carfax\.com|autocheck\.com|nhtsa\.gov|vehiclehistory\.gov)$/;
+
 function findUrl(raw: string): { url: string | null; host: string | null } {
-  const m = raw.match(/https?:\/\/[^\s<>"')]+/i);
-  if (!m) return { url: null, host: null };
-  try {
-    const u = new URL(m[0]);
-    return { url: u.toString(), host: u.hostname.replace(/^www\./, "") };
-  } catch {
-    return { url: null, host: null };
+  for (const m of raw.matchAll(/https?:\/\/[^\s<>"')]+/gi)) {
+    try {
+      const u = new URL(m[0]);
+      const host = u.hostname.replace(/^www\./, "");
+      if (NOT_LISTING_HOST.test(host) || (host === "google.com" && /^\/maps/.test(u.pathname))) continue;
+      return { url: u.toString(), host };
+    } catch {
+      // not a valid URL: try the next one
+    }
   }
+  return { url: null, host: null };
 }
 
 function findVin(raw: string): string | null {
@@ -167,9 +174,19 @@ function findYear(text: string, makeAt: number): number | null {
 
 function findDocFee(text: string): number | null {
   const ok = (n: number) => n > 0 && n <= 3_000;
-  // Autotrader sums every dealer fee for you: "Dealer fees ($1,494) included" (a $995 dealer fee + a $499 e-filing fee).
-  const total = text.match(/\bdealer fees \(\$\s?(\d,\d{3}|\d{1,4})(?:\.\d{2})?\) included\b/);
-  if (total && ok(Number(total[1].replace(",", "")))) return Number(total[1].replace(",", ""));
+  // Autotrader's price box lists each fee between the listing price and the total:
+  // "Listing Price $11,995 Title Fee + $18 Temp Tag Fee + $23 Doc Fee + $398 Total Price $12,434".
+  // Add up the dealer's own fees only: title, tag and registration are state fees that the
+  // out-the-door cost adds itself (the box's "Dealer fees ($439)" total would count them twice).
+  const box = text.match(/\blisting price \$[\d,]+ (.{0,300}?)\btotal price\b/);
+  if (box) {
+    const items = [...box[1].matchAll(/([a-z][a-z -]{0,40}?) fees? \+ \$(\d{1,2},\d{3}|\d{1,4})/g)];
+    if (items.length) {
+      const dealer = items.filter((m) => !/\b(title|tags?|registration|licen[cs]e|plates?|tax(es)?|state|dmv|government)\b/.test(m[1]));
+      const sum = dealer.reduce((n, m) => n + Number(m[2].replace(",", "")), 0);
+      return ok(sum) ? sum : null;
+    }
+  }
   const m =
     text.match(/\bdoc(?:ument(?:ation|ary))?\.? fees?\b[^$\d]{0,12}\$?\s?(\d{1,4}(?:\.\d{2})?)\b/) ??
     text.match(/\$\s?(\d{1,4}(?:\.\d{2})?)\s+doc(?:ument(?:ation|ary))?\.? fees?\b/);
@@ -258,6 +275,8 @@ function findTitle(text: string): TitleStatus {
   // Cars.com: "Clean title: No" means the title is branded.
   // Needs the colon (or the box's next label / end of text) so "clean title no accidents" stays clean.
   if (/\bclean title:\s*no\b|\bclean title no(?= open recall| personal use| 1-owner|$)/.test(text)) return "branded";
+  // "Rebuilt salvage title", "rebuilt from salvage": salvaged once, now repaired and re-titled.
+  if (hasUnnegated(text, /\brebuilt[- ]salvage\b|\bsalvage[- ]rebuilt\b|\brebuilt (?:from|after) (?:a )?salvage\b|\bsalvaged?\b[^.]{0,40}\b(?:now|has) (?:a )?rebuilt\b/)) return "rebuilt";
   if (hasUnnegated(text, /\bsalvaged?\b/)) return "salvage";
   if (hasUnnegated(text, /\b(rebuilt|rebuild|reconstructed|restored) title\b|\brebuilt\b(?! (engine|transmission|motor|trans))/)) return "rebuilt";
   if (hasUnnegated(text, /\bflood(ed)?\b|water damage/)) return "flood";
@@ -300,7 +319,9 @@ function findColor(text: string): string | null {
   const list = COLORS.join("|");
   const labelled =
     // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
-    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b`)) ??
+    // Not a part's colour ("Exterior: Black Grille", "black side windows trim") or the next
+    // line's interior ("Gravity Grey Exterior / Black Interior" reads "exterior black interior").
+    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?)\\b)`)) ??
     text.match(new RegExp(`(?<!interior )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));

@@ -202,7 +202,8 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   }
 
   // --- Auction source ---
-  if (/auction pric|\bcopart\b|\biaai?\b|insurance auction|salvage auction|auction (car|vehicle)/.test(t)) {
+  // "Auction photos documenting the vehicle's condition prior to repairs" says where it came from too.
+  if (/auction pric|\bcopart\b|\biaai?\b|insurance auction|salvage auction|auction (car|vehicle|photos?|pictures?)|(bought|purchased) (it )?(at|from) (an |the )?auction/.test(t)) {
     add("auction", "hide", "Auction car", "Auction-sourced cars often have hidden damage or branded titles.");
   }
 

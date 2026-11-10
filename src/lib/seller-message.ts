@@ -63,7 +63,14 @@ export function sellerMessage(m: MessageInput): string {
   } else if (has("mileage-low")) {
     q.push("The miles are very low for its age. Could you send a photo of the odometer today, and service records that show past readings?");
   }
-  if (!dealer && c.titleInSellerName == null) q.push("Is the title in your name, and is it clean (no salvage, rebuilt or flood brand)?");
+  // A branded title the ad already admits: ask about the damage and the repair, not "is it clean?".
+  const brand = m.hits.find((h) => h.id === "title-brand");
+  if (brand) {
+    q.push(`The ad says it has a ${brand.title.toLowerCase()}. What happened to it, what was repaired and by whom, and can you send the repair invoices and photos from before the repair?`);
+  } else if (!dealer && c.titleInSellerName == null) {
+    q.push("Is the title in your name, and is it clean (no salvage, rebuilt or flood brand)?");
+  }
+  if (has("auction")) q.push("Where was it bought at auction? Could you send the auction listing or its photos?");
   if (dealer) q.push("Could you send the Carfax or AutoCheck report, and the out-the-door price with every fee?");
   if (c.anyAccidents == null && !has("accident-reported") && !has("live-accident")) q.push("Has it been in any accident, even a small one?");
   if (has("accident-reported") || has("live-accident")) q.push("What was damaged in the accident, and do you have the repair invoice?");

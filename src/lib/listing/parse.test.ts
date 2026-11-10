@@ -227,8 +227,31 @@ describe("expensive cars and dealer fees (real case 28)", () => {
     expect(parseListing("2026 Porsche 911 Turbo S. Sport Tailpipes $630. Listing Price $435,640").price).toBe(435640);
     expect(parseListing("Listing Price $1,250,000").price).toBeNull();
   });
-  it("takes Autotrader's dealer-fee total when it shows one", () => {
-    expect(parseListing("Dealer Fee + $995 Electronic Filing Fee + $499 Dealer fees ($1,494) included.").docFee).toBe(1494);
+  it("adds up the dealer's own fees from Autotrader's price box, not the state's (cases 28, 29)", () => {
+    expect(parseListing("Listing Price $435,640 Dealer Fee + $995 Electronic Filing Fee + $499 Total Price $437,134 Dealer fees ($1,494) included.").docFee).toBe(1494);
+    expect(parseListing("Listing Price $11,995 Title Fee + $18 Temp Tag Fee + $23 Doc Fee + $398 Total Price $12,434 Dealer fees ($439) included.").docFee).toBe(398);
+    // Only state fees in the box: no dealer fee to report.
+    expect(parseListing("Listing Price $9,995 Title Fee + $18 Registration Fee + $40 Total Price $10,053").docFee).toBeNull();
+    // The box's mixed total alone isn't used: it can include state fees.
+    expect(parseListing("2019 Kia Forte $11,995 Dealer fees ($439) included.").docFee).toBeNull();
     expect(parseListing("Doc fee $499").docFee).toBe(499);
+  });
+});
+
+describe("rebuilt salvage titles, auction cars and links that aren't the listing (real case 29)", () => {
+  it("reads a rebuilt salvage title as rebuilt, a plain salvage title as salvage", () => {
+    expect(parseListing("This Vehicle Holds a Rebuilt Salvage Title").titleStatus).toBe("rebuilt");
+    expect(parseListing("rebuilt from salvage, drives great").titleStatus).toBe("rebuilt");
+    expect(parseListing("previously salvaged, now has a rebuilt title").titleStatus).toBe("rebuilt");
+    expect(parseListing("salvage title, needs work").titleStatus).toBe("salvage");
+  });
+  it("reads the exterior colour, not a part's colour or the interior line", () => {
+    expect(parseListing("Gravity Grey Exterior Black Interior Exterior Black Grille w/Chrome Surround").exteriorColor).toBe("gray");
+    expect(parseListing("Exterior color: White").exteriorColor).toBe("white");
+    expect(parseListing("Exterior Black Sapphire Metallic Rear Spoiler").exteriorColor).toBe("black");
+  });
+  it("doesn't take the seller's video, a Carfax link or a map as the listing's address", () => {
+    expect(parseListing("2019 Kia Forte <a href=https://www.youtube.com/watch?v=abc>walk-around</a>")).toMatchObject({ url: null, sourceHost: null });
+    expect(parseListing("Free report https://www.carfax.com/VehicleHistory/p/Report.cfx?vin=1 and https://www.cars.com/vehicledetail/123/").sourceHost).toBe("cars.com");
   });
 });

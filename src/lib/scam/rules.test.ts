@@ -137,3 +137,12 @@ describe("odometer the seller says is wrong", () => {
     }
   });
 });
+
+describe("auction-sourced cars (real case 29)", () => {
+  it("counts auction photos and 'bought at auction', not an auction-free mention", () => {
+    for (const s of ["Auction photos documenting the vehicle's condition prior to repairs are available.", "I bought it at an auction last year."]) {
+      expect(ids(run(`${GOOD_TEXT} ${s}`, { decoded: DECODED })), s).toContain("auction");
+    }
+    expect(ids(run(`${GOOD_TEXT} Never been to an auction lot, one owner.`, { decoded: DECODED }))).not.toContain("auction");
+  });
+});

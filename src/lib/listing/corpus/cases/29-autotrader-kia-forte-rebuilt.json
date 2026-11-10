@@ -1,0 +1,28 @@
+{
+  "note": "Real Autotrader page pasted by Amogh (Ctrl+A, 2026-11-10); dealer phone removed. Answers read from the page by hand before running VinVerdict. A dealer honestly disclosing a branded title: 'This Vehicle Holds a Rebuilt Salvage Title in this case vehicle was recovered after theft', history box 'Branded Title / Multiple Owners', 'Auction photos documenting the vehicle's condition prior to repairs'. Traps: the fee box adds state fees to the dealer's ('Title Fee + $18', 'Temp Tag Fee + $23', 'Doc Fee + $398', 'Dealer fees ($439) included'), and VinVerdict's out-the-door cost adds title and tag itself, so the dealer fee is the $398 doc fee; 'Nationwide shipping available' and 'shipped right to your doorstep' from a dealer; '314 mi away' before the odometer; '6 Month/7,500 Mile' service contract and '5 years/60,000 miles' warranty; 'Collision Mitigation-Front', 'Forward Collision-Avoidance Assist'; a raw HTML link in the description (must stay plain text); 'Multiple Owners' gives no count; no accident is stated either way.",
+  "expect": {
+    "kind": "text",
+    "vin": "3KPF24AD3KE099260",
+    "year": 2019,
+    "make": "Kia",
+    "model": "Forte",
+    "price": 11995,
+    "docFee": 398,
+    "miles": 39189,
+    "transmission": "automatic",
+    "titleStatus": "rebuilt",
+    "accident": "unknown",
+    "exteriorColor": "gray",
+    "ownerCount": null,
+    "sellerType": "dealer",
+    "distanceMiles": 314
+  },
+  "verdict": "hide",
+  "mustHit": ["title-brand", "auction", "far-away"],
+  "mustNotHit": [
+    "no-price", "no-vin", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "shipping-only", "seller-remote",
+    "accident-reported", "mileage-low", "high-miles", "rushed", "lien", "manual", "odometer-unknown", "curbstoning"
+  ],
+  "scam": false,
+  "origin": "real"
+}

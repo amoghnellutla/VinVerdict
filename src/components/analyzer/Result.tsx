@@ -190,6 +190,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     recalls: a.recalls?.length ?? null,
     report: answers,
     checklist,
+    dealer: m.listing.sellerType === "dealer",
     listingStatesHistory: accidentHistoryConfirmed(m.listing, EMPTY_REPORT),
     priced: !!sources,
     price: valuation ? { label: valuation.label, low: valuation.low, high: valuation.high, confidence: valuation.confidence, unpriced: valuation.unpriced } : null,
@@ -367,7 +368,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
                 id: "ask",
                 label: "Ask the seller",
                 content: (
-                  <Checklist value={checklist} onChange={setChecklist}>
+                  <Checklist value={checklist} onChange={setChecklist} dealer={m.listing.sellerType === "dealer"}>
                     <SellerMessage
                       carName={carName(m)}
                       listing={m.listing}

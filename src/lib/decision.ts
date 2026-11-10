@@ -148,6 +148,8 @@ export type DecisionInput = {
   recalls: number | null;
   report: ReportAnswers;
   checklist: SellerChecklist;
+  /** A dealer listing: the private-seller questions (title in their own name, meet locally) aren't asked. */
+  dealer?: boolean;
   /** The listing itself states its accident history (a dealer page's own claim). */
   listingStatesHistory: boolean;
   /** The price check has run. */
@@ -181,7 +183,11 @@ export function decide(d: DecisionInput): Decision {
   const carUnknown: string[] = [];
   const historyKnown = d.report.damage !== "unknown" || d.listingStatesHistory;
   if (d.report.damage === "unknown") carUnknown.push(d.listingStatesHistory ? "Accident history: only the listing's own claim; open the history report to confirm" : "Accident history: not checked (open a history report)");
-  if (d.report.title === "unknown") carUnknown.push("Title brands (salvage, flood, rebuilt): not checked");
+  if (d.report.title === "unknown") {
+    // When the ad itself names a brand, say so: "not checked" alone reads as if the brand was missed.
+    const adBrand = findings.find((f) => baseId(f.id) === "title-brand");
+    carUnknown.push(adBrand ? `Title records: not checked (the ad says ${adBrand.title.toLowerCase()}; NMVTIS confirms it)` : "Title brands (salvage, flood, rebuilt): not checked");
+  }
   if (d.recalls) carUnknown.push(`Recalls: ${d.recalls} on record for the model year; whether this car is affected and repaired isn't checked`);
   if (!d.decoded) carUnknown.push("The car itself: no VIN decoded yet");
   carUnknown.push("A mechanic's inspection");
@@ -238,10 +244,11 @@ export function decide(d: DecisionInput): Decision {
   // ----- Ready to pay -----
   const c = d.checklist;
   const ask: string[] = [];
-  if (c.titleInSellerName == null) ask.push("Is the title in the seller's name?");
+  const asked = d.dealer ? 2 : 4;
+  if (!d.dealer && c.titleInSellerName == null) ask.push("Is the title in the seller's name?");
   if (c.lienOnTitle == null) ask.push("Is there a loan (lien) on it?");
   if (c.allowsInspection == null) ask.push("Will they allow a mechanic's inspection?");
-  if (c.meetsInPersonLocally == null) ask.push("Can you meet in person, locally?");
+  if (!d.dealer && c.meetsInPersonLocally == null) ask.push("Can you meet in person, locally?");
   const dw = worst("deal");
   const payWarning = findings.find((f) => baseId(f.id).startsWith("pay-") && f.severity === "stop");
   const deal: AreaRow = {
@@ -252,8 +259,10 @@ export function decide(d: DecisionInput): Decision {
       : dw
         ? dw.title
         : ask.length === 0
-          ? "Seller says: title in their name, no lien, inspection allowed, meets locally"
-          : `${4 - ask.length} of 4 seller questions answered`,
+          ? d.dealer
+            ? "Dealer says: no lien, inspection allowed"
+            : "Seller says: title in their name, no lien, inspection allowed, meets locally"
+          : `${asked - ask.length} of ${asked} seller questions answered`,
     unknown: ask.length ? ["Ask the seller: " + ask.join(" ")] : ["Check the title and the seller's ID match, in person"],
   };
 
