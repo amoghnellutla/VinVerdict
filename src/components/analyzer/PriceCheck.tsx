@@ -184,7 +184,7 @@ export function PriceCheck(props: Props) {
       {guest ? (
         <>
           <p className="text-sm text-muted">
-            Demo: two live lookups per visitor per day, and a few for everyone each day, because the listing data comes from free plans with small
+            Live lookups: two per visitor per day, and a few for everyone each day, because the listing data comes from free plans with small
             monthly limits. It starts by itself once the &quot;I&apos;m human&quot; check passes. The full examples on the home page include lookups.
           </p>
           <Turnstile key={attempt} action="price" onToken={(t) => { setHumanToken(t); if (t) setHumanStatus(null); }} onStatus={setHumanStatus} />

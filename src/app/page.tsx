@@ -27,7 +27,7 @@ function Headline() {
     <>
       <h1 className="rise text-[2.6rem] leading-[1.02] sm:text-[4.25rem]">Is this used car worth it?</h1>
       <p className="rise d1 mt-4 max-w-xl text-xl text-muted">
-        Paste the listing, a few screenshots or just the VIN. You get a verdict, a fair price and the public records behind both.
+        Paste the listing, a few screenshots or just the VIN. See the scam warning signs, an estimated price and what to check next, with the public record behind each.
       </p>
     </>
   );
@@ -39,7 +39,8 @@ function GuestIntro() {
     <div className="mb-8 print:hidden">
       <Headline />
       <p className="rise d2 mt-4 text-sm text-muted">
-        Demo, no sign-up. Nothing you paste is saved. <Link href="/security" className="link">How it&apos;s secured</Link>
+        Free, no sign-up. Nothing you paste is saved. <Link href="/security" className="link">How it&apos;s secured</Link> ·{" "}
+        <Link href="/accuracy" className="link">How accurate it is</Link>
       </p>
     </div>
   );

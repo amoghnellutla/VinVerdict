@@ -42,7 +42,7 @@ const LAYERS: { title: string; what: string; stops: string }[] = [
   },
   {
     title: "Privacy",
-    what: "Demo checks aren't stored. For the daily limits, visitors are counted by a salted one-way hash of their IP address, which is deleted after 2 days. Screenshots are read on your own device and never uploaded.",
+    what: "Visitors' checks aren't stored. For the daily limits, visitors are counted by a salted one-way hash of their IP address, which is deleted after 2 days. Screenshots are read on your own device and never uploaded.",
     stops: "Collecting what visitors paste or who they are.",
   },
 ];
