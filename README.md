@@ -211,6 +211,10 @@ tools/            Python scripts for data refreshes (e.g. the Shortlist from NHT
 - **[Suggest an improvement](https://github.com/amoghnellutla/VinVerdict/issues/new?template=idea.yml)**: a check it should do, something confusing, or a free official data source it should use.
 - **Pull requests:** open an issue first for anything big. Keep `npm test` and `npm run lint` green, add a corpus case for parser fixes, and link a source for any new fact. Every fact on a result must link to where it came from.
 
+## License
+
+[MIT](LICENSE): free to use, copy and change, as long as the copyright notice stays. Data from NHTSA, FuelEconomy.gov, MarketCheck and Auto.dev stays under its providers' own terms.
+
 ---
 
 VinVerdict is an independent project, not affiliated with NHTSA, the FBI, the FTC, NICB, Carfax, AutoCheck, MarketCheck, Auto.dev or any carmaker. It gives information, not legal or financial advice. Always see the car, the title and the seller in person, and have an independent mechanic inspect it before you pay.
