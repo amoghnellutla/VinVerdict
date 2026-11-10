@@ -148,7 +148,7 @@ Two rules wait for saved data (Phase 8): "same phone on several listings" and "s
 - **Security headers** on every response (`next.config.ts`):
   - *Content-Security-Policy*: per-request nonce policy on pages (above). The `/ocr/` worker files get their own policy (`default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'`): they can load only this site's files and compile WebAssembly, never JavaScript `eval`.
   - *X-Frame-Options: DENY* + `frame-ancestors 'none'`: other sites can't embed VinVerdict in a hidden frame (clickjacking).
-  - *X-Content-Type-Options: nosniff*, *Referrer-Policy*, *Permissions-Policy* (camera, mic, location, payment, USB, Bluetooth off), *Cross-Origin-Opener-Policy* and *Cross-Origin-Resource-Policy: same-origin*, *X-Robots-Tag: noindex* (+ `robots.txt`), *Strict-Transport-Security* (HTTPS only, in production).
+  - *X-Content-Type-Options: nosniff*, *Referrer-Policy*, *Permissions-Policy* (camera, mic, location, payment, USB, Bluetooth off), *Cross-Origin-Opener-Policy* and *Cross-Origin-Resource-Policy: same-origin*, *X-Robots-Tag: noindex* on the owner's pages, login and share handoff only (`robots.txt` matches; the public pages are indexable and listed in `sitemap.xml`), *Strict-Transport-Security* (HTTPS only, in production).
   - `X-Powered-By` removed, so the server doesn't advertise its framework.
 - **Login** on every page and inside every Server Action (see "Login" above). Login cookies can't be read by page scripts (httpOnly).
 - **Outside links** go through `ExternalLink`: new tab, `rel="noopener noreferrer"`, and only `http(s)` URLs, so a pasted `javascript:` link can't run.

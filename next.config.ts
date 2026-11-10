@@ -16,10 +16,10 @@ const securityHeaders = [
   // Other sites' windows can't reach this one, and its files can't be embedded elsewhere.
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
-  // Private app: keep it out of search engines.
-  { key: "X-Robots-Tag", value: "noindex, nofollow" },
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
 ];
+
+const PRIVATE_PATHS = ["/checked", "/car/:path*", "/compare", "/search", "/settings", "/login", "/mfa", "/share"];
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -28,6 +28,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },
+      // The public pages are for anyone to find; the owner's pages, login and handoff stay out of search engines.
+      ...PRIVATE_PATHS.map((source) => ({ source, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] })),
       // OCR engine + language data (~7 MB on first use): let phones keep them a week.
       {
         source: "/ocr/:path*",
