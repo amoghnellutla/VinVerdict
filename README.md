@@ -207,7 +207,7 @@ flowchart LR
   - inputs built to freeze the parser.
 - **Automated:** CodeQL scanning, Dependabot and secret scanning with push protection.
 
-Details: [SECURITY.md](SECURITY.md) and [How it's secured](https://vinverdict.vercel.app/security). Found a problem? Please [report it privately](https://github.com/amoghnellutla/VinVerdict/security/advisories/new).
+The attacks are a rerunnable kit in [`security-tests/`](security-tests/). Threat model and OWASP ASVS 5.0 self-assessment, including known gaps: [SECURITY.md](SECURITY.md). Plain-English tour: [How it's secured](https://vinverdict.vercel.app/security). Found a problem? Please [report it privately](https://github.com/amoghnellutla/VinVerdict/security/advisories/new).
 
 ## Run it yourself
 
@@ -253,6 +253,7 @@ src/lib/evidence/   reading attached Carfax / AutoCheck / NICB proof
 src/lib/workspace/  My list (device storage, validated import/export)
 supabase/           database tables and limits (SQL, row-level security on every table)
 tools/              Python scripts for data refreshes (e.g. the Shortlist from NHTSA)
+security-tests/     attack kit for a local build (server functions, malicious files, injection, load)
 ```
 
 ## Help improve it
