@@ -13,9 +13,15 @@ import "./globals.css";
 const body = Overpass({ variable: "--font-body", subsets: ["latin"] });
 const mono = Overpass_Mono({ variable: "--font-vin", subsets: ["latin"], weight: ["400", "600", "700"] });
 
+const DESCRIPTION =
+  "A free second opinion before you buy a used car: paste a listing or VIN and see scam warning signs, a fair price, recalls and what to check next. Every fact linked to its source.";
+
 export const metadata: Metadata = {
-  title: { default: "VinVerdict", template: "%s · VinVerdict" },
-  description: "Paste a used-car listing and see if it's a fair price, a good car and a safe deal.",
+  metadataBase: new URL("https://vinverdict.vercel.app"),
+  title: { default: "VinVerdict: check a used-car listing before you pay", template: "%s · VinVerdict" },
+  description: DESCRIPTION,
+  openGraph: { type: "website", siteName: "VinVerdict", title: "VinVerdict: check a used-car listing before you pay", description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: "VinVerdict: check a used-car listing before you pay", description: DESCRIPTION },
 };
 
 // Browser chrome matches the black page.

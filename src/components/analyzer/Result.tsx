@@ -39,6 +39,8 @@ import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
 import { SellerReplies } from "./SellerReplies";
 import { SaveToList } from "./SaveToList";
+import { CopyButton } from "@/components/CopyButton";
+import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
 import { DealerCheck } from "./DealerCheck";
@@ -278,6 +280,13 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
                   warnings: decision.findings.filter((f) => f.severity !== "note").slice(0, 5).map((f) => f.title),
                   note: "",
                 })}
+              />
+            )}
+            {!selling && (
+              <CopyButton
+                text={shareSummary({ name: carName(m), price: m.listing.price, miles: m.listing.miles, vin: goodVin }, decision)}
+                label="Copy summary"
+                className="link"
               />
             )}
             <a href="#sources" className="link">Sources</a>
