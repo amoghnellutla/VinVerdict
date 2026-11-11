@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
 import { AAA_MAINTENANCE, DEFAULT_MILES_PER_YEAR, defaultMaintenance, FUEL_SOURCE, FUEL_UNIT, yearlyRunningCost } from "@/lib/costs/running";
+import { useReportPart } from "./report-parts";
 
 const usd = (n: number, cents = false) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: cents ? 2 : 0 });
@@ -28,6 +29,25 @@ export function RunningCost({ a }: { a: Analysis }) {
   const cost = useMemo(
     () => (v && priceNum > 0 ? yearlyRunningCost({ vehicle: v, milesPerYear: milesNum, fuelPrice: priceNum, maintenancePerYear: maintNum }) : null),
     [v, milesNum, priceNum, maintNum],
+  );
+  // What this panel shows goes into the downloadable report too.
+  useReportPart(
+    "running",
+    useMemo(
+      () =>
+        v && cost
+          ? {
+              label: v.label,
+              mpg: `${v.comb} ${v.fuel === "electric" ? "MPGe" : "MPG"} combined (${v.city} city / ${v.hwy} highway)`,
+              milesPerYear: milesNum,
+              fuelPrice: priceNum,
+              unit: FUEL_UNIT[v.fuel],
+              maintenance: maintNum,
+              cost,
+            }
+          : null,
+      [v, cost, milesNum, priceNum, maintNum],
+    ),
   );
 
   if (!a.vehicle) return null;

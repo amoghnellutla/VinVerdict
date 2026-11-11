@@ -1,15 +1,13 @@
-import type { ReactNode } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
-import { AAA_MAINTENANCE } from "@/lib/costs/running";
 import type { HistoryRecord } from "@/lib/history/parse";
+import type { ReportAnswers } from "@/lib/history-report";
 import type { LiveListing } from "@/lib/live/parse";
+import { reportSourceItems } from "@/lib/report/sources";
 import type { RuleHit } from "@/lib/scam/rules";
-import { SOURCE_NAME } from "@/lib/evidence/parse";
-import { DAMAGE_LABEL, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
-import type { Attached } from "./CheckYourself";
-import { raw, REF, RULE_SOURCE, SOURCES_CHECKED, type SourceRef } from "@/lib/sources";
+import { SOURCES_CHECKED } from "@/lib/sources";
 import type { PriceSources } from "@/lib/value/estimate";
+import type { Attached } from "./CheckYourself";
 
 type Props = {
   a: Analysis;
@@ -25,92 +23,20 @@ type Props = {
   proofs: Attached[];
 };
 
+const internal = "text-accent underline underline-offset-2 hover:decoration-2";
+
 /**
  * Every source behind this result, numbered, with a link to check each one.
- * Government data links go to the exact public request VinVerdict made.
+ * Government data links go to the exact public request VinVerdict made. The
+ * list itself comes from lib/report/sources.ts, which the downloadable report uses too.
  */
 export function ReportSources({ a, hits, live, sources, history, recordedAt, report, proofs }: Props) {
-  const key = a.nhtsaVehicle ?? a.vehicle;
-  const vin = a.vinCheck?.ok ? a.listing.vin : null;
-  const when = recordedAt ? `recorded ${recordedAt}` : a.checkedAt ? `checked ${a.checkedAt}` : "checked today";
-  const items: { what: string; from: string; links: ReactNode[] }[] = [];
-
-  if (vin && a.decoded) {
-    items.push({ what: "Year, make, model, engine and body from the VIN", from: `NHTSA vPIC VIN decoder, ${when}`, links: [<ExternalLink key="d" href={raw.decode(vin)}>raw data</ExternalLink>] });
-  }
-  if (key && a.recalls) {
-    items.push({ what: `${a.recalls.length} recall${a.recalls.length === 1 ? "" : "s"} for the ${key.year} ${a.vehicle?.model ?? key.model}`, from: `NHTSA recalls database, ${when}`, links: [<ExternalLink key="r" href={raw.recalls(key)}>raw data</ExternalLink>] });
-  }
-  if (key && a.ratings?.length) {
-    items.push({
-      what: "Crash-test stars",
-      from: `NHTSA New Car Assessment Program, ${when}`,
-      links: a.ratings.map((r, i) => <ExternalLink key={r.vehicleId} href={raw.rating(r.vehicleId)}>{a.ratings!.length > 1 ? `variant ${i + 1}` : "raw data"}</ExternalLink>),
-    });
-  }
-  if (key && a.complaints) {
-    items.push({ what: `${a.complaints.total.toLocaleString("en-US")} owner complaints, with each quote's NHTSA number`, from: `NHTSA complaints database, ${when}`, links: [<ExternalLink key="c" href={raw.complaints(key)}>raw data</ExternalLink>] });
-  }
-  if (key && a.years) {
-    items.push({
-      what: "Other model years, for comparison",
-      from: `NHTSA recalls and complaints, ${when}`,
-      links: a.years.filter((y) => y.year !== key.year).flatMap((y) => [
-        <ExternalLink key={`r${y.year}`} href={raw.recalls({ ...key, year: y.year })}>{y.year} recalls</ExternalLink>,
-        <ExternalLink key={`c${y.year}`} href={raw.complaints({ ...key, year: y.year })}>{y.year} complaints</ExternalLink>,
-      ]),
-    });
-  }
-  if (a.fuel?.vehicles.length) {
-    items.push({
-      what: "Fuel economy (EPA ratings) and national fuel prices",
-      from: `FuelEconomy.gov (EPA and U.S. Department of Energy), ${when}`,
-      links: a.fuel.vehicles.slice(0, 3).map((v) => <ExternalLink key={v.id} href={raw.fuel(v.id)}>{v.label}</ExternalLink>),
-    });
-    items.push({ what: "Maintenance and repair cost per mile", from: `AAA Your Driving Costs ${AAA_MAINTENANCE.year}`, links: [<ExternalLink key="aaa" href={AAA_MAINTENANCE.source}>fact sheet</ExternalLink>] });
-  }
-  if (live) {
-    items.push({ what: "This car's live listing: price, miles, seller, history flags", from: `${live.source}, ${recordedAt ? `recorded ${recordedAt}` : "looked up just now"}`, links: live.url ? [<ExternalLink key="l" href={live.url}>the listing</ExternalLink>] : [] });
-  }
-  if (history?.length) {
-    const sites = [...new Set(history.map((h) => h.host).filter(Boolean))];
-    items.push({ what: `${history.length} past listings of this VIN (dates, prices, miles, sellers)`, from: `MarketCheck listing history${sites.length ? `, from ${sites.slice(0, 4).join(", ")}${sites.length > 4 ? "…" : ""}` : ""}`, links: [<a key="h" href="#listing-history" className="text-accent underline underline-offset-2 hover:decoration-2">each listing is linked above</a>] });
-  }
-  if (sources && (sources.sold || sources.active || sources.predicted)) {
-    const parts = [sources.sold && `${sources.sold.n} recently ended listings`, sources.active && `${sources.active.n} current listings`].filter(Boolean).join(" and ");
-    items.push({
-      what: `Estimated price range: ${parts || "a price model"} similar cars near ${sources.zip}`,
-      from: [sources.sold && "MarketCheck (ended listings, last advertised price)", sources.active && "Auto.dev (asking prices)", sources.predicted && "MarketCheck Price model"].filter(Boolean).join(", "),
-      links: [<a key="p" href="#price-check" className="text-accent underline underline-offset-2 hover:decoration-2">the closest ones are linked above</a>],
-    });
-  }
-
-  const answered = [report.damage !== "unknown" && DAMAGE_LABEL[report.damage], report.title !== "unknown" && TITLE_LABEL[report.title], report.commercial !== null && (report.commercial ? "rental, fleet or commercial use" : "no rental or fleet use")].filter(Boolean);
-  items.push({
-    what: answered.length ? `Accident and title history: ${answered.join(", ").toLowerCase()}` : "Accident and title history: not confirmed",
-    from: answered.length
-      ? "What you recorded, or read from proof you attached (Carfax, AutoCheck), which VinVerdict can't open itself"
-      : "No free source has it. Listing feeds aren't history reports, so their \"no accidents\" isn't used",
-    links: live?.carfaxUrl ? [<ExternalLink key="cf" href={live.carfaxUrl}>the dealer&apos;s free Carfax report</ExternalLink>] : [],
+  const { items, guidance } = reportSourceItems({
+    a, hits, live, sources, history, recordedAt, report,
+    proofs: proofs.map((p) => ({ source: p.read.source, screenshot: !!p.thumb })),
   });
 
-  if (proofs.length) {
-    items.push({
-      what: `Proof you attached: ${proofs.map((p) => `${SOURCE_NAME[p.read.source] === "Unrecognized" ? "an item" : SOURCE_NAME[p.read.source]} (${p.thumb ? "screenshot" : "pasted text"})`).join(", ")}`,
-      from: "Read on your device; the findings are listed under Check it yourself",
-      links: [<a key="pf" href="#check-yourself" className="text-accent underline underline-offset-2 hover:decoration-2">see what each one showed</a>],
-    });
-  }
-
-  // The official guidance behind each warning shown, once each.
-  const guidance = new Map<string, SourceRef>();
-  if (report.damage !== "unknown" && report.damage !== "none") guidance.set(REF.cargurusAccident.href, REF.cargurusAccident);
-  for (const h of hits) {
-    const s = RULE_SOURCE[h.id];
-    if (s) guidance.set(s.href, s);
-  }
-
-  if (!items.length && !guidance.size) return null;
+  if (!items.length && !guidance.length) return null;
   return (
     <section className="border-t border-border pt-8" id="sources">
       <h2 className="section-title">Sources for this report</h2>
@@ -125,17 +51,27 @@ export function ReportSources({ a, hits, live, sources, history, recordedAt, rep
               <p>{it.what}</p>
               <p className="text-sm text-muted">
                 {it.from}
-                {it.links.length > 0 && <> · {it.links.map((l, j) => <span key={j}>{j > 0 && ", "}{l}</span>)}</>}
+                {it.links.length > 0 && (
+                  <>
+                    {" "}·{" "}
+                    {it.links.map((l, j) => (
+                      <span key={l.href + l.label}>
+                        {j > 0 && ", "}
+                        {l.href.startsWith("#") ? <a href={l.href} className={internal}>{l.label}</a> : <ExternalLink href={l.href}>{l.label}</ExternalLink>}
+                      </span>
+                    ))}
+                  </>
+                )}
               </p>
             </div>
           </li>
         ))}
       </ol>
-      {guidance.size > 0 && (
+      {guidance.length > 0 && (
         <>
           <h3 className="mt-6 font-semibold">Official guidance behind the warnings</h3>
           <ul className="mt-2 space-y-1">
-            {[...guidance.values()].map((g) => (
+            {guidance.map((g) => (
               <li key={g.href}>
                 <ExternalLink href={g.href}>{g.name}</ExternalLink>
               </li>

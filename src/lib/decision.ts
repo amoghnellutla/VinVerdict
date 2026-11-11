@@ -29,6 +29,9 @@ export type Evidence = "ad" | "ad-or-seller" | "messages" | "record" | "feed" | 
 export type Level = "stop" | "verify" | "investigate" | "thin";
 export type AreaStatus = "stop" | "verify" | "ok" | "unchecked";
 
+/** How each area's status reads (the verdict card and the downloadable report). */
+export const STATUS_WORD: Record<AreaStatus, string> = { stop: "Warning", verify: "Check", ok: "OK so far", unchecked: "Not checked" };
+
 export const AREA_LABEL: Record<Area, string> = {
   listing: "Listing trust",
   car: "Car condition",

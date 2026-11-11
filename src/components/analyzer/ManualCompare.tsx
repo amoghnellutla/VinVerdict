@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { compareManually, parsePrice } from "@/lib/value/manual";
+import { useReportPart } from "./report-parts";
 
 const SLOTS = 5;
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
-const VERDICT = {
+export const MANUAL_VERDICT = {
   "far-below": { text: "Far below the ads you found: a price this low needs a reason. See the car and title before paying anything.", tone: "text-warn" },
   below: { text: "Below the ads you found: possibly a good deal, if the car checks out.", tone: "text-good" },
   "in-line": { text: "In line with the ads you found.", tone: "text-foreground" },
@@ -17,6 +18,16 @@ const VERDICT = {
 export function ManualCompare({ asking }: { asking: number }) {
   const [prices, setPrices] = useState<string[]>(Array(SLOTS).fill(""));
   const r = compareManually(asking, prices.map(parsePrice));
+  // The prices you typed and what they say go into the downloadable report too.
+  const key = prices.join("|");
+  useReportPart(
+    "manual",
+    useMemo(() => {
+      const typed = key.split("|").map(parsePrice);
+      const res = compareManually(asking, typed);
+      return res ? { asking, prices: typed.filter((p): p is number => p !== null), result: res } : null;
+    }, [asking, key]),
+  );
   return (
     <details className="group mt-8 rounded-lg border border-border px-4 py-3">
       <summary className="cursor-pointer font-semibold">Compare it yourself (no lookup needed)</summary>
@@ -40,7 +51,7 @@ export function ManualCompare({ asking }: { asking: number }) {
       <div aria-live="polite" className="mt-3">
         {r ? (
           <div className="space-y-1">
-            <p className={`font-semibold ${VERDICT[r.verdict].tone}`}>{VERDICT[r.verdict].text}</p>
+            <p className={`font-semibold ${MANUAL_VERDICT[r.verdict].tone}`}>{MANUAL_VERDICT[r.verdict].text}</p>
             <p className="nums">
               Asking {usd(asking)} is {Math.abs(Math.round(r.diff * 100))}% {r.diff < 0 ? "below" : "above"} the middle of {r.n} ads ({usd(r.median)}; they ranged{" "}
               {usd(r.low)}–{usd(r.high)}).

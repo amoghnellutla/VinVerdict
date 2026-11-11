@@ -1,5 +1,6 @@
 "use client";
 
+import { historyReportLink, RATING_TEXT } from "@/lib/report/checks";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type ReactNode } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -15,11 +16,11 @@ export type Attached = Proof & { label: string; thumb: string | null; movedFrom:
 const MAX_TEXT = 20_000;
 
 const RATING: Record<CheckRating, { text: string; tone: string }> = {
-  clear: { text: "Clear", tone: "bg-good-soft text-good" },
-  problem: { text: "Problem found", tone: "bg-bad-soft text-bad" },
-  check: { text: "Look closer", tone: "bg-warn-soft text-warn" },
-  read: { text: "Attached", tone: "bg-surface-muted text-muted" },
-  none: { text: "Not checked", tone: "bg-surface-muted text-muted" },
+  clear: { text: RATING_TEXT.clear, tone: "bg-good-soft text-good" },
+  problem: { text: RATING_TEXT.problem, tone: "bg-bad-soft text-bad" },
+  check: { text: RATING_TEXT.check, tone: "bg-warn-soft text-warn" },
+  read: { text: RATING_TEXT.read, tone: "bg-surface-muted text-muted" },
+  none: { text: RATING_TEXT.none, tone: "bg-surface-muted text-muted" },
 };
 
 const ROW_NAME: Record<ProofKind, string> = {
@@ -113,9 +114,7 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
   }
 
   const links = vin ? verifyLinks(vin, make) : [];
-  const historyLink = live?.carfaxUrl
-    ? { name: "The dealer's free Carfax report", href: live.carfaxUrl, cost: "Free from the dealer", what: "Accidents, title brands, owners, use and odometer readings. Open it, then screenshot or copy the summary." }
-    : { name: "Carfax or AutoCheck report", href: "https://www.carfax.com/", cost: "Often free from dealers · paid otherwise", what: "Accidents, title brands, owners and odometer readings. Dealer listings usually link one free; ask a private seller to send it." };
+  const historyLink = historyReportLink(live);
   const checked = (Object.values(summary.rating) as CheckRating[]).filter((r) => r !== "none").length;
   const problems = (Object.values(summary.rating) as CheckRating[]).filter((r) => r === "problem").length;
 

@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import type { Analysis } from "@/lib/analyze";
 import { readBuyerZip } from "@/lib/buyer-zip";
-import { guessWeightClass } from "@/lib/costs/nj";
-import { outTheDoor } from "@/lib/costs/outTheDoor";
-import { ownershipCost, TYPICAL_DECLINE } from "@/lib/costs/ownership";
-import { defaultMaintenance, DEFAULT_MILES_PER_YEAR, yearlyRunningCost } from "@/lib/costs/running";
+import { TYPICAL_DECLINE } from "@/lib/costs/ownership";
+import { DEFAULT_MILES_PER_YEAR } from "@/lib/costs/running";
 import { STATES } from "@/lib/geo/zip";
+import { costPerYear } from "@/lib/report/costs";
+import { useReportPart } from "./report-parts";
 import type { CompEstimate } from "@/lib/value/comps";
 import { fmt, type Valuation } from "@/lib/value/estimate";
 
@@ -21,33 +21,12 @@ export function CostPerYear({ a, valuation, comps }: Props) {
   const [where] = useState(readBuyerZip);
   const price = a.listing.price;
 
-  const result = useMemo(() => {
-    if (!price) return null;
-    const otd = outTheDoor({
-      state: where.state,
-      price,
-      docFee: a.listing.docFee,
-      seller: a.listing.sellerType === "private" ? "private" : "dealer",
-      modelYear: a.decoded?.year ?? a.listing.year,
-      inspection: 0,
-      nj: { weightClass: guessWeightClass(a.decoded?.curbWeightLb ?? null, a.decoded?.body ?? null).value, financed: false },
-    });
-    const v = a.fuel?.vehicles[0];
-    const fuelPrice = v && a.fuel?.prices ? a.fuel.prices[v.fuel] : 0;
-    const running = v && fuelPrice > 0
-      ? yearlyRunningCost({ vehicle: v, milesPerYear, fuelPrice, maintenancePerYear: defaultMaintenance(milesPerYear) }).total
-      : null;
-    return ownershipCost({
-      price,
-      taxAndFees: otd.total - price,
-      years,
-      milesPerYear,
-      running,
-      marketValue: valuation?.fair ?? price,
-      perModelYear: comps?.perYear ?? null,
-      perMile: comps?.perMile ?? null,
-    });
-  }, [price, where.state, a, years, milesPerYear, valuation, comps]);
+  const result = useMemo(
+    () => (price ? costPerYear(a, valuation, comps, where.state, years, milesPerYear) : null),
+    [price, where.state, a, years, milesPerYear, valuation, comps],
+  );
+  const part = useMemo(() => (result ? { years, milesPerYear, state: where.state, result } : null), [result, years, milesPerYear, where.state]);
+  useReportPart("perYear", part);
 
   if (!result) return null;
   return (

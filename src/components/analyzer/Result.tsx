@@ -1,8 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
+import { carFactRows } from "@/lib/report/content";
+import type { CostParts } from "@/lib/report/costs";
+import { buildReport } from "@/lib/report/markdown";
+import { readBuyerZip } from "@/lib/buyer-zip";
+import { reportInput } from "./report-input";
+import { ReportDownload } from "./ReportDownload";
+import { ReportPartsContext, type SetReportPart } from "./report-parts";
 import { priceCheckAction, type PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
@@ -52,7 +59,6 @@ import { VerdictCard } from "./VerdictCard";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 const miles = (n: number | null) => (n == null ? null : `${n.toLocaleString("en-US")} mi`);
-const cap = (s: string | null) => (s ? s[0].toUpperCase() + s.slice(1) : null);
 
 const SEVERITY_STYLE: Record<Severity, string> = {
   stop: "bg-bad-soft text-bad",
@@ -178,6 +184,13 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     return { result, valuation, sellV };
   }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly]);
 
+  // What the cost panels currently show, for the downloadable report (a ref: no re-renders).
+  const parts = useRef<CostParts>({});
+  const setPart = useCallback<SetReportPart>((key, value) => {
+    if (value) parts.current[key] = value;
+    else delete parts.current[key];
+  }, []);
+
   if (a.listing.kind === "url") {
     return <LinkOnly host={a.listing.sourceHost} />;
   }
@@ -200,6 +213,22 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const hits: Finding[] = decision.findings;
   const make = a.decoded?.make ?? a.listing.make;
   const recordedAt = recorded?.recordedAt ?? null;
+
+  /** The full report as Markdown, built from what's on the page right now (only when asked for). */
+  const reportText = (listingUrl: string | null): string =>
+    buildReport(
+      reportInput({
+        generated: new Date().toISOString().slice(0, 10),
+        listingUrl,
+        state: readBuyerZip().state,
+        name: carName(m),
+        a, m, decision, hits, goodVin, make, live, history, rawHistory, sources, valuation, milesUsed, recordedAt, answers, proofSum,
+        proofs: proofs.map((x) => ({ kind: x.kind, findings: x.read.findings, source: x.read.source, screenshot: !!x.thumb })),
+        checklist, replies, replyHits, knownIssues, phrase, selling,
+        parts: parts.current,
+      }),
+    );
+  const reportFile = `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${new Date().toISOString().slice(0, 10)}.md`;
 
   const priceCheck = (
     <PriceCheck
@@ -261,6 +290,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       ];
 
   return (
+    <ReportPartsContext.Provider value={setPart}>
     <div className="space-y-10">
       <header id="verdict" className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
@@ -317,6 +347,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         ) : (
           <VerdictCard d={decision} />
         )}
+        <ReportDownload build={reportText} fileName={reportFile} knownUrl={m.listing.url ?? live?.url ?? null} />
       </header>
 
       <SectionNav items={nav} />
@@ -410,6 +441,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         </ul>
       )}
     </div>
+    </ReportPartsContext.Provider>
   );
 }
 
@@ -526,36 +558,9 @@ function CarLine({ a }: { a: Analysis }) {
   );
 }
 
-const USAGE_LABEL = { personal: "Personal", fleet: "Fleet / commercial", rental: "Rental", unknown: null } as const;
-
 function Facts({ a, live }: { a: Analysis; live: Live | null }) {
-  const l = a.listing;
-  const d = a.decoded;
-  const vinStatus = !l.vin ? null : a.vinCheck?.ok ? (d?.clean === false ? "Decoded with warnings" : "Valid") : "Invalid check digit";
-  // A feed's "0 accidents" isn't a history report, so it's never shown as "none".
-  const liveAccidents = live?.accidentCount ? `${live.accidentCount} reported` : live ? "Not confirmed" : null;
-  // [label, listing says, VIN decode, live listing]
-  const rows: [string, string | null, string | null, string | null][] = [
-    ["Year", l.year?.toString() ?? null, d?.year?.toString() ?? null, live?.year?.toString() ?? null],
-    ["Make", l.make, d?.make ?? null, live?.make ?? null],
-    ["Model", l.model, d?.model ?? null, live?.model ?? null],
-    ["Trim", null, d?.trim ?? null, live?.trim ?? null],
-    ["Body", null, d?.body ?? null, null],
-    ["Transmission", l.transmission === "unknown" ? null : cap(l.transmission), d?.transmission ?? null, null],
-    ["Drive", null, d?.driveType ?? null, null],
-    ["Fuel", null, d?.fuel ?? null, null],
-    ["Price", money(l.price), null, money(live?.price ?? null)],
-    ["Miles", miles(l.miles), null, miles(live?.miles ?? null)],
-    ["Title", l.titleStatus === "unknown" ? null : cap(l.titleStatus), null, live?.cleanTitle ? "Carfax clean-title flag on the listing" : null],
-    ["Accidents", l.accident === "unknown" ? null : l.accident === "none" ? "None mentioned" : "Reported", null, liveAccidents],
-    ["Exterior", cap(l.exteriorColor), null, live?.exteriorColor ?? null],
-    ["Owners", l.ownerCount?.toString() ?? null, null, null],
-    ["Prior use", USAGE_LABEL[l.usage], null, live && (live.usage === "fleet" || live.usage === "rental") ? USAGE_LABEL[live.usage] : null],
-    ["Seller", l.sellerType === "unknown" ? null : cap(l.sellerType), null, live?.sellerName ?? (live?.sellerType !== "unknown" ? cap(live?.sellerType ?? null) : null)],
-    ["Distance", miles(l.distanceMiles), null, null],
-    ["VIN", l.vin, vinStatus, null],
-  ];
-  const shown = rows.filter(([, x, y, z]) => x || y || z);
+  // [label, listing says, VIN decode, live listing], shared with the downloadable report.
+  const shown = carFactRows(a, live);
   return (
     <Panel title="The car">
       <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="The car's details">

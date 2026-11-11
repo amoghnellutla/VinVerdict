@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
 import { guessWeightClass, NJ_RATES, type WeightClass } from "@/lib/costs/nj";
-import { outTheDoor } from "@/lib/costs/outTheDoor";
+import { outTheDoor, type OtdInput } from "@/lib/costs/outTheDoor";
+import { useReportPart } from "./report-parts";
 import { FL_CHART, STATE_TAX, STATE_TAX_AS_OF, type Seller } from "@/lib/costs/stateTax";
 import { readBuyerZip, saveBuyerZip } from "@/lib/buyer-zip";
 import { isStateCode, STATES, zipToState, type StateCode } from "@/lib/geo/zip";
@@ -52,10 +53,10 @@ export function OutTheDoor({ a }: { a: Analysis }) {
 
   const priceNum = Number(price);
   const valid = Number.isFinite(priceNum) && priceNum > 0 && priceNum < 1_000_000;
-  const result = useMemo(
+  const otdInput = useMemo<OtdInput | null>(
     () =>
       valid
-        ? outTheDoor({
+        ? {
             state,
             price: priceNum,
             docFee: seller === "dealer" ? num(docFee) : 0,
@@ -65,10 +66,13 @@ export function OutTheDoor({ a }: { a: Analysis }) {
             inspection: Math.max(0, num(inspection)),
             nj: { weightClass: weight, financed },
             otherFees: num(otherFees),
-          })
+          }
         : null,
     [valid, priceNum, state, seller, docFee, a, localPct, inspection, weight, financed, otherFees],
   );
+  const result = useMemo(() => (otdInput ? outTheDoor(otdInput) : null), [otdInput]);
+  // What this panel shows goes into the downloadable report too.
+  useReportPart("otd", useMemo(() => (otdInput && result ? { input: otdInput, result } : null), [otdInput, result]));
 
   const weightNote = a.decoded?.curbWeightLb
     ? `From NHTSA curb weight (${a.decoded.curbWeightLb.toLocaleString("en-US")} lb).`

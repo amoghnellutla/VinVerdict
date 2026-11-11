@@ -6,7 +6,7 @@ import type { SellerChecklist } from "@/lib/scam/rules";
 type Key = keyof SellerChecklist;
 
 // Feature G. "good" is the answer you want to hear.
-const QUESTIONS: { key: Key; q: string; good: boolean }[] = [
+export const QUESTIONS: { key: Key; q: string; good: boolean }[] = [
   { key: "titleInSellerName", q: "Is the title in the seller's own name (matching their ID)?", good: true },
   { key: "lienOnTitle", q: "Is there a loan or lien on the car?", good: false },
   { key: "anyAccidents", q: "Has it been in any accident, even a small one?", good: false },

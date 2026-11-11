@@ -116,6 +116,25 @@ Tip: drag the **bookmark button** on the home page to your bookmarks bar, then c
 
 **Selling instead?** After a VIN lookup, choose **It's mine: what's it worth?**
 
+**Want a second opinion from your own AI?** Under the verdict, open **Full report for you or your AI** (no login needed):
+- Add the listing's link if you like. It's only written into the file; VinVerdict never opens it.
+- **Download report (.md)** or **Copy report**, then paste it into ChatGPT, Claude or any assistant and ask the questions at the end of the report.
+
+The report is one Markdown file with everything on the result page, in 14 numbered sections:
+- the verdict and every warning with its evidence and source;
+- the car and its VIN, part by part;
+- the history report, the price and the listing history;
+- **Check it yourself** with every link and what you attached;
+- the photo check;
+- recalls, crash stars and owner complaints with NHTSA numbers;
+- out-the-door and yearly costs, using the state and fees you set on the page;
+- buyer protection, and what to ask (seller questions, your message, their replies, the inspection list, buying day);
+- sources, and questions to ask your AI.
+
+At the end, the ad as you pasted it, with phone numbers and emails removed.
+
+It's built on your device; nothing is sent. The seller's text is quoted in a block marked untrusted, with a note telling the AI never to follow instructions inside it, because a scam ad can hide instructions aimed at AI tools.
+
 <p>
   <img src="docs/images/phone.png" alt="VinVerdict on a phone" width="260">
   &nbsp;

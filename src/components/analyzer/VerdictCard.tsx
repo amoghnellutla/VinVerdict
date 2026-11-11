@@ -1,4 +1,4 @@
-import { AREA_LABEL, type AreaStatus, type Decision, type Level } from "@/lib/decision";
+import { AREA_LABEL, STATUS_WORD, type AreaStatus, type Decision, type Level } from "@/lib/decision";
 
 const TONE: Record<Level, { box: string; title: string }> = {
   stop: { box: "border-l-bad bg-bad-soft", title: "text-bad" },
@@ -9,10 +9,10 @@ const TONE: Record<Level, { box: string; title: string }> = {
 
 // A word as well as a color, so the status never depends on color alone.
 const STATUS: Record<AreaStatus, { word: string; dot: string; text: string }> = {
-  stop: { word: "Warning", dot: "bg-bad", text: "text-bad" },
-  verify: { word: "Check", dot: "bg-warn", text: "text-warn" },
-  ok: { word: "OK so far", dot: "bg-good", text: "text-good" },
-  unchecked: { word: "Not checked", dot: "border border-border-strong bg-transparent", text: "text-muted" },
+  stop: { word: STATUS_WORD.stop, dot: "bg-bad", text: "text-bad" },
+  verify: { word: STATUS_WORD.verify, dot: "bg-warn", text: "text-warn" },
+  ok: { word: STATUS_WORD.ok, dot: "bg-good", text: "text-good" },
+  unchecked: { word: STATUS_WORD.unchecked, dot: "border border-border-strong bg-transparent", text: "text-muted" },
 };
 
 /**
