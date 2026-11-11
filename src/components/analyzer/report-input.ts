@@ -37,6 +37,8 @@ export type ReportState = {
   listingUrl: string | null;
   /** The buyer's state (their saved ZIP), for costs and paperwork. */
   state: StateCode;
+  /** False when no ZIP was saved and the state is only the default. */
+  stateSaved: boolean;
   name: string;
   /** The check as returned, and as shown (live facts and corrected miles merged in). */
   a: Analysis;
@@ -110,6 +112,7 @@ export function reportInput(s: ReportState): ReportInput {
       complaintAreas: m.complaints?.topComponents.map((c) => c.component) ?? [],
     }),
     buying: buyingDay(a.listing.vin, m.listing.sellerType, state),
+    stateSaved: s.stateSaved,
     otd: p.otd ? { ...p.otd, fromPage: true } : otdIn ? { input: otdIn, result: outTheDoor(otdIn), fromPage: false } : null,
     perYear: p.perYear ? { ...p.perYear, fromPage: true } : perYearDefault ? { years: 3, milesPerYear: DEFAULT_MILES_PER_YEAR, state, result: perYearDefault, fromPage: false } : null,
     running: p.running ? { ...p.running, fromPage: true } : runDefault ? { ...runDefault, fromPage: false } : null,

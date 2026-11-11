@@ -171,7 +171,7 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
                   kind={l.kind}
                   name={l.name}
                   href={l.href}
-                  cost={`${l.cost}${l.vinInLink ? "" : " · paste the VIN"}`}
+                  cost={`${l.cost}${l.vinInLink ? "" : "; paste the VIN"}`}
                   what={l.what}
                   rating={summary.rating[l.kind]}
                   proofs={proofs.filter((p) => p.kind === l.kind)}

@@ -217,20 +217,25 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const recordedAt = recorded?.recordedAt ?? null;
 
   /** The full report as Markdown, built from what's on the page right now (only when asked for). */
-  const reportText = (listingUrl: string | null): string =>
-    buildReport(
+  const reportText = (listingUrl: string | null, short: boolean): string => {
+    const zip = readBuyerZip();
+    return buildReport(
       reportInput({
         generated: localDate(),
         listingUrl,
-        state: readBuyerZip().state,
+        state: zip.state,
+        stateSaved: zip.saved,
         name: carName(m),
         a, m, decision, hits, goodVin, make, live, history, rawHistory, sources, valuation, milesUsed, recordedAt, answers, proofSum,
         proofs: proofs.map((x) => ({ kind: x.kind, findings: x.read.findings, source: x.read.source, screenshot: !!x.thumb })),
         checklist, replies, replyHits, knownIssues, phrase, selling,
         parts: parts.current,
       }),
+      { short },
     );
-  const reportFile = `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${localDate()}.md`;
+  };
+  const reportFile = (short: boolean) =>
+    `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${localDate()}${short ? "-short" : ""}.md`;
 
   const priceCheck = (
     <PriceCheck

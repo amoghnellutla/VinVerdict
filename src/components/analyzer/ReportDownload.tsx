@@ -9,27 +9,36 @@ const HTTPS = /^https:\/\/[^\s<>"'`]+$/i;
  * or to paste into your own AI. Built on this device when you click; nothing
  * is sent. The listing link is only written into the file, never opened.
  */
-export function ReportDownload({ build, fileName, knownUrl }: { build: (listingUrl: string | null) => string; fileName: string; knownUrl: string | null }) {
+export function ReportDownload({
+  build,
+  fileName,
+  knownUrl,
+}: {
+  build: (listingUrl: string | null, short: boolean) => string;
+  fileName: (short: boolean) => string;
+  knownUrl: string | null;
+}) {
   const id = useId();
   const [url, setUrl] = useState(knownUrl ?? "");
+  const [short, setShort] = useState(false);
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
   const trimmed = url.trim();
   const valid = trimmed === "" || HTTPS.test(trimmed);
   const link = trimmed && valid ? trimmed : null;
 
   function download() {
-    const blob = new Blob([build(link)], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([build(link, short)], { type: "text/markdown;charset=utf-8" });
     const href = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = href;
-    a.download = fileName;
+    a.download = fileName(short);
     a.click();
     URL.revokeObjectURL(href);
   }
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(build(link));
+      await navigator.clipboard.writeText(build(link, short));
       setCopied("done");
     } catch {
       setCopied("failed");
@@ -60,6 +69,19 @@ export function ReportDownload({ build, fileName, knownUrl }: { build: (listingU
       <p id={`${id}-help`} className={`mt-1 text-sm ${valid ? "text-muted" : "text-warn"}`}>
         {valid ? "Only written into the report. VinVerdict never opens it." : "Only https:// links are included. This one will be left out."}
       </p>
+      <fieldset className="mt-3">
+        <legend className="text-sm font-semibold">Length</legend>
+        <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <label className="flex items-start gap-2">
+            <input type="radio" name={`${id}-len`} checked={!short} onChange={() => setShort(false)} className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
+            Full: everything on this page
+          </label>
+          <label className="flex items-start gap-2">
+            <input type="radio" name={`${id}-len`} checked={short} onChange={() => setShort(true)} className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
+            Short: the verdict, warnings, price, checks and costs, for small chat boxes
+          </label>
+        </div>
+      </fieldset>
       <div className="mt-3 flex flex-wrap gap-3">
         <button type="button" onClick={download} className="btn btn-primary">Download report (.md)</button>
         <button type="button" onClick={() => void copy()} className="btn btn-secondary">

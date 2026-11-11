@@ -118,12 +118,14 @@ Tip: drag the **bookmark button** on the home page to your bookmarks bar, then c
 
 **Want a second opinion from your own AI?** Under the verdict, open **Full report for you or your AI** (no login needed):
 - Add the listing's link if you like. It's only written into the file; VinVerdict never opens it.
+- Pick **Full** (everything on the page) or **Short** (the verdict, warnings, history, price, checks, safety and costs: about half the size, for chat boxes with a small limit).
 - **Download report (.md)** or **Copy report**, then paste it into ChatGPT, Claude or any assistant and ask the questions at the end of the report.
 
 The report is one Markdown file. It opens with:
-- a short data header with the key facts (car, VIN, price, miles, verdict, estimate, out-the-door total) for AI tools to read exactly;
+- a short data header with the key facts (car, VIN, price, miles, verdict and its level, estimate, out-the-door total, how many steps are still open, full or short, format version) for AI tools to read exactly;
 - an **At a glance** table;
-- a **What's still open** checklist: price check, history report, outside checks, seller answers, their reply, inspection, listing link, ticked when done.
+- a **What's still open** checklist: price check, history report, outside checks, seller answers, their reply, inspection, listing link, ticked when done;
+- how to read it: the four verdicts (and which one this car got, from fixed rules, not an AI), and what each evidence label means.
 
 Then everything on the result page, in 14 numbered sections:
 - the verdict and every warning with its evidence and source;
@@ -138,7 +140,7 @@ Then everything on the result page, in 14 numbered sections:
 
 At the end, the ad as you pasted it, with phone numbers and emails removed.
 
-It's built on your device; nothing is sent. The seller's text is quoted in a block marked untrusted, with a note telling the AI never to follow instructions inside it, because a scam ad can hide instructions aimed at AI tools.
+It's built on your device; nothing is sent. The seller's text is quoted in a block marked untrusted, with a note telling the AI never to follow instructions inside it, because a scam ad can hide instructions aimed at AI tools. Anything else that comes from outside (seller names, NHTSA complaint text, the seller's replies) is escaped, so it can't turn into a link or break a table. Out-the-door costs say when they used New Jersey only because no ZIP was entered.
 
 <p>
   <img src="docs/images/phone.png" alt="VinVerdict on a phone" width="260">

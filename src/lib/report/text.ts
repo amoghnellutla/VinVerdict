@@ -9,15 +9,24 @@ export type Line = Seg[];
 
 const SAFE = /^https:\/\/[^\s<>"'`]+$/i;
 
-/** Plain text for a Markdown table cell or line: no pipes or line breaks that would break the layout. */
+/**
+ * Plain text for a Markdown table cell or line. No line breaks or pipes that would
+ * break the layout, and no Markdown that could turn outside text (a seller's
+ * reply, an owner complaint, a feed's seller name) into a link, an image, HTML or
+ * code: "[Verify here](https://phish.example)" stays visible text.
+ */
 export function esc(s: string): string {
-  return s.replace(/\r?\n+/g, " ").replace(/\|/g, "\\|").replace(/\s+/g, " ").trim();
+  return s
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[\\`[\]<>|]/g, (c) => `\\${c}`);
 }
 
 /** A Markdown link, only for https addresses. Anything else (including page anchors) stays plain text. */
 export function mdLink(label: string, href: string): string {
   if (!SAFE.test(href)) return esc(label);
-  const safeLabel = esc(label).replace(/[[\]]/g, "");
+  const safeLabel = esc(label.replace(/[[\]]/g, ""));
   // encodeURIComponent leaves brackets alone, and a ")" would end the Markdown link early.
   const safeHref = href.replace(/\(/g, "%28").replace(/\)/g, "%29");
   return `[${safeLabel}](${safeHref})`;

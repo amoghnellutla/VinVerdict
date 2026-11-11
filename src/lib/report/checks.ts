@@ -21,7 +21,7 @@ export const RATING_TEXT: Record<CheckRating, string> = {
 export function historyReportLink(live: Pick<LiveListing, "carfaxUrl"> | null): { name: string; href: string; cost: string; what: string } {
   return live?.carfaxUrl
     ? { name: "The dealer's free Carfax report", href: live.carfaxUrl, cost: "Free from the dealer", what: "Accidents, title brands, owners, use and odometer readings. Open it, then screenshot or copy the summary." }
-    : { name: "Carfax or AutoCheck report", href: "https://www.carfax.com/", cost: "Often free from dealers · paid otherwise", what: "Accidents, title brands, owners and odometer readings. Dealer listings usually link one free; ask a private seller to send it." };
+    : { name: "Carfax or AutoCheck report", href: "https://www.carfax.com/", cost: "Often free from dealers, paid otherwise", what: "Accidents, title brands, owners and odometer readings. Dealer listings usually link one free; ask a private seller to send it." };
 }
 
 type AttachedRead = { kind: ProofKind; findings: { label: string; status: FindingStatus }[] };
@@ -36,7 +36,7 @@ export function checkRows(vin: string | null, make: string | null, live: Pick<Li
     ...verifyLinks(vin, make).map((l) => ({
       name: l.name,
       href: l.href,
-      cost: `${l.cost}${l.kind && !l.vinInLink ? " · paste the VIN" : ""}`,
+      cost: `${l.cost}${l.kind && !l.vinInLink ? "; paste the VIN" : ""}`,
       what: l.what,
       status: l.kind ? RATING_TEXT[rating[l.kind]] : "A link to open",
       findings: l.kind ? said(l.kind) : [],

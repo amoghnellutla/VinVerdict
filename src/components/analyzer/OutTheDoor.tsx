@@ -36,7 +36,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
   function changeZip(v: string) {
     const zip = v.replace(/\D/g, "").slice(0, 5);
     const st = zip.length === 5 ? zipToState(zip) : null;
-    const next = { zip, state: st ?? state };
+    const next = { zip, state: st ?? state, saved: where.saved || !!st };
     if (next.state !== state) {
       setLocalPct("");
       setOtherFees("");
@@ -47,7 +47,7 @@ export function OutTheDoor({ a }: { a: Analysis }) {
   function changeState(st: StateCode) {
     setLocalPct("");
     setOtherFees("");
-    setWhere({ zip: where.zip, state: st });
+    setWhere({ zip: where.zip, state: st, saved: true });
     saveBuyerZip(where.zip, st);
   }
 

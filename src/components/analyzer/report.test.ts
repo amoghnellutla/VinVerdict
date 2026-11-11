@@ -20,7 +20,7 @@ import { reportInput, type ReportState } from "./report-input";
 const NOW = new Date("2026-11-10T12:00:00Z");
 
 /** The result page's pipeline, without React: a check (and its price data) to the report. */
-function report(a: Analysis, price: { live: ReportState["live"]; history: ReportState["rawHistory"]; sources: ReportState["sources"] } | null, extra: Partial<ReportState> = {}): string {
+function report(a: Analysis, price: { live: ReportState["live"]; history: ReportState["rawHistory"]; sources: ReportState["sources"] } | null, extra: Partial<ReportState> = {}, short = false): string {
   const live = price?.live ?? null;
   const rawHistory = price?.history ?? null;
   const history = rawHistory ? summarizeHistory(rawHistory, NOW) : null;
@@ -40,11 +40,12 @@ function report(a: Analysis, price: { live: ReportState["live"]; history: Report
   });
   return buildReport(
     reportInput({
-      generated: "2026-11-10", listingUrl: null, state: "NJ", name: "Test car", a, m, decision, hits: decision.findings, goodVin,
+      generated: "2026-11-10", listingUrl: null, state: "NJ", stateSaved: false, name: "Test car", a, m, decision, hits: decision.findings, goodVin,
       make: a.decoded?.make ?? a.listing.make, live, history, rawHistory, sources, valuation, milesUsed: m.listing.miles, recordedAt: "2026-11-09",
       answers: EMPTY_REPORT, proofSum, proofs: [], checklist: {}, replies: "", replyHits: [], knownIssues: [], phrase: "maple jasmine jungle",
       selling: false, parts: {}, ...extra,
     }),
+    { short },
   );
 }
 
@@ -85,11 +86,11 @@ function frontMatter(md: string): Record<string, unknown> {
   );
 }
 
-function checkWellFormed(md: string) {
-  for (const h of HEADINGS) expect(md, h).toContain(h);
+function checkWellFormed(md: string, headings = HEADINGS) {
+  for (const h of headings) expect(md, h).toContain(h);
   expect(Object.keys(frontMatter(md))).toEqual([
-    "report", "generated", "car", "vin", "asking_price_usd", "miles", "seller", "verdict", "serious_warnings", "things_to_check",
-    "estimated_fair_price_usd", "out_the_door_usd", "listing_url",
+    "report", "report_kind", "report_format", "generated", "car", "vin", "asking_price_usd", "miles", "seller", "verdict", "verdict_level",
+    "serious_warnings", "things_to_check", "estimated_fair_price_usd", "out_the_door_usd", "listing_url", "open_items",
   ]);
   // After the data header, no placeholder ever leaks into the text.
   expect(md.slice(md.indexOf("\n---\n", 4) + 5)).not.toMatch(/undefined|NaN|\[object Object\]|\bnull\b/);
@@ -195,7 +196,11 @@ describe("full report: what you set on the page", () => {
 
   it("uses the cost panels' current values when they were opened, and says when it used defaults", () => {
     const defaults = report(a, null);
-    expect(defaults).toContain("your saved state; the calculator wasn't opened");
+    expect(defaults).toContain("VinVerdict's default because no ZIP was entered");
+    expect(defaults).toMatch(/\| Out the door \| \$[\d,.]+ registering in New Jersey \(the default state: no ZIP entered\) \|/);
+    const saved = report(a, null, { stateSaved: true });
+    expect(saved).toContain("your saved state; the calculator wasn't opened");
+    expect(saved).not.toContain("no ZIP entered");
     const parts: CostParts = {
       otd: {
         input: { state: "CA", price: 9000, docFee: 0, seller: "private", modelYear: 2017, localPct: 0, inspection: 150, nj: { weightClass: "light", financed: false }, otherFees: 120 },
@@ -211,5 +216,60 @@ describe("full report: what you set on the page", () => {
     expect(md).toContain("**Listing link:** [https://www.facebook.com/marketplace/item/123/](https://www.facebook.com/marketplace/item/123/)");
     expect(md).toContain("[email removed]");
     expect(md).toContain("Send a $200 Zelle deposit first");
+  });
+});
+
+describe("full report: outside text outside the fences", () => {
+  it("a seller name, a reply or a complaint can't become a link, code or a table break", () => {
+    const a = offline("2017 Honda Accord EX-L $9,000 98,000 miles clean title private seller. VIN 1HGCR2F8XHA000123");
+    const md = report(a, null, {
+      replies: "ok",
+      replyHits: [{ id: "x", title: "Asks for [a deposit](https://evil.example)", reason: "`code` | pipe <b>tag</b>", quote: "[click](https://evil.example)", suggest: null } as never],
+    });
+    // Every "](" before the evil link is escaped, so no Markdown viewer turns it into a link.
+    expect(outsideFences(md)).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example/);
+    expect(md).toContain(String.raw`\[click\](https://evil.example)`);
+    expect(md).toContain(String.raw`\`code\` \| pipe \<b\>tag\</b\>`);
+  });
+});
+
+describe("short report", () => {
+  const SHORT = [
+    "## At a glance", "**What's still open**", "## How to read this report", "## 1. The answer", "## 2. Warnings and notes", "## 4. History report", "## 5. Price",
+    "## 6. Listing history", "## 7. Check it yourself", "## 9. Safety", "## 10. What it'll cost", "## 14. Questions to ask your AI", "## Appendix: the listing as pasted",
+  ];
+
+  it("keeps the decision-making sections, drops the rest, and never points at a section it left out", async () => {
+    const d = await loadExample("camry");
+    const full = report(d.analysis, d.price);
+    const md = report(d.analysis, d.price, {}, true);
+    checkWellFormed(md, SHORT);
+    expect(frontMatter(md)).toMatchObject({ report_kind: "short", report_format: 2 });
+    expect(frontMatter(full)).toMatchObject({ report_kind: "full" });
+    for (const gone of ["## 3. The car", "## 8. Are", "## 11. Buyer", "## 12. Before", "## 13. Sources", "| First seen |"]) expect(md).not.toContain(gone);
+    for (const n of [3, 8, 11, 12, 13]) expect(md).not.toMatch(new RegExp(String.raw`\bsection ${n}\b`));
+    expect(md).toContain("# VinVerdict short report:");
+    expect(md).toMatch(/- \*\*Recalls:\*\* \d+ on record/);
+    expect(md.length).toBeLessThan(full.length / 2);
+    // The same facts in both: the data header only differs in its kind.
+    const { report_kind: k1, ...f1 } = frontMatter(md);
+    const { report_kind: k2, ...f2 } = frontMatter(full);
+    expect([k1, k2]).toEqual(["short", "full"]);
+    expect(f1).toEqual(f2);
+  });
+
+  it("quotes less of a long ad", () => {
+    const long = `2018 Honda Civic $9,000 80,000 miles. ${"Runs great, new tires. ".repeat(400)}`;
+    const md = report(offline(long), null, {}, true);
+    expect(md).toContain("first 3,000 characters");
+    expect(md).toContain("[…cut]");
+  });
+
+  it("explains the verdict scale and marks this car's level", () => {
+    const md = report(offline(readFileSync(join(process.cwd(), "src/lib/listing/corpus/cases/29-autotrader-kia-forte-rebuilt.txt"), "utf8")), null);
+    expect(md).toContain("- **Stop: serious warning** (this car):");
+    expect(md).toContain("- **Worth investigating**: nothing wrong in what was checked");
+    expect(frontMatter(md)).toMatchObject({ verdict_level: "stop" });
+    expect(md).toContain("If I can do only one more check before deciding, which should it be, and why?");
   });
 });
