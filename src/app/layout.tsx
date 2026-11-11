@@ -56,7 +56,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               Privacy: visitors&apos; checks aren&apos;t stored, and screenshots are read on your device.{" "}
               <Link href="/security" className="link">How it&apos;s secured</Link> ·{" "}
               <Link href="/accuracy" className="link">How accurate it is</Link> ·{" "}
-              <Link href="/scam-signs" className="link">Scam signs</Link>
+              <Link href="/scam-signs" className="link">Scam signs</Link> ·{" "}
+              <Link href="/cars" className="link">Every model&apos;s fuel cost by year</Link>
             </p>
             <p>
               Got a wrong answer, or an idea?{" "}

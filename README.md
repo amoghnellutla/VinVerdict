@@ -89,13 +89,13 @@ Behind it are four checks: **Listing trust, Car condition, Price, Ready to pay.*
 
 ![Comparing saved cars side by side](docs/images/compare.png)
 
-### 4. Car guide: every car since 2000
+### 4. Reference: every model's fuel cost by year
 
-[vinverdict.vercel.app/cars](https://vinverdict.vercel.app/cars) covers 86 makes and 988 models sold in the US from 2000 to 2026. Search by name or browse by make, then see each model year side by side:
+A side reference, linked from the footer rather than the menu, because it doesn't check a listing. [vinverdict.vercel.app/cars](https://vinverdict.vercel.app/cars) covers 86 makes and 988 models sold in the US from 2000 to 2026. Search by name or browse by make, then see each model year side by side:
 - body type and size, engines, gas, hybrid or electric;
 - the EPA's MPG and yearly fuel cost, also shown per month.
 
-Every year links to the EPA's own page for that car. "Luxury brand" and "Sports car" labels appear only when the brand's or model's Wikipedia article says so in its opening, and the page quotes that sentence with the link. Owner complaints, recalls, crash ratings and plain-word summaries ("strong on fuel cost, watch electrical complaints") are coming next, each from a cited source.
+Every year links to the EPA's own page for that car. "Luxury brand" and "Sports car" labels appear only when the brand's or model's Wikipedia article says so in its opening, and the page quotes that sentence with the link. It goes back in the menu only once it helps judge a car: which years of a model had more recalls, owner complaints and lower crash ratings, from NHTSA.
 
 ## How to use it
 

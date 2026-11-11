@@ -4,7 +4,6 @@
 /** The owner (two-step login) sees everything. */
 export const NAV_ROUTES = [
   { href: "/", label: "Check a car" },
-  { href: "/cars", label: "Car guide" },
   { href: "/shortlist", label: "Shortlist" },
   { href: "/search", label: "Search" },
   { href: "/checked", label: "My cars" },
@@ -12,10 +11,13 @@ export const NAV_ROUTES = [
   { href: "/settings", label: "Settings" },
 ] as const;
 
-/** Demo visitors (no login) see only the public pages. Five fit on one line; "How it's secured" is in the footer. */
+/**
+ * Demo visitors (no login) see only the public pages; "How it's secured" is in the footer.
+ * The car guide (/cars) is linked from the footer, not here: it's a reference of every model's
+ * engines and fuel cost, not part of checking a listing.
+ */
 export const GUEST_ROUTES = [
   { href: "/", label: "Check a car" },
-  { href: "/cars", label: "Car guide" },
   { href: "/mine", label: "My list" },
   { href: "/shortlist", label: "Shortlist" },
   { href: "/why", label: "Why not Google?" },
