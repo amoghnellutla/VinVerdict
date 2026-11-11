@@ -20,6 +20,18 @@ function run(text: string, extra: Partial<ScamInput> = {}) {
 const ids = (r: ReturnType<typeof run>) => r.hits.map((h) => h.id);
 
 describe("evaluateScamRules", () => {
+  it("notes a new Facebook account (this year or last), as a note only", () => {
+    const fb = (y: number) => `${GOOD_TEXT}\nSeller information\nSeller details\nJoined Facebook in ${y}`;
+    for (const y of [2026, 2025]) {
+      const h = run(fb(y)).hits.find((x) => x.id === "new-account");
+      expect(h?.action).toBe("info");
+      expect(h?.title).toBe(`Seller's Facebook account is new (joined ${y})`);
+    }
+    expect(ids(run(fb(2024)))).not.toContain("new-account");
+    expect(ids(run(fb(2012)))).not.toContain("new-account");
+    expect(ids(run(fb(2026)))).not.toContain("too-good-plus-flags");
+  });
+
   it("catches the title-not-in-my-name phrasings, but not a seller whose title is in their name", () => {
     for (const s of ["Title isn't in my name yet.", "title is not in my name", "The title isnt in my name", "Selling for my cousin."]) {
       expect(ids(run(`${GOOD_TEXT} ${s}`, { decoded: DECODED })), s).toContain("curbstoning");

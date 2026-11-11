@@ -269,6 +269,18 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
       "Almost unused. On a used-car listing that usually means a dealer's registered demo or loaner, or a mileage the dealer never filled in. See the odometer yourself, and ask when the factory warranty started: on a demo it often runs from the day the dealer put it into service.");
   }
 
+  // Facebook Marketplace's seller box: "Joined Facebook in 2026". A new account isn't proof of
+  // anything (people join to sell a car), so it's a note, never a warning: it only says to look closer.
+  const joined = /\bjoined facebook in (\d{4})\b/.exec(t);
+  if (joined) {
+    const year = Number(joined[1]);
+    const thisYear = (input.now ?? new Date()).getFullYear();
+    if (year >= thisYear - 1 && year <= thisYear) {
+      add("new-account", "info", `Seller's Facebook account is new (joined ${year})`,
+        "Not proof of a scam: people do join to sell one car. But fake listings often come from new accounts, so look at the profile (friends, other listings, Marketplace ratings), insist on seeing the car and the seller's ID matching the title, and never pay before that.");
+    }
+  }
+
   // --- Mileage sanity ---
   const year = l.year ?? decoded?.year ?? null;
   if (year && l.miles !== null) {

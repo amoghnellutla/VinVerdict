@@ -65,13 +65,13 @@ const STOP = new Set([
   "auction", "odometer-unknown", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
 ]);
 /** Facts worth knowing that say nothing bad about the seller or the car. */
-const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero"]);
+const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero", "new-account"]);
 
 const AREA: Record<string, Area> = {
   // Can the listing be trusted?
   "pay-gift-card": "listing", "pay-wire": "listing", "pay-app-upfront": "listing", "pay-app": "listing",
   "deposit-first": "listing", "shipping-only": "listing", "seller-remote": "listing", rushed: "listing",
-  "too-good": "listing", "too-good-plus-flags": "listing", "same-phone": "listing", "no-vin": "listing",
+  "too-good": "listing", "too-good-plus-flags": "listing", "same-phone": "listing", "new-account": "listing", "no-vin": "listing",
   "no-price": "listing", "far-away": "listing", "vin-invalid": "listing", "vin-mismatch": "listing",
   "live-cloned": "listing", "live-dealer-too": "listing", "live-price-differs": "listing", "live-ended": "listing",
   "history-two-sellers": "listing", "vin-only": "listing",

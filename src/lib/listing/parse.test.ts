@@ -83,6 +83,10 @@ describe("parseListing", () => {
   it("detects branded titles, accidents and manual transmissions", () => {
     expect(parseListing("2014 Corolla rebuilt title runs great").titleStatus).toBe("rebuilt");
     expect(parseListing("2014 Corolla, rebuilt transmission, clean title").titleStatus).toBe("clean");
+    // Craigslist's attribute box, pasted: the fields run together, so the next field's name follows the value.
+    expect(parseListing("2019 Nissan Altima - $14,995\ncondition: good\nodometer: 61500\ntitle status: rebuilt\ntransmission: automatic").titleStatus).toBe("rebuilt");
+    expect(parseListing("2012 Honda Civic - $2,500\ntitle status: parts only\ntransmission: manual").titleStatus).toBe("branded");
+    expect(parseListing("2015 Honda Fit - $6,000\ntitle status: clean\ntransmission: automatic\nrebuilt transmission last year").titleStatus).toBe("clean");
     expect(parseListing("no flood, no salvage, clean title").titleStatus).toBe("clean");
     expect(parseListing("minor fender bender last year").accident).toBe("reported");
     expect(parseListing("no rust, minor accident on bumper").accident).toBe("reported");

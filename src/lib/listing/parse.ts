@@ -297,11 +297,14 @@ function findTitle(text: string): TitleStatus {
   // "Rebuilt salvage title", "rebuilt from salvage": salvaged once, now repaired and re-titled.
   if (hasUnnegated(text, /\brebuilt[- ]salvage\b|\bsalvage[- ]rebuilt\b|\brebuilt (?:from|after) (?:a )?salvage\b|\bsalvaged?\b[^.]{0,40}\b(?:now|has) (?:a )?rebuilt\b/)) return "rebuilt";
   if (hasUnnegated(text, /\bsalvaged?\b/)) return "salvage";
-  if (hasUnnegated(text, /\b(rebuilt|rebuild|reconstructed|restored) title\b|\brebuilt\b(?! (engine|transmission|motor|trans))/)) return "rebuilt";
+  // "Rebuilt engine" is a repair, not a title. But Craigslist's fields run together once pasted
+  // ("title status: rebuilt transmission: automatic"), so a word followed by a colon is the next field.
+  if (hasUnnegated(text, /\b(rebuilt|rebuild|reconstructed|restored) title\b|\brebuilt\b(?! (?:engine|transmission|motor|trans)\b(?!:))/)) return "rebuilt";
   if (hasUnnegated(text, /\bflood(ed)?\b|water damage/)) return "flood";
   // The lemon-law brand, not "lemon yellow paint" or a "lemon tree air freshener".
   if (hasUnnegated(text, /\blemon[- ](law|title|buy ?back|brand)|\b(is|was|a|declared|deemed) (a )?lemon\b(?! (yellow|green|tree|scent|fresh|colou?r|paint))|\bmanufacturer buy ?back\b/)) return "lemon";
-  if (hasUnnegated(text, /\bbranded title\b|\b(junk|non-?repairable) title\b|\btitle (status:? )?(is )?(junk|non-?repairable)\b/)) return "branded";
+  // Craigslist's "title status: parts only" is a junk-type brand: the car can't be registered for the road.
+  if (hasUnnegated(text, /\bbranded title\b|\b(junk|non-?repairable) title\b|\btitle (status:? )?(is )?(junk|non-?repairable|parts only)\b/)) return "branded";
   // "clean title", "title is clean", Craigslist's "title status: clean", "clean NJ title",
   // "clean blue title", "clean and clear title". ("Clear title" alone means no lien, not no brand.)
   if (/\bclean (and clear |blue |[a-z]{2} )?(title|carfax|autocheck)\b|title (status:? )?(is )?clean\b/.test(text)) return "clean";
