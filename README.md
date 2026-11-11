@@ -51,11 +51,13 @@ Every check ends in one of four answers. It never says "safe":
 | Answer | When |
 | --- | --- |
 | **Stop: serious warning** | A known scam pattern (gift cards, a deposit before viewing, a shipping-only story, a seller who's away) or a serious problem with the car (a branded title, an odometer rollback, miles the seller admits aren't real) |
-| **Verify before going further** | Something to check with the seller or in person: a reported accident, a title not in the seller's name, a price far below similar cars |
+| **Verify before going further** | Something to check with the seller or in person: a reported accident, a problem the seller admits (check engine light, transmission, won't start), a title not in the seller's name, a price far below similar cars |
 | **Worth investigating** | Nothing wrong found in what was checked, with a list of what's still unknown |
 | **Not enough information** | No VIN and no price to go on |
 
 Behind it are four checks: **Listing trust, Car condition, Price, Ready to pay.** Each has a status (Warning, Check, OK so far, Not checked) and a "still unknown" list. Every finding says where its evidence comes from: *in the ad*, *official record*, *listing data*, *estimate*, *the seller's messages*, or *proof you attached*.
+
+It reads private ads the way people write them: "Salvage? No. Flood: no. Accidents: none" counts as the seller saying no, not as a salvage title, and Craigslist's attribute box ("title status: rebuilt") is read field by field.
 
 <img src="docs/images/verdict-unknowns.png" alt="What's still unknown for a listing that looks fine" width="640">
 

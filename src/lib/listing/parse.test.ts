@@ -83,6 +83,20 @@ describe("parseListing", () => {
   it("detects branded titles, accidents and manual transmissions", () => {
     expect(parseListing("2014 Corolla rebuilt title runs great").titleStatus).toBe("rebuilt");
     expect(parseListing("2014 Corolla, rebuilt transmission, clean title").titleStatus).toBe("clean");
+    // Private ads answer their own questions. "Salvage? No" must never read as a salvage title.
+    const qa = (s: string) => parseListing(`2015 Honda Civic LX $7,500 120,000 miles. ${s}`);
+    for (const s of ["Salvage? No. Flood? No. Accidents? None.", "Flood: no\nSalvage: no\nAccidents: none", "Accidents: 0, Flood: No, Rebuilt: No", "Salvage - no. Accident - no."]) {
+      expect(qa(s).titleStatus, s).toBe("unknown");
+      expect(qa(s).accident, s).toBe("none");
+    }
+    expect(qa("Has it been in a flood? No").titleStatus).toBe("unknown");
+    expect(qa("Any flood damage? no").titleStatus).toBe("unknown");
+    // Real answers still count, and "no problem" / "no injuries" aren't a "no".
+    expect(qa("Flood: yes").titleStatus).toBe("flood");
+    expect(qa("Accident? Yes, minor, fixed").accident).toBe("reported");
+    expect(qa("accidents: 1 minor").accident).toBe("reported");
+    expect(qa("Salvage title? No problem, it drives great").titleStatus).toBe("salvage");
+    expect(qa("Accident: no injuries, rear bumper replaced").accident).toBe("reported");
     // Craigslist's attribute box, pasted: the fields run together, so the next field's name follows the value.
     expect(parseListing("2019 Nissan Altima - $14,995\ncondition: good\nodometer: 61500\ntitle status: rebuilt\ntransmission: automatic").titleStatus).toBe("rebuilt");
     expect(parseListing("2012 Honda Civic - $2,500\ntitle status: parts only\ntransmission: manual").titleStatus).toBe("branded");

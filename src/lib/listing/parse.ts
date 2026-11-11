@@ -323,7 +323,7 @@ const SAFETY_FEATURE = /\bpre-?collision\b|\b(?:forward|front|rear|cross[- ]traf
 //   CarGurus / CarMax / Carvana  "No accidents reported" / "1 accident reported"
 const HISTORY_ACCIDENT = /\bat least (?:1|one) accident\b|\b[1-9] (?:accidents?|damage events?)(?: or damage)? reported\b|\baccidents? or damage:? (?:at least )?[1-9]\b|\baccidents? (?:or damage )?reported\b|\bdamage reported\b/;
 const HISTORY_NONE = /\baccidents? or damage:? none reported\b|\bno accidents? (?:or damage )?reported\b|\bno accidents? or damage\b|\b0 accidents\b|\bno reported accidents\b|\bclean carfax\b/;
-const SAID_NONE = /\bno accidents?\b|\baccident[- ]free\b|never (?:been )?in an accident|\bzero accidents\b|\bno damage\b|\bno significant damage\b|\bnever (?:been )?wrecked\b|\bno wrecks?\b/;
+const SAID_NONE = /\bno accidents?\b|\baccidents?\s*[?:\-–—]+\s*(?:no|none|nope|zero|0)\b(?![- ]?(?:injur|one (?:was )?hurt))|\baccident[- ]free\b|never (?:been )?in an accident|\bzero accidents\b|\bno damage\b|\bno significant damage\b|\bnever (?:been )?wrecked\b|\bno wrecks?\b/;
 const SAID_ACCIDENT = /\baccidents?\b|\bcollision\b|fender[- ]bender|\b(?:frame|structural|front[- ]end|rear[- ]end|body|hail) damage\b|airbags? (?:deployed|popped)|\bwas hit\b|got hit|been hit|rear[- ]ended|\btotaled\b|\bwreck(?:ed|s)?\b|\bhit (?:a |by a )?(?:deer|pole|curb|car|truck|guardrail)\b/;
 
 function findAccident(text: string): AccidentStatus {

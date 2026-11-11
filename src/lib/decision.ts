@@ -79,7 +79,7 @@ const AREA: Record<string, Area> = {
   "story-miles": "car", "story-title": "car", "story-accident": "car",
   "accident-reported": "car", "accident-unknown": "car", "live-accident": "car", "report-damage": "car",
   "report-commercial": "car", fleet: "car", "title-brand": "car", "report-title": "car", "title-washing": "car",
-  auction: "car", "odometer-unknown": "car", "miles-near-zero": "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
+  auction: "car", "odometer-unknown": "car", "miles-near-zero": "car", "seller-problem": "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
   "history-rollback": "car", "history-miles-lower": "car", "live-miles-lower": "car", "history-turnover": "car",
   "history-dealer-recent": "car", "proof-stolen": "car", "proof-total-loss": "car", "proof-auction": "car",
   "proof-odometer": "car", "proof-open-recalls": "car", "proof-miles-lower": "car", "proof-reports-differ": "car",

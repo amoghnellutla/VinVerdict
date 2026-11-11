@@ -20,6 +20,15 @@ function run(text: string, extra: Partial<ScamInput> = {}) {
 const ids = (r: ReturnType<typeof run>) => r.hits.map((h) => h.id);
 
 describe("evaluateScamRules", () => {
+  it("flags problems the seller admits, but not denials, repairs already done or review summaries", () => {
+    const p = (s: string) => run(`${GOOD_TEXT} ${s}`).hits.find((x) => x.id === "seller-problem");
+    expect(p("Check engine light is on, needs transmission work.")?.title).toBe("Seller mentions a problem: check engine light on, transmission problem");
+    expect(p("Check engine light is on.")?.action).toBe("flag");
+    expect(p("Won't start since last week.")?.title).toContain("doesn't start or run");
+    for (const s of ["No check engine light.", "Check engine light: off.", "New head gasket last year.", "Never overheated, no oil leaks.", "Rebuilt transmission at 90k.", "Runs and drives great, needs nothing.", "Sold as is.",
+      "The vehicle has mixed feedback. Some report electronic problems, transmission issues, and excessive oil consumption."]) expect(p(s), s).toBeUndefined();
+  });
+
   it("notes a new Facebook account (this year or last), as a note only", () => {
     const fb = (y: number) => `${GOOD_TEXT}\nSeller information\nSeller details\nJoined Facebook in ${y}`;
     for (const y of [2026, 2025]) {

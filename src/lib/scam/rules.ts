@@ -269,6 +269,28 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
       "Almost unused. On a used-car listing that usually means a dealer's registered demo or loaner, or a mileage the dealer never filled in. See the odometer yourself, and ask when the factory warranty started: on a demo it often runs from the day the dealer put it into service.");
   }
 
+  // Problems the seller admits. Honest of them, but it changes the price: diagnose and quote it first.
+  // "Sold as is" isn't one: it's the normal wording for every private sale.
+  const PROBLEMS: [RegExp, string][] = [
+    [/\b(?:check engine|engine|cel|service engine)(?: soon)? light (?:is |stays |comes |keeps coming )?on\b|\b(?:check engine|cel) light\b(?!:? (?:off|out|free|works))/, "check engine light on"],
+    [/\bneeds? (?:a )?(?:new |rebuilt )?(?:transmission|trans)\b|\btransmission (?:slips|slipping|issues?|problems?|needs)\b|\bslipping transmission\b/, "transmission problem"],
+    [/\bneeds? (?:a )?(?:new |rebuilt )?(?:engine|motor)\b|\bengine (?:knock|knocking|issues?|problems?|needs)\b|\b(?:rod|engine) knock\b|\bknocking\b/, "engine problem"],
+    [/\bblown head gasket\b|\bhead gasket (?:leak|is (?:bad|blown|leaking|going)|needs|issues?|problems?)\b|\bneeds? (?:a )?(?:new )?head gasket\b/, "head gasket"],
+    [/\boverheat(?:s|ing|ed)?\b/, "overheating"],
+    [/\bburns? oil\b|\bleaks? oil\b|\boil leak\b/, "oil leak or burning"],
+    [/\bmisfir(?:e|es|ing)\b/, "misfire"],
+    [/\b(?:won'?t|doesn'?t|does not|will not) (?:start|run|crank)\b|\bnot running\b|\bnon[- ]?runner\b/, "doesn't start or run"],
+    [/\bneeds? (?:a )?(?:new )?catalytic converter\b|\bcatalytic converter (?:stolen|needs|is bad)\b/, "catalytic converter"],
+    [/\bmechanic(?:'?s)? special\b|\bneeds (?:some )?(?:work|tlc|repairs?)\b|\bproject car\b/, "needs work"],
+  ];
+  // Review summaries on dealer sites ("some report transmission issues") are about the model, not this car.
+  const ownWords = t.replace(/[^.!?]*\b(?:some (?:owners |drivers |customers |people )?report|(?:customers|owners|drivers|reviewers|reviews) (?:praise|say|report|mention|complain)|consumer reviews?|mixed feedback|negative feedback)\b[^.!?]*[.!?]?/g, " ");
+  const problems = PROBLEMS.filter(([re]) => hasUnnegated(ownWords, re)).map(([, label]) => label);
+  if (problems.length) {
+    add("seller-problem", "flag", `Seller mentions a problem: ${problems.slice(0, 3).join(", ")}`,
+      "Good that it's disclosed, but these range from a cheap fix to thousands of dollars. Have a mechanic diagnose it and quote the repair before you agree a price, then take that cost off the price. A pre-purchase inspection should cover it.");
+  }
+
   // Facebook Marketplace's seller box: "Joined Facebook in 2026". A new account isn't proof of
   // anything (people join to sell a car), so it's a note, never a warning: it only says to look closer.
   const joined = /\bjoined facebook in (\d{4})\b/.exec(t);
