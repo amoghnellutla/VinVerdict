@@ -59,6 +59,8 @@ import { VerdictCard } from "./VerdictCard";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 const miles = (n: number | null) => (n == null ? null : `${n.toLocaleString("en-US")} mi`);
+/** Today as YYYY-MM-DD in the visitor's own time zone (UTC would say tomorrow on a US evening). */
+const localDate = () => new Date().toLocaleDateString("en-CA");
 
 const SEVERITY_STYLE: Record<Severity, string> = {
   stop: "bg-bad-soft text-bad",
@@ -218,7 +220,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   const reportText = (listingUrl: string | null): string =>
     buildReport(
       reportInput({
-        generated: new Date().toISOString().slice(0, 10),
+        generated: localDate(),
         listingUrl,
         state: readBuyerZip().state,
         name: carName(m),
@@ -228,7 +230,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         parts: parts.current,
       }),
     );
-  const reportFile = `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${new Date().toISOString().slice(0, 10)}.md`;
+  const reportFile = `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${localDate()}.md`;
 
   const priceCheck = (
     <PriceCheck

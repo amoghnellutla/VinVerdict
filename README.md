@@ -120,7 +120,12 @@ Tip: drag the **bookmark button** on the home page to your bookmarks bar, then c
 - Add the listing's link if you like. It's only written into the file; VinVerdict never opens it.
 - **Download report (.md)** or **Copy report**, then paste it into ChatGPT, Claude or any assistant and ask the questions at the end of the report.
 
-The report is one Markdown file with everything on the result page, in 14 numbered sections:
+The report is one Markdown file. It opens with:
+- a short data header with the key facts (car, VIN, price, miles, verdict, estimate, out-the-door total) for AI tools to read exactly;
+- an **At a glance** table;
+- a **What's still open** checklist: price check, history report, outside checks, seller answers, their reply, inspection, listing link, ticked when done.
+
+Then everything on the result page, in 14 numbered sections:
 - the verdict and every warning with its evidence and source;
 - the car and its VIN, part by part;
 - the history report, the price and the listing history;

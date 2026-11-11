@@ -58,7 +58,7 @@ function offline(text: string): Analysis {
 }
 
 const HEADINGS = [
-  "## How to read this report", "## 1. The answer", "## 2. Warnings and notes", "## 3. The car", "## 4. History report", "## 5. Price",
+  "## At a glance", "**What's still open**", "## How to read this report", "## 1. The answer", "## 2. Warnings and notes", "## 3. The car", "## 4. History report", "## 5. Price",
   "## 6. Listing history", "## 7. Check it yourself", "## 8. Are the photos really this car?", "## 9. Safety", "## 10. What it'll cost",
   "## 11. Buyer protection", "## 12. Before you buy", "## 13. Sources", "## 14. Questions to ask your AI", "## Appendix: the listing as pasted",
 ];
@@ -67,9 +67,32 @@ const HEADINGS = [
 const outsideFences = (md: string) => md.replace(/^(`{3,})text\n[\s\S]*?\n\1$/gm, "");
 const appendix = (md: string) => md.slice(md.indexOf("## Appendix"));
 
+/** The YAML block at the top: one "key: value" per line, values JSON or bare words. */
+function frontMatter(md: string): Record<string, unknown> {
+  expect(md.startsWith("---\nreport: VinVerdict\n")).toBe(true);
+  const block = md.slice(4, md.indexOf("\n---\n", 4));
+  return Object.fromEntries(
+    block.split("\n").map((line) => {
+      const [, k, v] = line.match(/^([a-z_]+): (.*)$/)!;
+      let value: unknown = v;
+      try {
+        value = JSON.parse(v);
+      } catch {
+        // a bare word, like "dealer"
+      }
+      return [k, value];
+    }),
+  );
+}
+
 function checkWellFormed(md: string) {
   for (const h of HEADINGS) expect(md, h).toContain(h);
-  expect(md).not.toMatch(/undefined|NaN|\[object Object\]|null\b(?! check)/);
+  expect(Object.keys(frontMatter(md))).toEqual([
+    "report", "generated", "car", "vin", "asking_price_usd", "miles", "seller", "verdict", "serious_warnings", "things_to_check",
+    "estimated_fair_price_usd", "out_the_door_usd", "listing_url",
+  ]);
+  // After the data header, no placeholder ever leaks into the text.
+  expect(md.slice(md.indexOf("\n---\n", 4) + 5)).not.toMatch(/undefined|NaN|\[object Object\]|\bnull\b/);
   // Every Markdown link is https.
   for (const [, href] of outsideFences(md).matchAll(/\]\(([^)]*)\)/g)) expect(href).toMatch(/^https:\/\//);
   // No phone numbers or emails in the seller's text (official recall notices keep the maker's own customer-service number).
@@ -100,6 +123,11 @@ describe("full report: the recorded demo examples", () => {
   it("camry: the price, the listing history and the recalls are all there", async () => {
     const d = await loadExample("camry");
     const md = report(d.analysis, d.price);
+    expect(frontMatter(md)).toMatchObject({ vin: "4T1C11AK3MU436772", asking_price_usd: 9900, miles: 183086, seller: "dealer", listing_url: null });
+    expect((frontMatter(md).estimated_fair_price_usd as number[]).length).toBe(2);
+    expect(md).toMatch(/\| Price \| \$9,900: Fair price, estimate \$[\d,]+–\$[\d,]+ \(low confidence\) \|/);
+    expect(md).toContain("- [x] Price check run (section 5)");
+    expect(md).toContain("- [ ] Read a vehicle history report (Carfax or AutoCheck): the dealer has a free Carfax link in section 7");
     expect(md).toMatch(/\*\*Estimated fair price:\*\* \$[\d,]+/);
     expect(md).toMatch(/\| First seen \| Last seen \| Seller/);
     expect(md).toMatch(/\*\*Recalls:\*\* \d+ on record/);
@@ -114,6 +142,9 @@ describe("full report: a real pasted page with no outside lookups (case 29)", ()
 
   it("is well formed and says what wasn't checked", () => {
     checkWellFormed(md);
+    expect(md).toMatch(/\| Serious warnings \| Rebuilt title; Auction car \|/);
+    expect(md).toContain("- [ ] Run the price check (free, a few per day)");
+    expect(md).toContain("- [ ] Add the listing link before downloading");
     expect(md).toContain("_Not priced: the live price check wasn't run");
     expect(md).toContain("_Not checked: the year, make and model weren't known_");
     expect(md).toMatch(/### Rebuilt title[\s\S]+\*\*How serious:\*\* Serious warning[\s\S]+\*\*Evidence:\*\* In the ad/);

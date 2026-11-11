@@ -97,12 +97,66 @@ export function buildReport(r: ReportInput): string {
   const out: string[] = [];
   const push = (...xs: string[]) => out.push(...xs);
 
+  // ----- Key facts for machines (YAML front matter; JSON strings are valid YAML) -----
+  const v0 = r.valuation && !r.valuation.unpriced ? r.valuation : null;
+  push(
+    "---",
+    "report: VinVerdict",
+    `generated: ${r.generated}`,
+    `car: ${JSON.stringify(r.name)}`,
+    `vin: ${vin ? JSON.stringify(vin) : "null"}`,
+    `asking_price_usd: ${l.price ?? "null"}`,
+    `miles: ${l.miles ?? "null"}`,
+    `seller: ${l.sellerType}`,
+    `verdict: ${JSON.stringify(r.decision.title)}`,
+    `serious_warnings: ${r.decision.findings.filter((f) => f.severity === "stop").length}`,
+    `things_to_check: ${r.decision.findings.filter((f) => f.severity === "verify").length}`,
+    `estimated_fair_price_usd: ${v0 ? `[${v0.low}, ${v0.high}]` : "null"}`,
+    `out_the_door_usd: ${r.otd ? Math.round(r.otd.result.total) : "null"}`,
+    `listing_url: ${r.listingUrl ? JSON.stringify(r.listingUrl) : "null"}`,
+    "---",
+    "",
+  );
+
   // ----- Title -----
   push(`# VinVerdict report: ${r.name}`, "");
   push(
     `- **Made:** ${r.generated} with VinVerdict (${r.site}), from the listing text you pasted${r.recordedAt ? `; the price check is example data recorded ${r.recordedAt}` : ""}.`,
     `- **Listing link:** ${r.listingUrl ? mdLink(r.listingUrl, r.listingUrl) : "not given"}`,
-    `- **Asking price:** ${money(l.price)}. **Miles:** ${miles(l.miles)}. **VIN:** ${vin ?? (l.vin ? `${l.vin} (invalid check digit)` : "not given")}.`,
+    "",
+  );
+
+  // ----- At a glance -----
+  const stops = r.decision.findings.filter((f) => f.severity === "stop");
+  const verifies = r.decision.findings.filter((f) => f.severity === "verify");
+  const unknowns = r.decision.areas.flatMap((x) => x.unknown);
+  const priceLine = v0
+    ? `${money(l.price)}: ${v0.label ? `${DEAL_TEXT[v0.label]}, ` : ""}estimate ${money(v0.low)}–${money(v0.high)} (${v0.confidence} confidence)`
+    : r.valuation?.unpriced
+      ? `${money(l.price)}: not priced (${r.valuation.unpriced})`
+      : `${money(l.price)}: not priced yet`;
+  const sellerLine = [l.sellerType === "unknown" ? "Seller type not stated" : l.sellerType === "dealer" ? "Dealer" : "Private seller", l.distanceMiles != null ? `${l.distanceMiles.toLocaleString("en-US")} miles away` : null, r.protection.name !== "Dealer" && r.protection.name !== "Private seller" ? r.protection.name : null].filter(Boolean).join(", ");
+  push(
+    "## At a glance",
+    "",
+    table(
+      ["", ""],
+      [
+        ["Verdict", `${r.decision.title}: ${r.decision.text}`],
+        ["Car", `${r.name}${vin ? ` (VIN ${vin})` : l.vin ? ` (VIN ${l.vin} has an invalid check digit)` : " (no VIN given)"}`],
+        ["Price", priceLine],
+        ["Miles", miles(l.miles)],
+        ["Seller", sellerLine],
+        ["Out the door", r.otd ? `${cents(r.otd.result.total)} registering in ${STATES[r.otd.input.state]}` : "not worked out (no price)"],
+        ["Serious warnings", stops.length ? stops.map((f) => f.title).join("; ") : "None found"],
+        ["Check these", verifies.length ? verifies.map((f) => f.title).join("; ") : "Nothing flagged"],
+        ["Biggest unknowns", unknowns.length ? unknowns.slice(0, 3).join("; ") : "None listed"],
+      ],
+    ),
+    "",
+    "**What's still open** (a ticked box is done; do the rest, record what you find on the VinVerdict page, then download the report again):",
+    "",
+    ...stillOpen(r).map(([done, text]) => `- [${done ? "x" : " "}] ${text}`),
     "",
   );
 
@@ -385,6 +439,28 @@ export function buildReport(r: ReportInput): string {
   );
   push("---", "", `Made by VinVerdict (${r.site}) on ${r.generated}. Free; nothing you pasted was saved for this report.`, "");
   return out.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+/** The steps that would make this report stronger, and whether each is done. Facts only: what's on the page. */
+function stillOpen(r: ReportInput): [boolean, string][] {
+  const vin = r.a.vinCheck?.ok ? r.a.listing.vin : null;
+  const answered = (Object.values(r.checklist) as (boolean | null | undefined)[]).filter((x) => x != null).length;
+  const checksDone = r.checks.filter((c) => c.status !== "Not checked" && c.status !== "A link to open").length;
+  const checkable = r.checks.filter((c) => c.status !== "A link to open").length;
+  const history = r.answers.damage !== "unknown" || r.answers.title !== "unknown";
+  const items: [boolean, string][] = [
+    [!!vin, vin ? "VIN known and decoded" : "Get the VIN from the seller (nothing about this exact car can be checked without it)"],
+    [!!r.valuation, r.valuation ? "Price check run (section 5)" : "Run the price check (free, a few per day) for an estimate from similar cars nearby"],
+    [history, history ? "History report read (section 4)" : `Read a vehicle history report (Carfax or AutoCheck)${r.live?.carfaxUrl ? ": the dealer has a free Carfax link in section 7" : ""}, and record what it says`],
+  ];
+  if (vin) items.push([checkable > 0 && checksDone === checkable, `Outside checks done: ${checksDone} of ${checkable} (section 7)`]);
+  items.push(
+    [answered > 0, answered ? `Seller questions answered: ${answered} (section 12)` : "Send the message in section 12 and record the seller's answers"],
+    [!!r.replies.trim(), r.replies.trim() ? "Seller's reply pasted and checked (section 12)" : "Paste the seller's reply on the page so it's checked for scam signs"],
+    [false, "A pre-purchase inspection by your own mechanic, with the list in section 12"],
+    [!!r.listingUrl, r.listingUrl ? "Listing link included" : "Add the listing link before downloading, so you can find the ad again"],
+  );
+  return items;
 }
 
 /** Questions to start with, built from what was found (never a verdict of their own). */
