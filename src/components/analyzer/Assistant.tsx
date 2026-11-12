@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { loadThread, saveThread } from "@/lib/assistant/store";
 import { askCarAction, readHistoryAction } from "@/app/actions/ai";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Turnstile } from "@/components/Turnstile";
 import type { AskAction } from "@/lib/ai/ask";
-import { answerIntent, SMALL_TALK, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
+import { answerIntent, SMALL_TALK, smallTalk, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
 import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
 import { routeMessage } from "@/lib/assistant/route";
@@ -98,10 +99,16 @@ export function Assistant(props: {
   build: () => string;
   guest: boolean;
   ai: boolean;
+  /** Where this car's conversation is kept on the device (null: not kept). */
+  storeKey?: string | null;
 }) {
-  const { ctx, told, onTell, onUndo, onClear, onProof, onCheckVin, build, guest, ai } = props;
+  const { ctx, told, onTell, onUndo, onClear, onProof, onCheckVin, build, guest, ai, storeKey } = props;
   const id = useId();
-  const [thread, setThread] = useState<Msg[]>([]);
+  // The conversation is kept on this device for this car (lib/assistant/store.ts), like the facts.
+  const [thread, setThread] = useState<Msg[]>(() => (storeKey ? loadThread<Msg>(storeKey) : []));
+  useEffect(() => {
+    if (storeKey) saveThread(storeKey, thread);
+  }, [storeKey, thread]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -133,7 +140,7 @@ export function Assistant(props: {
     };
   }, []);
   // After something is applied, say what changed once the page has re-rendered.
-  const pending = useRef<{ msgId: string; before: PageContext } | null>(null);
+  const pending = useRef<{ msgId: string; before: PageContext; said?: boolean } | null>(null);
 
   useEffect(() => {
     const p = pending.current;
@@ -141,12 +148,20 @@ export function Assistant(props: {
     pending.current = null;
     const list = changes(p.before, ctx);
     flash(changedSections(p.before, ctx));
-    setThread((t) => t.map((m) => (m.id === p.msgId ? { ...m, note: list.length ? `Updated on this page: ${list.join("; ")}.` : "Applied. The verdict and price didn't change." } : m)));
+    // What the seller said: the safe reply to the first new warning, ready to copy.
+    const tip = p.said ? ctx.replyTips.find((x) => x.suggest && !p.before.replyTips.some((b) => b.title === x.title)) : undefined;
+    setThread((t) => t.map((m) => (m.id === p.msgId
+      ? {
+          ...m,
+          note: list.length ? `Updated on this page: ${list.join("; ")}.` : "Applied. The verdict and price didn't change.",
+          ...(tip?.suggest ? { quote: tip.suggest, actions: [{ kind: "copy" as const, label: "Copy this reply", text: tip.suggest }, ...(m.actions ?? [])] } : {}),
+        }
+      : m)));
   }, [ctx]);
 
-  const say = (m: Omit<Msg, "id" | "who">, before?: PageContext) => {
+  const say = (m: Omit<Msg, "id" | "who">, before?: PageContext, said = false) => {
     const msg: Msg = { id: uid(), who: "vv", ...m };
-    if (before) pending.current = { msgId: msg.id, before };
+    if (before) pending.current = { msgId: msg.id, before, said };
     setThread((t) => [...t, msg]);
   };
   const reply = (r: Reply, by?: string) => say({ text: r.text, points: r.points, actions: r.actions, by, quote: r.quote });
@@ -222,6 +237,16 @@ export function Assistant(props: {
       }
       case "other-car":
         return say({ text: `That's a different car (VIN ${route.vin}). Nothing was added to this one.`, vin: route.vin });
+      case "said": {
+        const short = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+        onTell({ id: uid(), label: `Seller said: "${short}"`, reply: text, facts: route.facts.length ? route.facts : undefined });
+        return say({
+          text: route.facts.length
+            ? `Got it: ${route.facts.map(factText).join("; ")}. Also checked as the seller's words, for warning signs and stories that change.`
+            : "Got it. Checked as the seller's words, for warning signs and stories that change from the ad.",
+          actions: [{ kind: "go", label: "See the seller checks", target: "#before-you-buy" }],
+        }, before, true);
+      }
       case "facts": {
         onTell({ id: uid(), label: route.facts.map(factText).join(", "), facts: route.facts });
         say({ text: `Got it: ${route.facts.map(factText).join("; ")}. Applied to the whole page (marked "you told VinVerdict"; undo it below).` }, before);
@@ -237,7 +262,7 @@ export function Assistant(props: {
           actions: [{ kind: "attach", label: "Or attach screenshots" }],
         });
       case "small-talk":
-        return reply(SMALL_TALK);
+        return reply(smallTalk(text));
       case "ai":
         return askAi(text);
     }
@@ -299,13 +324,13 @@ export function Assistant(props: {
         <ul className="mt-3 flex flex-wrap gap-2" aria-label="What you've told VinVerdict">
           {told.map((t) => (
             <li key={t.id} className="tag flex items-center gap-2 border border-accent/40">
-              <span>You: {t.label}</span>
+              <span>{t.reply ? t.label : `You: ${t.label}`}</span>
               <button type="button" className="link text-xs" onClick={() => onUndo(t.id)} aria-label={`Undo: ${t.label}`}>Undo</button>
             </li>
           ))}
           {told.length > 1 && (
             <li>
-              <button type="button" className="link text-xs" onClick={onClear}>Clear all</button>
+              <button type="button" className="link text-xs" onClick={() => { onClear(); setThread([]); }}>Clear all</button>
             </li>
           )}
         </ul>

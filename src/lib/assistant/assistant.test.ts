@@ -112,7 +112,7 @@ describe("telling VinVerdict changes the car the whole page shows", () => {
 describe("answers built from the page", () => {
   const ctx: PageContext = {
     car: "2018 Toyota Camry LE", vin: VIN, make: "Toyota", verdict: { title: "Worth investigating", text: "Nothing wrong found in what was checked." },
-    auctionDate: null, otherListing: null, leverage: ["Went through a dealer auction"],
+    auctionDate: null, otherListing: null, leverage: [{ id: "dealer-auction", title: "Went through a dealer auction" }], trust: { stops: [], checks: [] }, seller: { name: null, type: "dealer", place: null, listings: null, sellers: [] }, feedHistory: [], replyTips: [], problems: { complaints: 412, top: [{ area: "AIR BAGS", count: 90 }, { area: "ELECTRICAL SYSTEM", count: 61 }], known: [] },
     stops: [], checks: ["Went through a dealer auction"], unknowns: [], price: null, estimate: null, auctionSold: 9100, priced: false, historyRead: false,
     carfax: `https://www.carfax.com/VehicleHistory/p/Report.cfx?vin=${VIN}&partner=FRD_2`, recalls: 8, recallLookup: "https://www.toyota.com/recall", sellerMessage: "Hi, …", dealer: true,
     otd: { total: 15742.3, state: "New Jersey", inspection: 175 }, fuel: { label: "Camry, Auto (S8), 4 cyl, 2.5 L", mpg: "34 MPG combined", perYear: 2790, perMonth: 232 },

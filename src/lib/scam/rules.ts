@@ -239,14 +239,14 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Inspection refusal ---
   if (c.allowsInspection === false ||
-      /\b(no|not allowing|won'?t allow|will not allow|don'?t allow|doesn'?t allow) (an? )?(pre-?purchase )?(inspections?|mechanics?|ppi)\b|\bno test drives?\b(?! (without|unless|until))/.test(t)) {
+      /\b(no|not allowing|won'?t allow|will not allow|don'?t allow|doesn'?t allow) (an? )?(pre-?purchase )?(inspections?|mechanics?|ppi)\b|\bno test drives?\b(?! (without|unless|until))|\b(won'?t|will not|wouldn'?t|doesn'?t|does not|refuse[sd]? to) (let|allow) (me |us |my mechanic |a mechanic |anyone )?(to )?(have it |take it (to|for) )?(inspect(ed)?|check(ed)? out|test[- ]?drive|a test drive|an inspection|a mechanic|my mechanic)\b/.test(t)) {
     add("no-inspection", "hide", "Won't allow an inspection",
       "A seller who refuses a pre-purchase inspection may be hiding something. Don't buy without one.");
   }
 
   // --- Curbstoning, title washing, liens ---
   if (c.titleInSellerName === false ||
-      /\bsell(ing)? (it )?for (my|a) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is |isn'?t )?(not )?in my name yet|title (is )?not in my name|title isn'?t in my name|\b(open|jumped|floating) title\b|\bno title\b(?! (issues?|problems?|brands?|damage|history))|title status:? (missing|parts only)|title (is )?(lost|coming|in the mail)/.test(t)) {
+      /\btitle (is )?in (his|her|their|the) (brother|sister|mom|mother|dad|father|wife|husband|son|daughter|friend|cousin|uncle|aunt|grand\w*|boss|neighbor|girlfriend|boyfriend|ex)'?s name\b|\bsell(ing)? (it )?for (my|a|his|her|their) (relative|friend|uncle|aunt|cousin|brother|sister|mom|mother|dad|father|grand\w*|neighbor|boss)\b|title (is |isn'?t )?(not )?in my name yet|title (is )?not in my name|title isn'?t in my name|\b(open|jumped|floating) title\b|\bno title\b(?! (issues?|problems?|brands?|damage|history))|title status:? (missing|parts only)|title (is )?(lost|coming|in the mail)/.test(t)) {
     add("curbstoning", "flag", "Title not in seller's name",
       "Unlicensed dealers (\"curbstoners\") pose as private sellers. The name on the title must match the seller's ID.");
   }
@@ -261,7 +261,7 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   }
 
   // --- Pressure tactics ---
-  if (/\b(must|need to|have to) sell (it )?(today|asap|fast|quickly|this week|immediately)|today only|first (\$|cash|person with)|\bcash only\b.*\btoday\b|meet (only )?(at|in) (a |the )?(parking lot|gas station|walmart)/.test(t)) {
+  if (/\b(must|need to|have to) sell (it )?(today|asap|fast|quickly|this week|immediately)|today only|\b(need|have|got) to decide (today|now|tonight|right now|asap)\b|\bsomeone else is (coming|interested|looking)\b|first (\$|cash|person with)|\bcash only\b.*\btoday\b|meet (only )?(at|in) (a |the )?(parking lot|gas station|walmart)/.test(t)) {
     add("rushed", "flag", "Rushed sale",
       "Pressure to decide fast or meet in a random lot leaves no time for checks. Take your time and meet somewhere public and safe.");
   }

@@ -12,7 +12,9 @@ export type Fact =
   | { kind: "seller"; value: "dealer" | "private"; quote: string }
   | { kind: "owners"; value: number; quote: string }
   | { kind: "accident"; value: "none" | "reported"; quote: string }
-  | { kind: "title"; value: "clean" | "salvage" | "rebuilt" | "flood"; quote: string };
+  | { kind: "title"; value: "clean" | "salvage" | "rebuilt" | "flood"; quote: string }
+  | { kind: "docFee"; value: number; quote: string }
+  | { kind: "usage"; value: "rental" | "fleet"; quote: string };
 
 const WORD_NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
 
@@ -49,12 +51,16 @@ export function factsFromSentence(raw: string): Fact[] {
     const v = money(sold[1]);
     if (v) out.push({ kind: "auctionSold", value: v, quote: quote(sold) });
   }
-  // Asking price.
-  const ask = new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for))\s*:?\s*${AMOUNT}`, "i").exec(text);
-  if (ask && !(sold && ask.index === sold.index)) {
-    const v = money(ask[1]);
-    if (v) out.push({ kind: "price", value: v, quote: quote(ask) });
-  }
+  // Asking price, or the seller's lower price since ("she'd take 13,500", "came down to 14k",
+  // "asking 14,995 but they said 14,500 cash"): the last one said counts. Never a deposit,
+  // an amount off, or anything under $1,000 ("take $500 off" isn't a price).
+  const NOT_PRICE = String.raw`(?!\s*(?:off|less|discount|more|deposit|down\b|to hold|for (?:a |the )?deposit|doc|fee|out the door|otd))`;
+  const prices = [
+    ...text.matchAll(new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for)|(?:would|will|'d|'ll|could|can) (?:take|do|accept|let it go for)|(?:came|come|coming|go|goes|went|dropped|dropping|drop) (?:it )?(?:down )?to|(?:best|final|lowest|new|cash) price(?: is| of)?|agreed (?:to|on))\s*:?\s*${AMOUNT}${NOT_PRICE}`, "gi")),
+    ...text.matchAll(new RegExp(String.raw`\b(?:said|says|for)\s+${AMOUNT}\s+(?:cash|firm|obo|or best offer)\b`, "gi")),
+  ].sort((x, y) => x.index - y.index);
+  const ask = [...prices].reverse().find((m) => !(sold && m.index === sold.index) && (money(m[1]) ?? 0) >= 1_000);
+  if (ask) out.push({ kind: "price", value: money(ask[1])!, quote: text.slice(ask.index, ask.index + ask[0].length) });
   // Miles.
   const mi = /\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer(?: reads| shows| says| is| at| reading)?:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/i.exec(text);
   if (mi) {
@@ -75,13 +81,20 @@ export function factsFromSentence(raw: string): Fact[] {
   const own = /\b(\d|one|two|three|four|five)\s+(?:previous\s+)?owners?\b/i.exec(text);
   if (own) out.push({ kind: "owners", value: WORD_NUM[own[1].toLowerCase()] ?? Number(own[1]), quote: quote(own) });
   // Accidents.
-  const noAcc = /\bno accidents?\b(?: or damage)?(?: reported)?/i.exec(text);
-  const acc = /\b(?:had|has|was in|been in) an? (?:minor |small |major )?accident\b|\baccident (?:reported|on (?:the )?(?:carfax|autocheck|report))\b/i.exec(text);
+  const noAcc = /\bno accidents?\b(?: or damage)?(?: reported)?|\baccident[- ]free\b|\bnever (?:been )?in an accident\b/i.exec(text);
+  const acc = /\b(?:had|has|was in|been in) an? (?:minor |small |major )?accident\b|\baccident (?:reported|on (?:the )?(?:carfax|autocheck|report))\b|\b(?:1|one|2|two|3|three) (?:minor |small |major )?accidents?\b/i.exec(text);
   if (noAcc) out.push({ kind: "accident", value: "none", quote: quote(noAcc) });
   else if (acc) out.push({ kind: "accident", value: "reported", quote: quote(acc) });
   // Title.
-  const title = /\b(clean|salvage|rebuilt|flood)(?: title)\b/i.exec(text);
-  if (title) out.push({ kind: "title", value: title[1].toLowerCase() as "clean" | "salvage" | "rebuilt" | "flood", quote: quote(title) });
+  const title = /\b(clean|salvage|rebuilt|flood)(?: title)\b|\btitle is (clean|salvage|rebuilt|flood)\b/i.exec(text);
+  if (title) out.push({ kind: "title", value: (title[1] ?? title[2]).toLowerCase() as "clean" | "salvage" | "rebuilt" | "flood", quote: quote(title) });
+  // The dealer's doc fee ("doc fee is 499", "added a $899 doc fee").
+  const doc = /\bdoc(?:ument(?:ation|ary)?)?[ -]?fees?\b(?:\s*(?:is|of|:|=))?\s*\$?\s?(\d{2,4})\b|\$\s?(\d{2,4})\s*(?:dealer\s+)?doc(?:ument(?:ation|ary)?)?[ -]?fee/i.exec(text);
+  const docFee = doc ? Number(doc[1] ?? doc[2]) : 0;
+  if (docFee >= 25 && docFee <= 3_000) out.push({ kind: "docFee", value: docFee, quote: quote(doc!) });
+  // A former rental or fleet car, stated ("it was a rental"; "it's not a rental" doesn't match).
+  const use = /\b(?:was|it'?s|it is|is|former|ex-?)\s*(?:an?\s+)?(rental|fleet|company car)\b|\bused (?:as )?(?:a |in a )?(rental|fleet)\b/i.exec(text);
+  if (use) out.push({ kind: "usage", value: (use[1] ?? use[2]).toLowerCase() === "rental" ? "rental" : "fleet", quote: quote(use) });
   return out;
 }
 
@@ -94,6 +107,8 @@ export const FACT_LABEL: Record<Fact["kind"], string> = {
   owners: "owners",
   accident: "accidents",
   title: "title",
+  docFee: "doc fee",
+  usage: "past use",
 };
 
 export function factText(f: Fact): string {
@@ -106,5 +121,7 @@ export function factText(f: Fact): string {
     case "owners": return `${f.value} owner${f.value > 1 ? "s" : ""}`;
     case "accident": return f.value === "none" ? "No accidents (as you were told)" : "An accident reported";
     case "title": return `${f.value[0].toUpperCase()}${f.value.slice(1)} title`;
+    case "docFee": return `Doc fee $${f.value.toLocaleString("en-US")}`;
+    case "usage": return f.value === "rental" ? "Former rental car" : "Former fleet car";
   }
 }

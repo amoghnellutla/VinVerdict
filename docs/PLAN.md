@@ -372,6 +372,17 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **Assistant sweep: every demo example asked every kind of question in a browser; everything wrong or weak fixed.**
+- **Scam ad (2019 Civic, $4,500):** "What should I offer?" said "Start at $4,500… Would you take $4,500?" and "What's next?" said get the Carfax. Now, with a listing-trust Stop, the offer is "Don't make an offer", next steps put not paying first, and the price answer calls the low price bait.
+- **Below-market cars:** "Start at $9,500 and stay below $9,500" is replaced by "find out why it's cheap", with the title and lien checks and a message asking why. When the walk-away is above the asking price, the asking price is the ceiling.
+- **Offer message:** the same accident isn't said twice, "accident history unknown" isn't sent to a seller, and leverage is ordered strongest first (title, accident, price cut).
+- **New answers from the page:** "is this a scam?", "who is the seller?" (feed names that don't match their link aren't shown; sellers deduplicated), "common problems / reliable / how long will it last" (NHTSA complaints with context, known issues, no lifespan promise), "going to see it / test drive / what to bring", "thanks", "I bought it!". The price answer now answers first ("Overpriced: $21,734 is $534 above similar cars"). The history answer says what the ad and listing data already show. "1 recall" grammar.
+- **What the seller said** (probed with 44 real-world phrasings): checked like a pasted reply, so "he wants a deposit to hold it" turns the verdict to Stop at once with a safe reply to copy. New rule wording catches "won't let my mechanic inspect it", "need to decide today" and "title is in his brother's name"; the corpus scorecard stays at 0 false alarms.
+- **New facts:** the seller's lower price (the last one said; never a deposit, an amount off, or under $1,000), the doc fee, rental or fleet use, "title is clean", "1 accident", "accident-free".
+- **Bug:** the out-the-door section kept the price it started with, so a told price changed the assistant's total but not the section. It now restarts when the price or doc fee changes.
+- **Knows panel:** no "Run the price check" again after a lean check, "Needs the VIN" without one, and what's already known about the history. Seller's answers count what the seller said.
+- **The conversation is kept** on the device per car (7 days, 40 messages).
+- Checked: 645 tests (28 new messages in the routing test set), typecheck, lint, axe on every page (computer and phone), browser sweeps of all 5 examples. |
 | 2026-11-12 | **The assistant, finished (Amogh: "next time I test it should impress me").**
 - **What VinVerdict knows:** a checklist under the verdict with "X of 9 known" and a button for each missing piece (tell the price, add the report, run the price check, check recalls by VIN, see what to ask). The owner count comes from the report before the ad.
 - **"What should I offer?"** (`assistant/deal.ts`): the auction gap, the estimate's open and walk-away prices, a cheaper listing of the same VIN, leverage, and a message to copy. Page numbers only; with no estimate it asks for their best price instead of naming one. The auction isn't repeated as "leverage".

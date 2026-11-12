@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
-import { applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
+import { toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
 import { milesAgree, type Reading } from "@/lib/assistant/odometer";
@@ -99,10 +99,13 @@ function dealerUrls(live: Live | null, h: HistorySummary | null): string[] {
 }
 
 /** Findings a buyer can use to negotiate. */
-const LEVERAGE = new Set([
-  "accident-reported", "live-accident", "title-brand", "report-title", "high-miles", "history-price-cut", "history-two-sellers", "history-moved",
-  "dealer-auction", "auction", "seller-problem", "auction-broker", "proof-auction", "accident-unknown",
-]);
+// Findings that help the buyer negotiate, strongest first.
+const LEVERAGE = [
+  "title-brand", "report-title", "accident-reported", "live-accident", "report-damage", "history-price-cut", "high-miles", "history-two-sellers",
+  "dealer-auction", "auction", "auction-broker", "proof-auction", "seller-problem", "history-moved", "accident-unknown",
+];
+// Bad news about the car's past from listing data (before any report).
+const FEED_HISTORY = /^(?:live-accident|history-|fleet|accident-reported)/;
 
 /** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
 const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
@@ -177,7 +180,9 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   // What the seller wrote back (checked on this device), and a random phrase for their "photo with a note".
   const [replies, setReplies] = useState("");
   const [phrase] = useState(() => proofPhrase());
-  const replyHits = useMemo(() => checkReplies(replies, a.listing), [replies, a.listing]);
+  // What the seller wrote (pasted below) and what the person said they said (Assistant), checked together.
+  const allReplies = [replies, toldReplies(told)].filter(Boolean).join("\n");
+  const replyHits = useMemo(() => checkReplies(allReplies, a.listing), [allReplies, a.listing]);
   const knownIssues = useMemo(
     () =>
       knownIssuesFor({
@@ -289,7 +294,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         name: carName(m),
         a, m, decision, hits, goodVin, make, live, history, rawHistory, sources, valuation, milesUsed, recordedAt, answers, proofSum,
         proofs: proofs.map((x) => ({ kind: x.kind, findings: x.read.findings, source: x.read.source, screenshot: !!x.thumb })),
-        checklist, replies, replyHits, knownIssues, phrase, selling,
+        checklist, replies: allReplies, replyHits, knownIssues, phrase, selling,
         parts: parts.current,
         told: told.map((t) => t.label),
         auctionSale: auction ? { soldPrice: auction.soldPrice, house: auction.record?.house ?? null, consignor: auction.record?.consignor ?? null, crGrade: auction.record?.crGrade ?? null, odometer: auction.record?.odometer ?? null, odometerActual: !!auction.record?.odometerActual, saleDate: auction.record?.saleDate ?? null } : null,
@@ -315,7 +320,30 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
       const best = others.sort((x, y) => x.lastPrice! - y.lastPrice!)[0];
       return best ? { seller: best.seller, price: best.lastPrice! } : null;
     })(),
-    leverage: hits.filter((f) => LEVERAGE.has(f.id.replace(/^msg-/, ""))).map((f) => f.title),
+    leverage: hits
+      .filter((f) => LEVERAGE.includes(f.id.replace(/^msg-/, "")))
+      .sort((x, y) => LEVERAGE.indexOf(x.id.replace(/^msg-/, "")) - LEVERAGE.indexOf(y.id.replace(/^msg-/, "")))
+      .map((f) => ({ id: f.id.replace(/^msg-/, ""), title: f.title })),
+    trust: {
+      stops: hits.filter((f) => f.severity === "stop" && (f.area === "listing" || f.area === "deal")).map((f) => f.title),
+      checks: hits.filter((f) => f.severity === "verify" && (f.area === "listing" || f.area === "deal")).map((f) => f.title),
+    },
+    seller: {
+      // A feed name that doesn't match its own link isn't shown (it may be another business).
+      name: m.listing.dealerName ?? (live && !liveSeller(live).mismatch ? liveSeller(live).name : null),
+      type: m.listing.sellerType === "dealer" || m.listing.sellerType === "private" ? m.listing.sellerType : "unknown",
+      place: live ? [live.city, live.state].filter(Boolean).join(", ") || null : null,
+      listings: history ? history.stints.length : null,
+      // One name per business: the feed spells the same dealer differently ("GMC" / "Gmc").
+      sellers: history ? history.stints.map((x) => x.seller).filter((n, i, all) => all.findIndex((o) => o.toLowerCase() === n.toLowerCase() || sameSeller(o, n)) === i) : [],
+    },
+    replyTips: replyHits.map((h) => ({ title: h.title, suggest: h.suggest })),
+    problems: {
+      complaints: a.complaints?.total ?? null,
+      top: (a.complaints?.topComponents ?? []).map((t) => ({ area: t.component, count: t.count })),
+      known: knownIssues.map((k) => k.title),
+    },
+    feedHistory: hits.filter((f) => f.severity !== "note" && f.area === "car" && FEED_HISTORY.test(f.id) && !/miles|rollback/.test(f.id)).map((f) => f.title),
     priced: !!sources,
     historyRead: answers.damage !== "unknown" || answers.title !== "unknown",
     carfax: live?.carfaxUrl ?? null,
@@ -477,8 +505,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
               recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
               recalls: a.recalls?.length ?? null,
               recallLookup: pageCtx.recallLookup,
-              sellerAnswers: Object.values(checklist).filter((x) => x != null).length,
+              sellerAnswers: Object.values(checklist).filter((x) => x != null).length + told.filter((t) => t.reply).length,
               auctionSold: auction?.soldPrice ?? null,
+              priced: pageCtx.priced,
+              feedHistory: pageCtx.feedHistory,
             })}
           />
           </>
@@ -490,6 +520,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           onTell={tell}
           onUndo={(id) => setTold((x) => x.filter((t) => t.id !== id))}
           onClear={() => setTold([])}
+          storeKey={toldKeyFor}
           onProof={(p) => setProofs((x) => [...x, p])}
           onCheckVin={onCheckVin}
           build={() => reportText(m.listing.url ?? null, true)}
@@ -535,7 +566,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
             intro="The price is only the start: tax and fees on the day, then what it costs to own each year."
             tabs={[
               /* key: start the calculator again with the live price once it arrives */
-              { id: "otd", label: "Out the door", content: <OutTheDoor key={`${live ? "live" : "pasted"}-${zipTick}`} a={m} /> },
+              { id: "otd", label: "Out the door", content: <OutTheDoor key={`${live ? "live" : "pasted"}-${zipTick}-${m.listing.price ?? ""}-${m.listing.docFee ?? ""}`} a={m} /> },
               { id: "year", label: "Cost per year", content: <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}-${zipTick}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} /> },
               { id: "running", label: "Fuel and upkeep", content: <RunningCost a={m} /> },
             ]}

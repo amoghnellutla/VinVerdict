@@ -17,6 +17,7 @@ const VIN = "4T1B11HK8JU145889";
 function label(r: Route): string {
   if (r.kind === "intent") return `intent:${r.intent}`;
   if (r.kind === "facts") return `facts:${r.facts.map((f) => f.kind).join(",")}${r.question ? "+q" : ""}`;
+  if (r.kind === "said") return `said${r.facts.length ? `:${r.facts.map((f) => f.kind).join(",")}` : ""}`;
   return r.kind;
 }
 
@@ -104,6 +105,36 @@ const MESSAGES: [string, string][] = [
   ["clean title in hand", "facts:title"],
   ["it has a rebuilt title", "facts:title"],
   ["im in 08540", "facts:zip"],
+  // --- What the seller said, as the buyer reports it (checked like their reply) ---
+  ["the seller said no accidents", "said:accident"],
+  ["dealer says it has 1 owner", "said:owners"],
+  ["they said the timing belt was replaced", "said"],
+  ["seller told me the title is clean", "said:title"],
+  ["she said she'd take 13,500", "said:price"],
+  ["asking 14,995 but they said 14,500 cash", "said:price"],
+  ["the seller wants a deposit to hold it", "said"],
+  ["he asked me to pay with zelle", "said"],
+  ["seller is overseas and will ship", "said"],
+  ["he won't let my mechanic inspect it", "said"],
+  ["seller said I need to decide today", "said"],
+  // A plain price stays a fact.
+  ["he wants 12000 cash", "facts:price"],
+  ["they came down to 14k", "facts:price"],
+  // --- New facts ---
+  ["the dealer added a $899 doc fee", "facts:docFee"],
+  ["doc fee is 499", "facts:docFee"],
+  ["it was a rental", "facts:usage"],
+  ["carfax says 1 accident minor damage", "facts:accident"],
+  // --- At the car ---
+  ["i'm going to see it tomorrow", "intent:visit"],
+  ["what should I check at the test drive?", "intent:visit"],
+  ["what do I bring on buying day", "intent:visit"],
+  ["find me a cheaper one", "intent:price"],
+  // --- To the AI, not a canned answer ---
+  ["is 126k miles too much?", "ai"],
+  ["should I get an extended warranty?", "ai"],
+  ["the check engine light is on", "ai"],
+  ["i bought it!", "small-talk"],
   ["my zip is 07030", "facts:zip"],
   ["it's from a private seller", "facts:seller"],
   ["it's a dealer car", "facts:seller"],
@@ -121,15 +152,15 @@ const MESSAGES: [string, string][] = [
   ["Are 2 owners ok for a car this age?", "intent:history"],
 
   // --- Open questions: worth the AI ---
-  ["is it reliable", "ai"],
+  ["is it reliable", "intent:problems"],
   ["will it last?", "ai"],
   ["Will this engine last another 5 years of commuting?", "ai"],
   ["is the transmission good", "ai"],
   ["timing belt or chain?", "ai"],
   ["what does CR grade mean", "ai"],
   ["insurance cost?", "ai"],
-  ["what should i check when i see it", "ai"],
-  ["what to inspect on the test drive", "ai"],
+  ["what should i check when i see it", "intent:visit"],
+  ["what to inspect on the test drive", "intent:visit"],
   ["is the 2018 camry known for oil problems", "ai"],
   ["can i trust a dealer that sent it to auction", "ai"],
   ["is rust a problem on this model", "ai"],

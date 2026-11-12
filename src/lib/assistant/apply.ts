@@ -23,6 +23,8 @@ export type Told = {
   auction?: AuctionRecord;
   /** The pasted text, so the scam and history rules read it too. */
   text?: string;
+  /** What the seller said or wrote, as the person reports it: checked like a pasted reply. */
+  reply?: string;
 };
 
 const FILL: (keyof ParsedListing)[] = ["vin", "year", "make", "model", "price", "docFee", "miles", "transmission", "titleStatus", "accident", "exteriorColor", "ownerCount", "sellerType", "usage", "zip", "distanceMiles"];
@@ -45,11 +47,18 @@ export function applyTold(a: Analysis, told: Told[]): Analysis {
       else if (f.kind === "owners") listing.ownerCount = f.value;
       else if (f.kind === "accident") listing.accident = f.value;
       else if (f.kind === "title") listing.titleStatus = f.value;
+      else if (f.kind === "docFee") listing.docFee = f.value;
+      else if (f.kind === "usage") listing.usage = f.value;
     }
     if (t.auction?.odometer && listing.miles === null) listing.miles = t.auction.odometer;
   }
   const extra = told.map((t) => t.text).filter((x): x is string => !!x);
   return { ...a, listing, text: extra.length ? `${a.text}\n\n${extra.join("\n\n")}` : a.text };
+}
+
+/** What the seller said, from everything the person told VinVerdict (checked with the pasted replies). */
+export function toldReplies(told: Told[]): string {
+  return told.map((t) => t.reply).filter((x): x is string => !!x).join("\n");
 }
 
 /** The auction sale, from the record(s) and the person's own words; null when none. */

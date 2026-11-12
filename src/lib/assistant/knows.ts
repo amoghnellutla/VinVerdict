@@ -31,6 +31,10 @@ export type KnowsInput = {
   recallLookup: string | null;
   sellerAnswers: number;
   auctionSold: number | null;
+  /** The price check has run (a lean check finds no listing history). */
+  priced?: boolean;
+  /** Bad news about the car's history from listing data, before any report. */
+  feedHistory?: string[];
 };
 
 export function knowsList(k: KnowsInput): Known[] {
@@ -50,13 +54,17 @@ export function knowsList(k: KnowsInput): Known[] {
           detail: [k.history.damage, k.history.title, k.history.owners ? `${k.history.owners} owner${k.history.owners > 1 ? "s" : ""}` : null].filter(Boolean).join(", "),
           action: null,
         }
-      : { key: "history", label: "Accidents, title, owners", done: false, detail: k.carfax ? "The dealer has a free Carfax" : "Needs the Carfax or AutoCheck", action: { kind: "attach", label: "Add the report" } },
+      : { key: "history", label: "Accidents, title, owners", done: false, detail: k.feedHistory?.length ? `Known so far: ${k.feedHistory[0]}; the report has the details` : k.carfax ? "The dealer has a free Carfax" : "Needs the Carfax or AutoCheck", action: { kind: "attach", label: "Add the report" } },
     k.estimate
       ? { key: "estimate", label: "Fair price", done: true, detail: `Similar cars ${$(k.estimate.low)}–${$(k.estimate.high)}`, action: null }
       : { key: "estimate", label: "Fair price", done: false, detail: k.auctionSold ? `Sold at auction for ${$(k.auctionSold)}; not compared yet` : "Not compared with similar cars", action: k.vin ? { kind: "go", label: "Run the price check", target: "#price-check" } : null },
     k.listings !== null
       ? { key: "listings", label: "Where else it's been listed", done: true, detail: `${k.listings} past listing${k.listings === 1 ? "" : "s"} found`, action: null }
-      : { key: "listings", label: "Where else it's been listed", done: false, detail: "Comes with the price check", action: k.vin ? { kind: "go", label: "Run the price check", target: "#price-check" } : null },
+      : !k.vin
+        ? { key: "listings", label: "Where else it's been listed", done: false, detail: "Needs the VIN", action: null }
+        : k.priced
+          ? { key: "listings", label: "Where else it's been listed", done: false, detail: "Not looked up in this check", action: null }
+          : { key: "listings", label: "Where else it's been listed", done: false, detail: "Comes with the price check", action: { kind: "go", label: "Run the price check", target: "#price-check" } },
     k.recallsChecked
       ? { key: "recalls", label: "Open recalls on this car", done: true, detail: "Checked by VIN", action: null }
       : { key: "recalls", label: "Open recalls on this car", done: false, detail: k.recalls ? `${k.recalls} for the model year; which are open?` : "Not checked by VIN", action: k.recallLookup ? { kind: "link", label: "Check by VIN", href: k.recallLookup } : null },

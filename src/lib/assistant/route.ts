@@ -15,7 +15,7 @@ import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel";
+export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
@@ -25,6 +25,8 @@ export type Route =
   /** Facts to apply; `question` when the message also asks something (answered after applying them). */
   | { kind: "facts"; facts: Fact[]; intent: Intent | null; question: boolean }
   | { kind: "intent"; intent: Intent }
+  /** What the seller said or asked for ("he wants a deposit", "she'd take 13,500"): checked like their reply, plus any facts in it. */
+  | { kind: "said"; facts: Fact[] }
   | { kind: "small-talk" }
   /** A pasted link: VinVerdict doesn't open listing links, so ask for the page's text. */
   | { kind: "link"; host: string }
@@ -52,24 +54,37 @@ const VIN_ONLY = /^\s*(?:vin:?\s*)?([A-HJ-NPR-Z0-9]{17})\s*$/i;
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
 
 const INTENTS: [Intent, RegExp][] = [
+  ["problems", /\b(?:common|known|typical|usual|frequent|biggest) (?:problems?|issues?|faults?|complaints?)\b|\b(?:problems|issues) (?:with|on|for) (?:this|the|these|that) (?:car|model|year|engine)\b|\bwhat (?:usually )?(?:goes wrong|breaks|fails)\b|\breliab(?:le|ility)\b|\bhow long (?:will|does|do|can|would) (?:it|this|they|these|the car|this car) (?:last|go)\b|\bwhat (?:to|should i) (?:watch|look) out for\b|\bcomplaints\b/i],
+  ["visit", /\btest[- ]drive\b|\b(?:going|go|gonna) (?:to )?(?:see|look at|check out) (?:it|the car)\b|\bsee (?:it|the car) (?:tomorrow|today|tonight|this weekend|on \w+day)\b|\bbuying day\b|\bwhat (?:do|should) i (?:bring|take with me)\b|\bwhat (?:to|should i) (?:check|look (?:for|at)|inspect) (?:when|at|in person|on the car)\b|\bin person\b|\bpre-?purchase inspection\b|\binspection (?:list|checklist)\b/i],
+  ["scam", /\bscam(?:s|med|mer)?\b|\bfraud\b|\blegit(?:imate)?\b|\bfake\b|\bsafe to (?:pay|send|wire|buy)\b|\bdeposit\b|\bgift cards?\b|\bzelle\b|\bvenmo\b|\bcash ?app\b|\bescrow\b|\bwire (?:the )?money\b|\boverseas\b|\bdeployed\b|\bship (?:it|the car)\b/i],
+  ["who", /\bwho(?:'?s| is)? (?:the |this )?(?:seller|dealer|selling)\b|\b(?:tell me )?about the (?:seller|dealer)\b|\bwho (?:sells|owns) (?:it|this)\b|\b(?:the |this )?(?:seller|dealer) (?:reputable|any good|reliable|trustworthy)\b|\bis (?:it|this) a (?:dealer|private)\b|\bdealer or private\b/i],
   ["auction", /\bauction\b.*(?:\?|\b(?:bad|safe|ok|okay|good|risky|normal)\b)|\bbid(?:ding)?\b|\bhow much (?:should|to) bid\b/i],
   ["costs", /\bout[- ]the[- ]door\b|\bwhat will it cost\b|\btotal cost\b|\b(?:sales )?tax(?:es)?\b|\bregistration\b|\bfees?\b|\bcost (?:me|per|a) (?:year|month)\b|\bcost to own\b/i],
   ["fuel", /\bmpg\b|\bgas mileage\b|\bfuel (?:economy|cost)\b|\bmiles per gallon\b/i],
   ["offer", /\bwhat (?:should|do|can|would) i offer\b|\bhow much (?:should|to|can|do) i offer\b|\bmake (?:an |a |my )?offer\b|\bnegotiat|\bopening offer\b|\bhow (?:low|much lower) can i go\b|\blowball\b|\bwhat (?:price )?should i pay\b|\bcounter ?offer\b/i],
-  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b/i],
+  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b|\bcheaper\b|\bbetter deals?\b/i],
   ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i (?:ask|say|tell|write)\b|\bmessage\b|\bquestions? (?:for|to ask)\b/i],
   ["recalls", /\brecalls?\b/i],
   ["history", /\bcarfax\b|\bautocheck\b|\baccidents?\b|\bhistory\b|\bowners?\b|\btitle\b/i],
   ["next", /\bwhat(?:'?s| is)? (?:now|next)\b|\bnext steps?\b|\bwhat (?:should|do) i do\b|\bwhere (?:do i |should i )?start\b|\bwhat else\b/i],
-  ["overview", /\b(?:thinking|think) (?:of|about) buying\b|\bshould i (?:buy|get)\b|\bwould you buy\b|\bis (?:it|this) (?:a )?(?:good|safe|ok|worth)\b|\bbuy (?:it|this)\b|\binterested in\b|\bwhat do you think\b|\bverdict\b|\bany (?:red flags|problems|issues)\b/i],
+  ["overview", /\b(?:thinking|think) (?:of|about) buying\b|\bshould i (?:buy|get) (?:it|this|that|the car|this car)\b|\bshould i buy\s*\??$|\bwould you buy\b|\bis (?:it|this) (?:a )?(?:good|safe|ok|worth)\b|\bbuy (?:it|this)\b|\binterested in\b|\bwhat do you think\b|\bverdict\b|\bany (?:red flags|problems|issues)\b/i],
 ];
 
 /** Words that make a message about the car (anything else short and unasked is small talk). */
-const CAR_WORDS = /\b(car|vehicle|camry|corolla|accord|civic|model|price|miles?|mileage|mpg|gas|fuel|dealer|seller|title|accident|engine|vin|auction|bid|buy|offer|carfax|autocheck|recall|warranty|inspect|inspection|check|owner|history|deal|tires?|brakes?|transmission|timing|belt|chain|oil|maintenance|repair|reliable|reliability|fee|tax|insurance|loan|finance|cost|grade|cr|mmr|consignor|rust|flood|salvage|rebuilt|lien|problems?|issues?|break|breaks|repairs?|safe|safety)\b|\blast(?:s|ing)?\b(?=\s*(?:\?|$|long|another|\d|more|over|until|for))/i;
+const CAR_WORDS = /\b(car|vehicle|camry|corolla|accord|civic|model|price|miles?|mileage|mpg|gas|fuel|dealer|seller|title|accident|engine|vin|auction|bid|buy|offer|carfax|autocheck|recall|warranty|inspect|inspection|check|owner|history|deal|tires?|brakes?|transmission|timing|belt|chain|oil|maintenance|repair|reliable|reliability|fee|tax|insurance|loan|finance|cost|grade|cr|mmr|consignor|rust|flood|salvage|rebuilt|lien|problems?|issues?|break|breaks|repairs?|safe|safety|scam|fraud|legit|fake|deposit|drive|warranty)\b|\blast(?:s|ing)?\b(?=\s*(?:\?|$|long|another|\d|more|over|until|for))/i;
 
 export function intentOf(text: string): Intent | null {
-  return INTENTS.find(([, re]) => re.test(text))?.[0] ?? null;
+  const hit = INTENTS.find(([, re]) => re.test(text))?.[0] ?? null;
+  // "Is 126k miles too much?" is about the miles, not the price.
+  if (hit === "price" && /\bmiles?\b|\bmileage\b/i.test(text) && !/\$|\bprice\b|\bpay\b|\bworth\b|\bdeal\b/i.test(text)) return null;
+  return hit;
 }
+
+/** "He said…", "the seller asked…", "seller is overseas": a report of what the seller said or did. */
+const WHO = String.raw`\b(?:he|she|they|seller|dealer(?:ship)?|owner|guy|lady|salesman|salesperson|sales rep)\b[^.?!]{0,24}?`;
+const SAID_STRONG = new RegExp(String.raw`${WHO}\b(?:said|says|told me|tells me|texted|messaged|emailed|asked|asks|insists?|refuses?|refused|won'?t|will not|can'?t|cannot|needs? me|requires?|offered|agreed)\b|\b(?:seller|dealer|owner)\s+(?:(?:is|was)\s+(?!asking|selling|listing|offering|charging|a dealer|private)|lives|works)`, "i");
+/** "they want…", "he'd…": a seller's request, but a plain price ("they want 14,500") stays a fact. */
+const SAID_WEAK = new RegExp(String.raw`${WHO}\b(?:wants?|is asking|would|will|'d|'ll)\b`, "i");
 
 export function routeMessage(raw: string, carVin: string | null): Route {
   const text = raw.trim();
@@ -119,11 +134,12 @@ export function routeMessage(raw: string, carVin: string | null): Route {
   const question = isQuestion(text);
   const facts = factsFromSentence(text);
   const intent = intentOf(text);
+  if (!question && text.length <= 600 && (SAID_STRONG.test(text) || (!facts.length && SAID_WEAK.test(text)))) return { kind: "said", facts };
   if (facts.length) return { kind: "facts", facts, intent: question ? intent : null, question };
   if (intent) return { kind: "intent", intent };
 
   const words = text.split(/\s+/).filter(Boolean).length;
-  const greeting = /^(hi|hello|hey|yo|thanks|thank you|thx|ty|ok|okay|cool|nice|great|lol|test|testing|help)\b/i.test(text);
+  const greeting = /^(hi|hello|hey|yo|thanks|thank you|thx|ty|ok|okay|cool|nice|great|lol|test|testing|help)\b/i.test(text) || /\b(?:i |we )?(?:bought|purchased) (?:it|the car)\b/i.test(text);
   if (greeting || !/[a-z]/i.test(text)) return { kind: "small-talk" };
   // A real question about the car goes to the AI; a few words with nothing about the car don't.
   // Off-topic, even as a question ("what's the weather tomorrow?"), never spends an AI action.
