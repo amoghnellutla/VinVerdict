@@ -103,6 +103,8 @@ Three buttons on a result, using free AI services (GLM by Z.ai first, then Googl
   - **Scam-aware answers.** On an ad with scam signs, "what should I offer?" says don't, and "is this a scam?" lists what was found and how to pay safely. A price already below similar cars gets "find out why it's cheap", not a lower offer.
   - **More questions answered from the page:** who the seller is, common problems and reliability (NHTSA owner complaints and known issues for the year and engine), what to check when you go to see it, and short replies to "thanks" or "I bought it!".
   - **The conversation is kept** on your device for that car (7 days), with what you told it.
+  - **Follow-up questions** under each answer ("Next: What should I offer?"), never one you've already asked, and never the offer on a listing with serious warnings.
+  - **No re-sending for visitors:** a question that needs the free AI (or a Carfax close read) is answered as soon as you tick "I'm human".
 - **What VinVerdict knows:** a checklist under the verdict (the exact car, price, miles, accidents/title/owners, fair price, other listings, open recalls, the seller's answers, your mechanic's inspection), with "X of 9 known" and a button for each missing piece.
 - **Miles agree across sources:** when the listing, an auction record and a Carfax or AutoCheck give the same odometer reading (within 3% or 1,000 miles), the result says so. That's real evidence against a rollback. The ad and its live feed count once.
   - Only open questions go to a free AI. Its answer comes from the report, each fact is tagged with its section, and an answer with a number or link that isn't in the report is thrown away.

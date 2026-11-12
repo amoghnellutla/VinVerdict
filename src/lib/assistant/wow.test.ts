@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Analysis } from "@/lib/analyze";
 import { readProof } from "@/lib/evidence/parse";
 import { parseListing } from "@/lib/listing/parse";
-import { answerIntent, smallTalk, starters, type PageContext } from "./answers";
+import { answerIntent, followUps, smallTalk, starters, type PageContext } from "./answers";
 import { checkReplies } from "@/lib/seller-replies";
 import { applyTold, toldReplies, type Told } from "./apply";
 import { factsFromSentence } from "./facts";
@@ -223,5 +223,33 @@ describe("the conversation is kept on this device", () => {
     saveThread("vv-told:X", [], 3_000);
     expect(mem.has("vv-told:X:thread")).toBe(false);
     delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe("follow-up questions", () => {
+  const intents = ["overview", "next", "price", "offer", "seller", "scam", "who", "history", "recalls", "problems", "visit", "costs", "fuel", "auction"];
+  it("every suggestion is answered from the page by the intent it's meant for", () => {
+    for (const i of intents) for (const q of followUps(i, ctx)) {
+      const want: Record<string, string> = {
+        "What should I offer?": "offer", "Is this a scam?": "scam", "How much out the door?": "costs", "What should I ask the seller?": "seller",
+        "What should I check when I see it?": "visit", "What's next?": "next", "Who is the seller?": "who", "Any recalls?": "recalls",
+        "What are common problems?": "problems", "What's the gas mileage?": "fuel",
+      };
+      expect(routeMessage(q, VIN), `${i}: ${q}`).toEqual({ kind: "intent", intent: want[q] });
+    }
+  });
+  it("never suggests negotiating on a listing with serious warnings, or an offer with no price at all", () => {
+    const scam = { ...ctx, trust: { stops: ["Gift card payment"], checks: [] } };
+    for (const i of intents) expect(followUps(i, scam), i).not.toContain("What should I offer?");
+    expect(followUps("price", { ...ctx, price: null, estimate: null, auctionSold: null })).not.toContain("What should I offer?");
+  });
+});
+
+describe("the message to the seller", () => {
+  it("can be copied right in the conversation, and on a listing with serious warnings it says not to pay first", () => {
+    const r = answerIntent("seller", { ...ctx, sellerMessage: "Hi, is the title in your name?" });
+    expect(r.quote).toBe("Hi, is the title in your name?");
+    expect(r.actions[0]).toEqual({ kind: "copy", label: "Copy the message", text: "Hi, is the title in your name?" });
+    expect(answerIntent("seller", { ...ctx, trust: { stops: ["Gift card payment"], checks: [] } }).text).toMatch(/^Don't send money/);
   });
 });

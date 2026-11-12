@@ -12,7 +12,7 @@ export type Action =
   | { kind: "attach"; label: string }
   | { kind: "copy"; label: string; text: string };
 
-export type Reply = { text: string; points: string[]; actions: Action[]; quote?: string };
+export type Reply = { text: string; points: string[]; actions: Action[]; quote?: string; next?: string[] };
 
 /** What the page knows right now (built in Result from the same state the sections use). */
 export type PageContext = {
@@ -57,6 +57,29 @@ export type PageContext = {
 };
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+const FOLLOW: Record<string, string[]> = {
+  overview: ["What should I offer?", "Is this a scam?"],
+  next: ["What should I offer?", "Is this a scam?"],
+  price: ["What should I offer?", "How much out the door?"],
+  offer: ["What should I ask the seller?", "What should I check when I see it?"],
+  seller: ["What should I offer?", "What should I check when I see it?"],
+  scam: ["What's next?", "Who is the seller?"],
+  who: ["Is this a scam?", "What should I ask the seller?"],
+  history: ["Any recalls?", "What are common problems?"],
+  recalls: ["What are common problems?", "What's next?"],
+  problems: ["What should I check when I see it?", "Any recalls?"],
+  visit: ["What should I offer?", "How much out the door?"],
+  costs: ["What should I offer?", "What's the gas mileage?"],
+  fuel: ["How much out the door?", "What are common problems?"],
+  auction: ["What should I offer?", "What's next?"],
+};
+
+/** Two questions that naturally come next (never the offer on a listing with serious warnings). */
+export function followUps(intent: string, c: PageContext): string[] {
+  if (c.trust.stops.length) return intent === "scam" ? ["What's next?", "Who is the seller?"] : ["Is this a scam?", "What's next?"].filter((q) => !(intent === "next" && q === "What's next?"));
+  return (FOLLOW[intent] ?? FOLLOW.next).filter((q) => !(q === "What should I offer?" && !c.price && !c.estimate && !c.auctionSold));
+}
 
 /** Quick-start questions that fit what this page knows (each one is answered from the page, no AI). */
 export function starters(c: PageContext): string[] {
@@ -177,7 +200,12 @@ export function answerIntent(intent: string, c: PageContext): Reply {
         actions: steps.actions.slice(0, 2),
       };
     case "seller":
-      return { text: "Send this first (it's built from what VinVerdict found):", points: [c.sellerMessage], actions: [{ kind: "go", label: "Open it to copy", target: "#before-you-buy" }] };
+      return {
+        text: c.trust.stops.length ? "Don't send money whatever they answer. If you write back, this asks what matters:" : "Send this first (it's built from what VinVerdict found):",
+        points: [],
+        quote: c.sellerMessage,
+        actions: [{ kind: "copy", label: "Copy the message", text: c.sellerMessage }, { kind: "go", label: "Edit it under Before you buy", target: "#before-you-buy" }],
+      };
     case "recalls":
       return c.recalls
         ? { text: `${c.recalls} recall${c.recalls > 1 ? "s" : ""} on record for this model year. Not every car of the year is affected: the lookup shows which are still open on this VIN, and dealers fix them free.`, points: [], actions: [...(c.recallLookup ? [{ kind: "link" as const, label: "Open the recall lookup", href: c.recallLookup }] : []), { kind: "go", label: "See the recalls", target: "#safety" }] }

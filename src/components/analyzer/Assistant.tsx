@@ -6,7 +6,7 @@ import { askCarAction, readHistoryAction } from "@/app/actions/ai";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Turnstile } from "@/components/Turnstile";
 import type { AskAction } from "@/lib/ai/ask";
-import { answerIntent, SMALL_TALK, smallTalk, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
+import { answerIntent, followUps, SMALL_TALK, smallTalk, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
 import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
 import { routeMessage } from "@/lib/assistant/route";
@@ -16,7 +16,7 @@ import { aiReadAttached, proofFromText, type Attached } from "./CheckYourself";
 import { ATTACH_EVENT, TELL_EVENT } from "./KnowsPanel";
 
 /** `read`: a history report waiting for the person's tap (and "I'm human" check) to be read closely. */
-type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null }; quote?: string };
+type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null }; quote?: string; next?: string[] };
 
 /** Quick starts shown before the first message. */
 
@@ -113,6 +113,8 @@ export function Assistant(props: {
   const [busy, setBusy] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // A question waiting for the "I'm human" check (guests), asked as soon as a token arrives.
+  const waiting = useRef<{ ask: string } | { read: { text: string; label: string; thumb: string | null } } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
@@ -164,8 +166,10 @@ export function Assistant(props: {
     if (before) pending.current = { msgId: msg.id, before, said };
     setThread((t) => [...t, msg]);
   };
-  const reply = (r: Reply, by?: string) => say({ text: r.text, points: r.points, actions: r.actions, by, quote: r.quote });
+  const reply = (r: Reply, by?: string) => say({ text: r.text, points: r.points, actions: r.actions, by, quote: r.quote, next: r.next });
   const [copied, setCopied] = useState<string | null>(null);
+  // Follow-up questions not already asked in this conversation.
+  const unasked = (next: string[] | undefined) => (next ?? []).filter((q) => !thread.some((x) => x.who === "you" && x.text.trim().toLowerCase() === q.toLowerCase()));
 
   function takeToken(): string | null {
     const t = token;
@@ -176,7 +180,11 @@ export function Assistant(props: {
 
   async function askAi(question: string) {
     if (!ai) return reply({ ...answerIntent("overview", ctx), text: `Free AI isn't switched on here. From the page: ${answerIntent("overview", ctx).text}` });
-    if (guest && !token) return say({ text: "That needs the free AI: tick the \"I'm human\" box below, then send it again." });
+    if (guest && !token) {
+      // Answered as soon as the box is ticked: no need to send it again.
+      waiting.current = { ask: question };
+      return say({ text: "That one needs the free AI. Tick the \"I'm human\" box below and it's answered straight away." });
+    }
     setBusy("Thinking…");
     const r = await askCarAction({ report: build(), question, earlier: [], token: takeToken() }).catch(() => null);
     setBusy(null);
@@ -189,10 +197,24 @@ export function Assistant(props: {
     say({ text: r.answer, points: [...r.claims.map((c) => `${c.text} (${c.section === "At a glance" ? "At a glance" : `section ${c.section}`})`), ...(r.unknowns.length ? [`Not in the report: ${r.unknowns.join("; ")}`] : []), ...(r.next ? [`Next: ${r.next}`] : [])], actions: aiActions(r.actions, ctx), by: r.provider }, r.facts.length ? ctx : undefined);
   }
 
+  useEffect(() => {
+    if (!token || !waiting.current || busy) return;
+    const w = waiting.current;
+    waiting.current = null;
+    if ("ask" in w) void askAi(w.ask);
+    else {
+      setThread((t) => t.map((x) => (x.read ? { ...x, read: undefined } : x)));
+      void closeRead(w.read.text, w.read.label, w.read.thumb);
+    }
+    // askAi reads the latest token itself; only a new token should trigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   async function closeRead(text: string, label: string, thumb: string | null) {
     if (!ai) return;
     if (guest && !token) {
-      return say({ text: "Want every accident and damage date, the owners and the service work? Tick the \"I'm human\" box below, then:", read: { text, label, thumb } });
+      waiting.current = { read: { text, label, thumb } };
+      return say({ text: "Want every accident and damage date, the owners and the service work? Tick the \"I'm human\" box below and it's read straight away (or use the button):", read: { text, label, thumb } });
     }
     setBusy("Reading the report closely…");
     const before = ctx;
@@ -255,7 +277,7 @@ export function Assistant(props: {
         return;
       }
       case "intent":
-        return reply(answerIntent(route.intent, ctx));
+        return reply({ ...answerIntent(route.intent, ctx), next: followUps(route.intent, ctx) });
       case "link":
         return say({
           text: `VinVerdict doesn't open links (${route.host} and most sites block it, and it keeps you safe). Open the listing, press Ctrl+A then Ctrl+C (on a phone: Select all, Copy), and paste the page here.`,
@@ -370,6 +392,14 @@ export function Assistant(props: {
                 >
                   Read it closely with free AI
                 </button>
+              )}
+              {m.id === thread[thread.length - 1]?.id && !busy && unasked(m.next).length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <span className="text-muted">Next:</span>
+                  {unasked(m.next).map((q) => (
+                    <button key={q} type="button" className="link" onClick={() => { setThread((t) => [...t, { id: uid(), who: "you", text: q }]); void handle(q, "Question", null); }}>{q}</button>
+                  ))}
+                </div>
               )}
               {m.vin && onCheckVin && (
                 <button type="button" className="btn btn-secondary mt-2 text-sm" onClick={() => onCheckVin(m.vin!)}>Check that car instead</button>
