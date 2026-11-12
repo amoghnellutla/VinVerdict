@@ -10,7 +10,7 @@ import { createSupabase } from "@/lib/supabase/server";
  * so they hold across every Vercel instance, and a caller can't change them.
  */
 
-export type GuestKind = "check" | "price";
+export type GuestKind = "check" | "price" | "ai" | "ai_owner";
 export type Allowance = "ok" | "visitor" | "global" | "month" | "unavailable";
 
 const ANSWERS: readonly Allowance[] = ["ok", "visitor", "global", "month"];
@@ -21,8 +21,12 @@ export function hashVisitor(ip: string, salt: string | undefined): string | null
   return createHmac("sha256", salt).update(ip).digest("hex");
 }
 
-export async function takeGuestAllowance(kind: GuestKind): Promise<Allowance> {
-  const visitor = hashVisitor(await clientIp(), process.env.GUEST_HASH_SALT);
+/**
+ * Takes one from today's allowance. Visitors are keyed by their hashed IP; `who` keys the
+ * owner by user id instead (AI mode's 'ai_owner'), hashed the same way.
+ */
+export async function takeGuestAllowance(kind: GuestKind, who?: string): Promise<Allowance> {
+  const visitor = hashVisitor(who ? `user:${who}` : await clientIp(), process.env.GUEST_HASH_SALT);
   if (!visitor) return "unavailable";
   const db = await createSupabase();
   try {
@@ -40,6 +44,11 @@ export async function takeGuestAllowance(kind: GuestKind): Promise<Allowance> {
 
 /** What to tell a demo visitor when they're over a limit. */
 export function allowanceMessage(a: Exclude<Allowance, "ok">, kind: GuestKind): string {
+  if (kind === "ai" || kind === "ai_owner") {
+    if (a === "visitor") return kind === "ai" ? "That's today's 5 AI actions for this device. Copy the full report into your own AI assistant instead, or try again tomorrow." : "That's today's 50 AI actions. Try again tomorrow.";
+    if (a === "global") return "The free AI services are used up for today. Copy the full report into your own AI assistant instead, or try again tomorrow.";
+    return "AI mode isn't available right now. Copy the full report into your own AI assistant instead.";
+  }
   if (kind === "price") {
     if (a === "visitor") return "Demo limit: two live lookups per visitor per day. The full examples on the home page include lookups.";
     if (a === "global") return "Today's live price checks for the demo are used up. The full examples on the home page show complete checks; try again tomorrow.";

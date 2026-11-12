@@ -17,7 +17,7 @@ import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
 import { savedProof, summarizeProof } from "@/lib/evidence/combine";
 import { accidentHistoryConfirmed, EMPTY_REPORT, mergeAnswers, type ReportAnswers } from "@/lib/history-report";
-import { recentMiles, summarizeHistory } from "@/lib/history/summary";
+import { recentMiles, summarizeHistory, type HistorySummary } from "@/lib/history/summary";
 import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
@@ -53,7 +53,9 @@ import { CopyButton } from "@/components/CopyButton";
 import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
+import { AskCar } from "./AskCar";
 import { DealerCheck } from "./DealerCheck";
+import { DealerCheckAi } from "./DealerCheckAi";
 import { checkReplies } from "@/lib/seller-replies";
 import { proofPhrase } from "@/lib/seller-message";
 import { knownIssuesFor } from "@/lib/inspection";
@@ -78,6 +80,15 @@ async function safePriceCheck(prev: PriceState, form: FormData): Promise<PriceSt
     return { status: "error", message: "The lookup didn't come back: the connection dropped or the server took too long." };
   }
 }
+
+/** The dealer pages worth checking now: the live listing, then dealers listing it now, then the most recent others (up to 5). */
+function dealerUrls(live: Live | null, h: HistorySummary | null): string[] {
+  const recent = h ? [...h.active, ...[...h.stints].reverse().filter((s) => !s.isNew)] : [];
+  return [...new Set([live?.url, ...recent.map((s) => s.url)].filter((u): u is string => !!u && u.startsWith("https://")))].slice(0, 5);
+}
+
+/** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
+const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
 
 export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
   analysis: Analysis;
@@ -269,6 +280,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       onProofs={setProofs}
       summary={proofSum}
       savedNote={carId ? (proofSaved ? "The findings (not the images) are saved with this car in My cars." : "The findings (not the images) are saved with this car in My cars as you add them.") : null}
+      ai={AI_MODE ? { guest } : null}
     />
   );
   const sourcesList = <ReportSources a={m} hits={selling ? [] : hits} live={live} sources={sources} history={rawHistory} recordedAt={recordedAt} report={answers} proofs={proofs} />;
@@ -357,6 +369,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
           <VerdictCard d={decision} />
         )}
         <ReportDownload build={reportText} fileName={reportFile} knownUrl={m.listing.url ?? live?.url ?? null} />
+        {AI_MODE && <AskCar build={() => reportText(m.listing.url ?? null, true)} guest={guest} />}
       </header>
 
       <SectionNav items={nav} />
@@ -374,6 +387,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       {historyReport}
       {priceCheck}
       {history && <ListingHistory h={history} />}
+      {AI_MODE && goodVin && dealerUrls(live, history).length > 0 && <DealerCheckAi urls={dealerUrls(live, history)} vin={goodVin} guest={guest} />}
 
       {selling ? (
         <>

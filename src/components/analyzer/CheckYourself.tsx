@@ -9,9 +9,19 @@ import { readProof, SOURCE_NAME, type ProofKind } from "@/lib/evidence/parse";
 import type { LiveListing } from "@/lib/live/parse";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { verifyLinks } from "@/lib/sources";
+import { aiProofRead, needsConfirm, type AiHistory } from "@/lib/ai/history-read";
+import { AiHistoryRead, type HistoryReadOk } from "./AiHistoryRead";
 
 /** A piece of proof on the page: what was read, plus a local preview (never uploaded). */
-export type Attached = Proof & { label: string; thumb: string | null; movedFrom: ProofKind | null };
+export type Attached = Proof & {
+  label: string;
+  thumb: string | null;
+  movedFrom: ProofKind | null;
+  /** A history report's text as read on this device (kept in this page only, for "Read it closely with free AI"). */
+  text?: string;
+  /** This card is a free AI's reading of another one: what it read, and whether the person confirmed its good news. */
+  ai?: { data: AiHistory; sentText: string; provider: string; confirmed: boolean };
+};
 
 const MAX_TEXT = 20_000;
 
@@ -41,6 +51,8 @@ type Props = {
   summary: ProofSummary;
   /** Owner: findings are kept with the saved car. */
   savedNote: string | null;
+  /** AI mode on: whether this person is a visitor (needs the "I'm human" check). Null: AI mode off. */
+  ai?: { guest: boolean } | null;
 };
 
 /**
@@ -49,7 +61,7 @@ type Props = {
  * stays in the page: nothing is uploaded. Each item is sorted to its check
  * by what it says, rated, and feeds the verdict and the price.
  */
-export function CheckYourself({ vin, make, live, proofs, onProofs, summary, savedNote }: Props) {
+export function CheckYourself({ vin, make, live, proofs, onProofs, summary, savedNote, ai = null }: Props) {
   const [reading, setReading] = useState<OcrProgress | null>(null);
   const [note, setNote] = useState<string | null>(null);
   // Latest list for the async reader and the unmount cleanup.
@@ -66,7 +78,24 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
       if (thumb) URL.revokeObjectURL(thumb);
       return null;
     }
-    return { id: crypto.randomUUID(), kind, read, label, thumb, movedFrom: hint && read.kind && read.kind !== hint ? hint : null };
+    return {
+      id: crypto.randomUUID(), kind, read, label, thumb, movedFrom: hint && read.kind && read.kind !== hint ? hint : null,
+      ...(kind === "history" ? { text: text.slice(0, MAX_TEXT) } : {}),
+    };
+  }
+
+  /** A free AI's reading of a history report becomes its own card, next to the one it read. */
+  function addAiRead(base: Attached, r: HistoryReadOk) {
+    const next: Attached = {
+      id: crypto.randomUUID(), kind: "history", label: `AI read of ${base.label.toLowerCase()}`, thumb: null, movedFrom: null,
+      read: aiProofRead(r.ai, r.sentText, false, r.provider),
+      ai: { data: r.ai, sentText: r.sentText, provider: r.provider, confirmed: false },
+    };
+    onProofs([...latest.current, next]);
+  }
+
+  function confirmAiRead(id: string) {
+    onProofs(latest.current.map((p) => (p.id === id && p.ai ? { ...p, ai: { ...p.ai, confirmed: true }, read: aiProofRead(p.ai.data, p.ai.sentText, true, p.ai.provider) } : p)));
   }
 
   function add(items: (Attached | null)[], skipped = 0) {
@@ -162,6 +191,15 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
               onFiles={(f) => void addFiles(f, "history")}
               onText={(t) => addText(t, "history")}
               onRemove={remove}
+              extra={ai ? (p) => (p.ai ? (
+                !p.ai.confirmed && needsConfirm(p.ai.data) ? (
+                  <button type="button" className="btn btn-secondary mt-2 text-sm print:hidden" onClick={() => confirmAiRead(p.id)}>
+                    Confirm: the report says so
+                  </button>
+                ) : null
+              ) : p.text && !proofs.some((x) => x.ai && x.label === `AI read of ${p.label.toLowerCase()}`) ? (
+                <AiHistoryRead text={p.text} thumb={p.thumb} guest={ai.guest} onRead={(r) => addAiRead(p, r)} />
+              ) : null) : undefined}
             />
             {links.map((l) =>
               l.kind ? (
@@ -192,7 +230,7 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
             )}
           </ul>
           <p className="mt-3 text-sm text-muted">
-            Screenshots are read on this device and pasted text stays in this page: nothing is uploaded, and it&apos;s gone when you leave.
+            Screenshots are read on this device and pasted text stays in this page: nothing is uploaded{ai ? " unless you tap \"Read it closely with free AI\"" : ""}, and it&apos;s gone when you leave.
             {savedNote ? ` ${savedNote}` : ""}
           </p>
         </>
@@ -285,8 +323,10 @@ function Row(props: {
   onFiles: (f: FileList) => void;
   onText: (t: string) => void;
   onRemove: (id: string) => void;
+  /** Extra controls under each card (AI mode). */
+  extra?: (p: Attached) => ReactNode;
 }) {
-  const { vin, name, href, cost, what, rating, proofs, busy, onFiles, onText, onRemove } = props;
+  const { vin, name, href, cost, what, rating, proofs, busy, onFiles, onText, onRemove, extra } = props;
   const [pasting, setPasting] = useState(false);
   const [draft, setDraft] = useState("");
   const r = RATING[rating];
@@ -303,7 +343,10 @@ function Row(props: {
             <span className={`tag shrink-0 ${r.tone}`}>{r.text}</span>
           </div>
           {proofs.map((p) => (
-            <ProofCard key={p.id} p={p} vin={vin} onRemove={() => onRemove(p.id)} />
+            <div key={p.id}>
+              <ProofCard p={p} vin={vin} onRemove={() => onRemove(p.id)} />
+              {extra?.(p)}
+            </div>
           ))}
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
             <label className={`link ${busy ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>

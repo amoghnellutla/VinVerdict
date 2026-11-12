@@ -94,7 +94,13 @@ export function runningFor(a: Analysis, pick = 0, milesPerYear: number, fuelPric
 }
 
 /** What each cost panel last showed, kept for the report (lib/report/markdown.ts). */
+/** What AI mode found on the page (kept apart from VinVerdict's own facts in the report). */
+export type AiDealerLine = { name: string; url: string; line: string };
+export type AiAnswerLine = { q: string; a: string; by: string };
+
 export type CostParts = {
+  aiDealers?: { at: string; lines: AiDealerLine[] };
+  aiAnswers?: AiAnswerLine[];
   otd?: { input: OtdInput; result: OtdResult };
   perYear?: { years: number; milesPerYear: number; state: StateCode; result: Ownership };
   running?: RunningSnapshot;

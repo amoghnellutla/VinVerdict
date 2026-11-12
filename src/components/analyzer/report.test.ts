@@ -286,3 +286,27 @@ describe("a free history report the ad offers", () => {
     expect(md).toContain("Search the name with");
   });
 });
+
+describe("Found by AI (AI mode)", () => {
+  const a = offline("2017 Honda Accord EX-L $9,000 98,000 miles clean title private seller. VIN 1HGCR2F8XHA000123");
+  const parts: CostParts = {
+    aiDealers: { at: "2026-11-11T18:30:00.000Z", lines: [{ name: "Fast Track Motors", url: "https://www.fasttrackmotors.com/car/1", line: "Still listed; price $17,985 (read from the page's own listing data)" }] },
+    aiAnswers: [{ q: "Is it fair?", a: "It's [cheap](https://evil.example) | for its miles.", by: "GLM (Z.ai)" }],
+  };
+
+  it("lists dealer checks and answers apart from VinVerdict's facts, escaped", () => {
+    const md = report(a, null, { parts });
+    checkWellFormed(md);
+    expect(md).toContain("## Found by AI (on the page, apart from VinVerdict's checks)");
+    expect(md).toContain("- [Fast Track Motors](https://www.fasttrackmotors.com/car/1): Still listed; price $17,985");
+    expect(md).toContain(String.raw`It's \[cheap\](https://evil.example) \| for its miles.`);
+    expect(outsideFences(md)).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example/);
+  });
+
+  it("the short version keeps the dealer checks but not the answers (they'd be sent back to the AI)", () => {
+    const md = report(a, null, { parts }, true);
+    expect(md).toContain("Fast Track Motors");
+    expect(md).not.toContain("Is it fair?");
+    expect(report(a, null)).not.toContain("Found by AI");
+  });
+});

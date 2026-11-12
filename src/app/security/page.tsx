@@ -42,8 +42,13 @@ const LAYERS: { title: string; what: string; stops: string }[] = [
   },
   {
     title: "Privacy",
-    what: "Visitors' checks aren't stored. For the daily limits, visitors are counted by a salted one-way hash of their IP address, which is deleted after 2 days. Screenshots are read on your own device and never uploaded.",
+    what: "Visitors' checks aren't stored. For the daily limits, visitors are counted by a salted one-way hash of their IP address, which is deleted after 2 days. Screenshots are read on your own device and never uploaded unless you tap a free-AI button (below).",
     stops: "Collecting what visitors paste or who they are.",
+  },
+  {
+    title: "AI mode: free AI services, on your tap only",
+    what: "Asking about a car, reading a history report closely or checking dealer pages sends what's needed (phone numbers and emails removed) to a free AI service: GLM by Z.ai first, then Google's Gemini or Groq when it's busy. Free plans may keep what's sent, and each button says so. The keys stay on the server; each action needs the \"I'm human\" check for visitors and counts against a daily limit (5 per visitor). AI answers are checked before you see them: a number or link that isn't in the source is rejected, and only report events whose words are in your copy change anything. Dealer pages are opened by the server only from this car's own listing links, over https, never to private addresses, and respecting the site's robots.txt.",
+    stops: "Made-up facts from an AI, instructions hidden in an ad, and the server being used to reach private networks.",
   },
 ];
 

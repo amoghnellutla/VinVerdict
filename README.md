@@ -91,7 +91,19 @@ It reads private ads the way people write them: "Salvage? No. Flood: no. Acciden
 
 ![Comparing saved cars side by side](docs/images/compare.png)
 
-### 4. Reference: every model's fuel cost by year
+### 4. AI mode (free AI, for everyone)
+
+Three buttons on a result, using free AI services (GLM by Z.ai first, then Google's Gemini or Groq when it's busy), with no login needed:
+- **Ask about this car:** answers come only from the report, each fact tagged with its section. An answer with a number or link that isn't in the report is thrown away.
+- **Read it closely with free AI:** on a Carfax or AutoCheck you pasted or screenshotted, it lists every accident and damage event with its date, owners, use and service work.
+  - Only events whose words are in your copy change the verdict.
+  - Good news ("no accidents") needs your Confirm.
+  - VinVerdict never opens Carfax itself (their terms forbid it).
+- **Check the dealers now:** the server opens this car's own dealer links from its listing history (https only, never private addresses, robots.txt respected). It says whether each still lists the car, at what price and fees. The page's own listing data is read first; AI only fills the gaps.
+
+Five AI actions per visitor per day, behind the "I'm human" check. What's found goes into a separate "Found by AI" part of the report. The verdict itself stays rule-based.
+
+### 5. Reference: every model's fuel cost by year
 
 A side reference, linked from the footer rather than the menu, because it doesn't check a listing. [vinverdict.vercel.app/cars](https://vinverdict.vercel.app/cars) covers 86 makes and 988 models sold in the US from 2000 to 2026. Search by name or browse by make, then see each model year side by side:
 - body type and size, engines, gas, hybrid or electric;

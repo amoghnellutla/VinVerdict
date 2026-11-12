@@ -117,6 +117,8 @@ export function reportInput(s: ReportState): ReportInput {
     perYear: p.perYear ? { ...p.perYear, fromPage: true } : perYearDefault ? { years: 3, milesPerYear: DEFAULT_MILES_PER_YEAR, state, result: perYearDefault, fromPage: false } : null,
     running: p.running ? { ...p.running, fromPage: true } : runDefault ? { ...runDefault, fromPage: false } : null,
     manual: p.manual ? { ...p.manual, verdictText: MANUAL_VERDICT[p.manual.result.verdict].text } : null,
+    aiDealers: p.aiDealers ?? null,
+    aiAnswers: p.aiAnswers ?? null,
     sources: reportSourceItems({
       a: m, hits: s.selling ? [] : s.hits, live, sources, history: s.rawHistory, recordedAt: s.recordedAt, report: s.answers,
       proofs: s.proofs.map((x) => ({ source: x.source, screenshot: x.screenshot })),

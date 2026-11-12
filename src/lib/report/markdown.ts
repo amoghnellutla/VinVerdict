@@ -26,7 +26,7 @@ import { RULE_SOURCE, type SourceRef } from "@/lib/sources";
 import { DEAL_TEXT, type PriceSources, type Valuation } from "@/lib/value/estimate";
 import type { ManualResult } from "@/lib/value/manual";
 import type { StepGroup } from "./content";
-import type { RunningSnapshot } from "./costs";
+import type { AiAnswerLine, AiDealerLine, RunningSnapshot } from "./costs";
 import { adOffersHistoryReport } from "./checks";
 import { redact } from "./redact";
 import type { SourceItem } from "./sources";
@@ -73,6 +73,9 @@ export type ReportInput = {
   running: (RunningSnapshot & { fromPage: boolean }) | null;
   manual: { asking: number; prices: number[]; result: ManualResult; verdictText: string } | null;
   sources: { items: SourceItem[]; guidance: SourceRef[] };
+  /** AI mode: dealer pages checked and questions answered on the page, if any. */
+  aiDealers?: { at: string; lines: AiDealerLine[] } | null;
+  aiAnswers?: AiAnswerLine[] | null;
 };
 
 const AD_LIMIT = 12_000;
@@ -439,6 +442,21 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   }
 
   if (!short) fullOnly(r, push);
+
+  // ----- Found by AI (AI mode on the page) -----
+  const dealers = r.aiDealers?.lines.length ? r.aiDealers : null;
+  const answers = !short && r.aiAnswers?.length ? r.aiAnswers : null;
+  if (dealers || answers) {
+    push("## Found by AI (on the page, apart from VinVerdict's checks)", "", "Free AI services read these; they don't change the verdict. Check anything important yourself.", "");
+    if (dealers) {
+      push(`**Dealer pages checked ${dealers.at.slice(0, 16).replace("T", " ")} UTC:**`, "", ...dealers.lines.map((d) => `- ${mdLink(d.name, d.url)}: ${esc(d.line)}`), "");
+    }
+    if (answers) {
+      push("**Questions you asked:**", "");
+      for (const x of answers) push(`- **Q:** ${esc(x.q)}`, `  **A** (${esc(x.by)}): ${esc(x.a)}`);
+      push("");
+    }
+  }
 
   // ----- 14. Questions to ask your AI -----
   push("## 14. Questions to ask your AI", "", "Paste this report into your AI assistant, then ask, for example:", "");
