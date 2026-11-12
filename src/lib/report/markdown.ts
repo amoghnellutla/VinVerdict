@@ -173,7 +173,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
     : r.valuation?.unpriced
       ? `${money(l.price)}: not priced (${r.valuation.unpriced})`
       : `${money(l.price)}: not priced yet`;
-  const sellerLine = [l.sellerType === "unknown" ? "Seller type not stated" : l.sellerType === "dealer" ? "Dealer" : "Private seller", l.distanceMiles != null ? `${l.distanceMiles.toLocaleString("en-US")} miles away` : null, r.protection.name !== "Dealer" && r.protection.name !== "Private seller" ? r.protection.name : null].filter(Boolean).join(", ");
+  const sellerLine = [l.sellerType === "unknown" ? "Seller type not stated" : l.sellerType === "dealer" ? "Dealer" : "Private seller", l.distanceMiles != null ? `${l.distanceMiles.toLocaleString("en-US")} miles away` : null, !["Dealer", "Private seller", "Seller type unknown"].includes(r.protection.name) ? r.protection.name : null].filter(Boolean).join(", ");
   push(
     "## At a glance",
     "",
@@ -364,7 +364,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
     const c = a.complaints;
     const top = a.ratings?.find((x) => x.overall != null)?.overall;
     push(
-      `- **Recalls:** ${a.recalls == null ? "not checked (NHTSA couldn't be reached)" : a.recalls.length ? `${a.recalls.length} on record for the ${key.year} ${key.model}: ${a.recalls.map((x) => `${x.component.toLowerCase().replace(/:/g, ": ")}${x.parkIt ? " (don't drive it until fixed)" : ""}`).join("; ")}. Check this VIN in section 7.` : `none on record for the ${key.year} ${key.model}`}`,
+      `- **Recalls:** ${a.recalls == null ? "not checked (NHTSA couldn't be reached)" : a.recalls.length ? `${a.recalls.length} on record for the ${key.year} ${key.model}: ${recallAreas(a.recalls)}. Check this VIN in section 7.` : `none on record for the ${key.year} ${key.model}`}`,
       `- **Crash-test stars:** ${a.ratings == null ? "not checked" : top != null ? `${top} of 5 overall (NHTSA)` : "not rated by NHTSA for this model year"}`,
       `- **Owner complaints (NHTSA):** ${c == null ? "not checked" : `${c.total.toLocaleString("en-US")}${c.topComponents.length ? `, most about ${c.topComponents.slice(0, 3).map((t) => t.component.toLowerCase()).join(", ")}` : ""}`}`,
       "",
@@ -531,6 +531,20 @@ function fullOnly(r: ReportInput, push: (...xs: string[]) => void) {
   });
   if (r.sources.guidance.length) push("", "**Official guidance behind the warnings:**", "", ...r.sources.guidance.map((g) => `- ${mdLink(g.name, g.href)}`));
   push("");
+}
+
+/** Recalls grouped by the part they fix: "fuel system, gasoline: delivery: fuel pump (3 recalls)", most first. */
+function recallAreas(recalls: NonNullable<Analysis["recalls"]>): string {
+  const groups = new Map<string, { n: number; park: boolean }>();
+  for (const x of recalls) {
+    const key = x.component.toLowerCase().replace(/:/g, ": ");
+    const g = groups.get(key) ?? { n: 0, park: false };
+    groups.set(key, { n: g.n + 1, park: g.park || !!x.parkIt });
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[1].n - a[1].n)
+    .map(([k, g]) => `${k}${g.n > 1 ? ` (${g.n} recalls)` : ""}${g.park ? " (don't drive it until fixed)" : ""}`)
+    .join("; ");
 }
 
 /** ", of which $175 is your own mechanic's inspection": out the door includes it, but it isn't paid to the dealer. */

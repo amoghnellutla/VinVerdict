@@ -310,3 +310,18 @@ describe("Found by AI (AI mode)", () => {
     expect(report(a, null)).not.toContain("Found by AI");
   });
 });
+
+describe("short report: recalls by part, and an unknown seller said once", () => {
+  it("groups repeated recall parts and doesn't repeat 'seller type unknown'", () => {
+    const a = offline("4T1B11HK8JU145889");
+    const recall = (component: string) => ({ campaign: "x", component, summary: "s", consequence: "c", remedy: "r", reportDate: null, parkIt: false, parkOutside: false });
+    const withRecalls = {
+      ...a,
+      vehicle: { year: 2018, make: "TOYOTA", model: "Camry" },
+      recalls: [recall("FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP"), recall("SERVICE BRAKES, HYDRAULIC:POWER ASSIST:VACUUM"), recall("FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP"), recall("FUEL SYSTEM, GASOLINE:DELIVERY:FUEL PUMP")],
+    } as unknown as Analysis;
+    const md = report(withRecalls, null, {}, true);
+    expect(md).toContain("**Recalls:** 4 on record for the 2018 Camry: fuel system, gasoline: delivery: fuel pump (3 recalls); service brakes, hydraulic: power assist: vacuum.");
+    expect(md).toMatch(/\| Seller \| Seller type not stated \|/);
+  });
+});
