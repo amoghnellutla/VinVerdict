@@ -372,6 +372,14 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **Assistant test set (Amogh: "keep improving until you are 100% confident").** `src/lib/assistant/eval.test.ts`: 120 labelled messages in every category, all 33 real corpus pages, report pages, and auction records (Manheim, ADESA, ACV); it must pass 100%. The first run found 11 misses, all fixed:
+- **4 real listing pages became "proof"** because dealer pages mention Carfax, AutoCheck or NHTSA. A page now counts as a report only with at least 2 report-only markers ("previous owners", "service history records", "AutoCheck score", "VINCheck … records"…).
+- **A pasted link** now explains "paste the page instead", or flags a different car from the VIN in the link.
+- **A bare VIN** is "this car" or a different car.
+- **"Odometer reads 126,360"** is read as miles.
+- **"last night"** no longer counts as a car word.
+
+Live AI check: 10 open questions, 10 of 10 answered and passed the guards. Answers had been unhelpful ("the report doesn't say"), so the instructions now allow clearly marked general guidance ("In general, …") for general questions, while this car's facts still come only from the report, invented numbers are still rejected, and every answer says how to find out |
 | 2026-11-12 | **Assistant audit ("make sure I don't get dissatisfied again").**
 - **Checked:** the free AI with the new answer format (GLM: a grounded answer, sections, unknowns, next step, action buttons).
 - **Checked:** 40 everyday phrasings run through the router. **Fixed:**

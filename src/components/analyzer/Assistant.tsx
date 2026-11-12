@@ -180,6 +180,11 @@ export function Assistant(props: {
       }
       case "intent":
         return reply(answerIntent(route.intent, ctx));
+      case "link":
+        return say({
+          text: `VinVerdict doesn't open links (${route.host} and most sites block it, and it keeps you safe). Open the listing, press Ctrl+A then Ctrl+C (on a phone: Select all, Copy), and paste the page here.`,
+          actions: [{ kind: "attach", label: "Or attach screenshots" }],
+        });
       case "small-talk":
         return reply(SMALL_TALK);
       case "ai":

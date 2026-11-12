@@ -56,7 +56,7 @@ export function factsFromSentence(raw: string): Fact[] {
     if (v) out.push({ kind: "price", value: v, quote: quote(ask) });
   }
   // Miles.
-  const mi = /\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/i.exec(text);
+  const mi = /\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer(?: reads| shows| says| is| at| reading)?:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/i.exec(text);
   if (mi) {
     const s = (mi[1] ?? mi[2]).replace(/,/g, "").replace(/\s/g, "");
     const v = /k$/i.test(s) ? Math.round(parseFloat(s) * 1_000) : Number(s);

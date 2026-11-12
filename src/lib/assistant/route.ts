@@ -26,9 +26,27 @@ export type Route =
   | { kind: "facts"; facts: Fact[]; intent: Intent | null; question: boolean }
   | { kind: "intent"; intent: Intent }
   | { kind: "small-talk" }
+  /** A pasted link: VinVerdict doesn't open listing links, so ask for the page's text. */
+  | { kind: "link"; host: string }
   | { kind: "ai" };
 
 const READABLE: ProofSource[] = ["carfax", "autocheck", "nicb", "nhtsa", "maker", "nmvtis"];
+
+/**
+ * Words only a report or check page uses. Listing pages mention "Carfax", "AutoCheck" or a
+ * "vehicle history report" too (a free-report badge), so a page counts as a report only with
+ * at least two of these (real cases 3, 12, 22, 32 were listing pages that mention a report).
+ */
+const REPORT_MARKERS = [
+  /\bprevious owners?\b/i, /\bservice history records?\b/i, /\bdetailed records available\b/i, /\bdamage severity scale\b/i,
+  /\blast owned in\b/i, /\bautocheck score\b/i, /\bhistory at a glance\b/i, /\blast reported odometer\b/i, /\btypes? of owners\b/i,
+  /\bvincheck\b/i, /\b(?:theft|salvage|total loss) records?\b/i, /\bnmvtis\b/i, /\brecall (?:status|results)\b/i, /\bremedy\b/i,
+  /\bunrepaired recalls?\b/i, /\bowners? - \d\b/i, /\breport run\b/i, /\bno accidents or damage reported to carfax\b/i,
+];
+const reportMarkers = (t: string) => REPORT_MARKERS.filter((re) => re.test(t)).length;
+
+const URL_ONLY = /^\s*https?:\/\/\S+\s*$/i;
+const VIN_ONLY = /^\s*(?:vin:?\s*)?([A-HJ-NPR-Z0-9]{17})\s*$/i;
 
 /** A pasted listing page, not a report: a price box, payments, "contact dealer", "for sale". */
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
@@ -46,7 +64,7 @@ const INTENTS: [Intent, RegExp][] = [
 ];
 
 /** Words that make a message about the car (anything else short and unasked is small talk). */
-const CAR_WORDS = /\b(car|vehicle|camry|corolla|accord|civic|model|price|miles?|mileage|mpg|gas|fuel|dealer|seller|title|accident|engine|vin|auction|bid|buy|offer|carfax|autocheck|recall|warranty|inspect|inspection|check|owner|history|deal|tires?|brakes?|transmission|timing|belt|chain|oil|maintenance|repair|reliable|reliability|fee|tax|insurance|loan|finance|cost|grade|cr|mmr|consignor|rust|flood|salvage|rebuilt|lien|last|problems?|issues?|break|breaks|repairs?|safe|safety)\b/i;
+const CAR_WORDS = /\b(car|vehicle|camry|corolla|accord|civic|model|price|miles?|mileage|mpg|gas|fuel|dealer|seller|title|accident|engine|vin|auction|bid|buy|offer|carfax|autocheck|recall|warranty|inspect|inspection|check|owner|history|deal|tires?|brakes?|transmission|timing|belt|chain|oil|maintenance|repair|reliable|reliability|fee|tax|insurance|loan|finance|cost|grade|cr|mmr|consignor|rust|flood|salvage|rebuilt|lien|problems?|issues?|break|breaks|repairs?|safe|safety)\b|\blast(?:s|ing)?\b(?=\s*(?:\?|$|long|another|\d|more|over|until|for))/i;
 
 export function intentOf(text: string): Intent | null {
   return INTENTS.find(([, re]) => re.test(text))?.[0] ?? null;
@@ -62,15 +80,28 @@ export function routeMessage(raw: string, carVin: string | null): Route {
     return { kind: "auction", record, facts: factsFromSentence(text).filter((f) => f.kind === "auctionSold") };
   }
 
-  const long = text.length >= 120;
-  const looksLikeListing = LISTING_PAGE.test(text);
-  if (long && !looksLikeListing) {
-    const read = readProof(text);
-    if (READABLE.includes(read.source) && (read.findings.length > 0 || read.vins.length > 0)) {
-      if (carVin && read.vins.length && !read.vins.includes(carVin)) return { kind: "other-car", vin: read.vins[0] };
-      return { kind: "proof", source: read.source };
+  // A bare VIN: this car, or another one.
+  const vinOnly = VIN_ONLY.exec(text)?.[1]?.toUpperCase();
+  if (vinOnly) return vinOnly === carVin ? { kind: "small-talk" } : { kind: "other-car", vin: vinOnly };
+  // A link on its own: VinVerdict doesn't open listing links (and a VIN in it may be another car).
+  if (URL_ONLY.test(text)) {
+    const inUrl = parseListing(text).vin;
+    if (inUrl && carVin && inUrl !== carVin) return { kind: "other-car", vin: inUrl };
+    let host = "that site";
+    try {
+      host = new URL(text.trim()).hostname.replace(/^www\./, "");
+    } catch {
+      // keep "that site"
     }
+    return { kind: "link", host };
   }
+
+  const long = text.length >= 120;
+  const read = long ? readProof(text) : null;
+  const readable = !!read && READABLE.includes(read.source) && (read.findings.length > 0 || read.vins.length > 0);
+  const proof = (): Route => (carVin && read!.vins.length && !read!.vins.includes(carVin) ? { kind: "other-car", vin: read!.vins[0] } : { kind: "proof", source: read!.source });
+  // A page with report-only wording is a report, whatever else it mentions.
+  if (readable && reportMarkers(text) >= 2) return proof();
 
   if (text.length >= 80) {
     const listing = parseListing(text);
@@ -81,6 +112,8 @@ export function routeMessage(raw: string, carVin: string | null): Route {
       return { kind: "listing", listing };
     }
   }
+  // A short report summary pasted on its own ("CARFAX: no accidents reported, 1 owner").
+  if (readable && !LISTING_PAGE.test(text)) return proof();
 
   const question = isQuestion(text);
   const facts = factsFromSentence(text);

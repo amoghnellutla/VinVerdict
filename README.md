@@ -215,6 +215,15 @@ Listing corpus scorecard (32 cases)
   kind         10/10    docFee        8/8     vin           14/14   distanceMiles 7/7
 ```
 
+**The assistant's test set.** Every kind of message a buyer sends has to route correctly, or a test fails:
+- 120 labelled messages: questions, facts, questions that look like facts, small talk and off-topic;
+- all 33 real listing pages;
+- report pages (Carfax, AutoCheck, NICB);
+- auction records in Manheim, ADESA and ACV formats;
+- links and bare VINs.
+
+The test lives in [`src/lib/assistant/eval.test.ts`](src/lib/assistant/eval.test.ts). Every miss found in use is added to it. In a live run of 10 open questions through the free AI, 10 of 10 gave an answer that passed the checks (no invented numbers or links).
+
 **The dataset.** Every labelled ad, pasted page and seller reply is in one file, [`dataset/vinverdict-labelled.jsonl`](dataset/) (about 140 rows, one JSON object per line, loadable with pandas), with a [description](dataset/README.md) of how it was labelled and its limits. A test fails if the file and the measurements drift apart. To grow it: `npm run add-case` adds a pasted listing (phone numbers and emails removed automatically), you fill in the right answers by hand, and `npm run retrain` retrains the model and refreshes the scorecard and the dataset.
 
 **Sources.** Every known model-year problem cites the maker's bulletin it was checked against, and a test fails if a bulletin number or year range changes. The test was added after an outside review found the 2015–16 Accord/CR-V CVT warning citing the wrong bulletin.
