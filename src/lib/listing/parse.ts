@@ -54,7 +54,7 @@ const MODELS: Record<string, string[]> = {
   Honda: ["Accord", "Civic", "CR-V", "HR-V", "Pilot", "Odyssey", "Fit", "Insight", "Passport", "Ridgeline", "Clarity", "Prologue"],
   Lexus: ["ES", "IS", "GS", "LS", "RX", "NX", "UX", "GX", "LX", "RC", "TX"],
   Acura: ["TLX", "ILX", "RLX", "TSX", "RDX", "MDX", "Integra", "ZDX"],
-  Mazda: ["Mazda3", "Mazda6", "CX-30", "CX-3", "CX-5", "CX-50", "CX-9", "CX-90", "MX-5 Miata"],
+  Mazda: ["Mazda3", "Mazda5", "Mazda6", "CX-30", "CX-3", "CX-5", "CX-50", "CX-70", "CX-7", "CX-9", "CX-90", "MX-5 Miata", "Tribute"],
   Subaru: ["Outback", "Forester", "Crosstrek", "Impreza", "Legacy", "Ascent", "WRX", "BRZ"],
   Hyundai: ["Elantra", "Sonata", "Tucson", "Santa Fe", "Kona", "Palisade", "Accent", "Venue", "Ioniq"],
   Kia: ["Optima", "K5", "Forte", "Rio", "Sorento", "Sportage", "Soul", "Telluride", "Niro", "Seltos"],
@@ -111,6 +111,8 @@ function findUrl(raw: string): { url: string | null; host: string | null } {
       const u = new URL(m[0]);
       const host = u.hostname.replace(/^www\./, "");
       if (NOT_LISTING_HOST.test(host) || (host === "google.com" && /^\/maps/.test(u.pathname))) continue;
+      // A site's home page ("Register at https://www.salvagereseller.com") isn't a listing.
+      if (u.pathname.replace(/\/+$/, "") === "" && !u.search) continue;
       return { url: u.toString(), host };
     } catch {
       // not a valid URL: try the next one
@@ -145,7 +147,8 @@ function findMakeModel(text: string): { make: string | null; model: string | nul
     if (best && best.at <= at) return;
     const models = MODELS[make] ?? [];
     const head = squash(after.slice(0, 30));
-    const model = models.find((m) => head.startsWith(squash(m))) ?? null;
+    // Longest name first, so "CX-50" isn't read as "CX-5" or "Grand Cherokee" as "Cherokee".
+    const model = [...models].sort((a, b) => b.length - a.length).find((m) => head.startsWith(squash(m))) ?? null;
     best = { make, model, at };
   };
   for (const make of Object.keys(MODELS)) {
@@ -511,7 +514,8 @@ export function parseListing(input: string): ParsedListing {
     docFee: findDocFee(text),
     miles: findMiles(text),
     transmission: findTransmission(text),
-    titleStatus: findTitle(text),
+    // A business named "Salvage Reseller" (an auction broker) isn't a salvage title.
+    titleStatus: findTitle(text.replace(/\bsalvage ?reseller(\.com)?\b/g, " ")),
     accident: findAccident(text),
     exteriorColor: findColor(text),
     ownerCount: findOwners(text),

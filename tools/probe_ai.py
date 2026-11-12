@@ -52,7 +52,9 @@ def providers() -> list[dict]:
         pid, body = block
         get = lambda k: (re.search(rf'{k}: "([^"]+)"', body) or [None, None])[1]  # noqa: E731
         vision = re.search(r'vision: (null|"[^"]+")', body)
+        extra = re.search(r"body: (\{.*\}),", body)
         out.append({
+            "body": json.loads(extra.group(1)) if extra else {},
             "id": pid, "url": get("url"), "keyEnv": get("keyEnv"), "text": get("text"),
             "vision": None if not vision or vision.group(1) == "null" else vision.group(1).strip('"'),
         })
@@ -60,12 +62,16 @@ def providers() -> list[dict]:
 
 
 def call(p: dict, key: str, model: str, content) -> tuple[int, dict, dict]:
-    resp = requests.post(
-        p["url"],
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json={"model": model, "messages": [{"role": "user", "content": content}], "max_tokens": 200, "response_format": {"type": "json_object"}},
-        timeout=40,
-    )
+    try:
+        resp = requests.post(
+            p["url"],
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={**p.get("body", {}), "model": model, "messages": [{"role": "user", "content": content}], "max_tokens": 200, "response_format": {"type": "json_object"}},
+            timeout=40,
+        )
+    except requests.RequestException as err:
+        # A timeout or connection error is a failed check, not a crash.
+        return 0, {"_error": type(err).__name__}, {}
     try:
         body = resp.json()
     except ValueError:

@@ -219,8 +219,14 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
 
   // --- Auction source ---
   // "Auction photos documenting the vehicle's condition prior to repairs" says where it came from too.
-  if (/auction pric|\bcopart\b|\biaai?\b|insurance auction|salvage auction|auction (car|vehicle|photos?|pictures?)|(bought|purchased) (it )?(at|from) (an |the )?auction/.test(t)) {
+  // "Our inventory comes directly from auto auctions" (an auction broker's ad, real case 33).
+  if (/auction pric|\bcopart\b|\biaai?\b|insurance auction|salvage auction|auction (car|vehicle|photos?|pictures?)|(bought|purchased) (it )?(at|from) (an |the )?auction|\b(inventory|cars?|vehicles?) (comes?|are|is) (directly )?(sourced )?from (auto |car |salvage |insurance )?auctions?\b/.test(t)) {
     add("auction", "hide", "Auction car", "Auction-sourced cars often have hidden damage or branded titles.");
+  }
+  // An online auction broker: the price is a Buy It Now or bid, with fees on top, usually as-is.
+  if (/\bbuy it now\b[^.]{0,80}\bauction\b|\bcurrent bids?\b|\bno dealer license required\b|\bsalvage ?reseller\b|\bparticipat\w* in the auction\b/.test(t)) {
+    add("auction-broker", "flag", "Sold through an online auction",
+      "The price shown is a Buy It Now or bidding price. Online auctions usually add buyer and auction fees, and delivery, on top, and sell as-is, often without a test drive or inspection. Before bidding, ask for the total with every fee, where the car actually is, and whether you can have it inspected first.");
   }
 
   // --- Inspection refusal ---

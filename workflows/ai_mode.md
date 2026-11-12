@@ -76,4 +76,6 @@
   - Z.ai doesn't publish limits for its free Flash models;
   - Gemini shows them only in AI Studio;
   - Groq is about 30 a minute and 1,000 a day.
-- Z.ai's own docs page for its OpenAI-compatible API wasn't reachable when this was written. The URL and model ids come from third-party guides and must pass `probe_ai.py`.
+- Z.ai's own docs page for its OpenAI-compatible API wasn't reachable when this was written. The URL and model ids come from third-party guides and pass `probe_ai.py` (2026-11-12).
+- Probed 2026-11-12: glm-4.7-flash overloaded or slower than 40 s, so glm-4.5-flash with `thinking: disabled` (about 1 s) is used. Free GLM allows only a few requests a minute (error 1302) and its vision model is often overloaded (1305). gemini-3.8-flash timed out or answered 503, so gemini-3.5-flash-lite reads images. Groq: 1,000 a day, 8,000 tokens a minute.
+- Live check of the three features on real data: `AI_LIVE=1 npx vitest run src/lib/ai/ai.live --silent=false` (free calls).

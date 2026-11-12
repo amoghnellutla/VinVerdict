@@ -1,0 +1,30 @@
+{
+  "note": "Real Autotrader page pasted by Amogh (2026-11-12); the dealer's street address removed. Answers read from the page by hand before running VinVerdict. An auction broker (Salvage Reseller, Coconut Creek FL) lists a 2010 Mazda CX-7 at a $500 'Buy It Now' price, says the car is actually 'located in New York - Marlboro', 'comes with a Clean Title', and 'Our inventory comes directly from auto auctions'; Autotrader's history box says 'Accident or Damage Reported' and 'Single Owner'. Traps: CX-7 isn't on the Mazda model list; '$969 Delivery Fee' is neither the price nor a doc fee ('No additional dealer fees'); '$7/mo', '$100' down, '$400 amount financed', '$655'; the dealer's other cars list bare prices ('4,000', '900', '500'); the broker's homepage link (salvagereseller.com) isn't this listing; '971 mi away' is the broker's office, not the car.",
+  "expect": {
+    "kind": "text",
+    "url": null,
+    "vin": "JM3ER2WM3A0323081",
+    "year": 2010,
+    "make": "Mazda",
+    "model": "CX-7",
+    "price": 500,
+    "docFee": null,
+    "miles": 125456,
+    "transmission": "automatic",
+    "titleStatus": "clean",
+    "accident": "reported",
+    "exteriorColor": "black",
+    "ownerCount": 1,
+    "sellerType": "dealer",
+    "distanceMiles": 971
+  },
+  "verdict": "hide",
+  "mustHit": ["auction", "auction-broker", "accident-reported", "far-away"],
+  "mustNotHit": [
+    "no-price", "no-vin", "vin-invalid", "deposit-first", "pay-app", "pay-app-upfront", "pay-wire", "seller-remote",
+    "title-brand", "mileage-low", "rushed", "lien", "manual", "odometer-unknown", "curbstoning", "no-inspection",
+    "model-conflict", "miles-near-zero", "seller-problem", "new-account"
+  ],
+  "scam": false,
+  "origin": "real"
+}

@@ -17,7 +17,7 @@ describe("aiJson: free providers in order, moving on when one fails", () => {
     expect(r).toEqual({ ok: true, data: { v: 1 }, provider: "glm" });
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(PROVIDERS[0].url);
-    expect(JSON.parse(String(init.body))).toMatchObject({ model: "glm-4.7-flash", response_format: { type: "json_object" } });
+    expect(JSON.parse(String(init.body))).toMatchObject({ model: "glm-4.5-flash", thinking: { type: "disabled" }, response_format: { type: "json_object" } });
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer z");
   });
 
@@ -39,7 +39,7 @@ describe("aiJson: free providers in order, moving on when one fails", () => {
     expect(await aiJson({ messages: [], validate: ok, fetchImpl, env: {} })).toEqual({ ok: false, reason: "unconfigured" });
     expect(await aiJson({ messages: [], validate: ok, fetchImpl, env: { GROQ_API_KEY: "q" }, vision: true })).toEqual({ ok: false, reason: "unconfigured" });
     await aiJson({ messages: [], validate: ok, fetchImpl, env: { GEMINI_API_KEY: "g" }, vision: true });
-    expect(JSON.parse(String((fetchImpl.mock.calls.at(-1) as unknown as [string, RequestInit])[1].body)).model).toBe("gemini-3.8-flash");
+    expect(JSON.parse(String((fetchImpl.mock.calls.at(-1) as unknown as [string, RequestInit])[1].body)).model).toBe("gemini-3.5-flash-lite");
   });
 
   it("reads JSON with or without a fence, and nothing else", () => {

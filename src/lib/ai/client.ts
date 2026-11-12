@@ -62,6 +62,7 @@ export async function aiJson<T>(req: AiRequest<T>): Promise<AiResult<T>> {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${env[p.keyEnv]}` },
         body: JSON.stringify({
+          ...p.body,
           model: req.vision ? p.vision : p.text,
           messages: req.messages,
           max_tokens: req.maxTokens ?? 1_500,
