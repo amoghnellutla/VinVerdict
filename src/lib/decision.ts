@@ -71,7 +71,7 @@ const AREA: Record<string, Area> = {
   // Can the listing be trusted?
   "pay-gift-card": "listing", "pay-wire": "listing", "pay-app-upfront": "listing", "pay-app": "listing",
   "deposit-first": "listing", "shipping-only": "listing", "seller-remote": "listing", rushed: "listing",
-  "too-good": "listing", "too-good-plus-flags": "listing", "same-phone": "listing", "new-account": "listing", "auction-broker": "deal", "no-vin": "listing",
+  "too-good": "listing", "too-good-plus-flags": "listing", "same-phone": "listing", "new-account": "listing", "auction-broker": "deal", "dealer-auction": "car", "no-vin": "listing",
   "no-price": "listing", "far-away": "listing", "vin-invalid": "listing", "vin-mismatch": "listing",
   "live-cloned": "listing", "live-dealer-too": "listing", "live-price-differs": "listing", "live-ended": "listing",
   "history-two-sellers": "listing", "history-moved": "listing", "vin-only": "listing",

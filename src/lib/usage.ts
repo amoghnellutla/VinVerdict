@@ -54,12 +54,15 @@ const RESERVE = 0.05;
  * plus what the next step needs would pass the free limit (minus a 5%
  * margin). Stored in Supabase, so it holds across every server instance,
  * unlike the in-memory per-minute limits. Returns a message to show, or null
- * when it's fine. If the usage table isn't set up, it can't tell and allows
- * the call (the in-memory daily caps still apply).
+ * when it's fine.
+ *
+ * Hard rule (Amogh, 2026-11-12: "I should never be charged"): it fails closed.
+ * If the meter can't be read, the paid call doesn't happen. VinVerdict never
+ * spends what it can't prove is inside the free quota.
  */
 export async function quotaBlock(needs: Partial<Record<Provider, number>>): Promise<string | null> {
   const used = await getUsage();
-  if (!used) return null;
+  if (!used) return "Can't confirm the free lookup quota right now, so this lookup is skipped (VinVerdict never risks a paid call). Try again in a minute.";
   // Demo visitors' live checks this month (~2 MarketCheck + 2 Auto.dev each).
   const guest = await guestMonthChecks();
   used.marketcheck += guest * 2;

@@ -1,5 +1,5 @@
 import "server-only";
-import { PROVIDERS, type Provider, type ProviderId } from "./providers";
+import { onlyFree, PROVIDERS, type Provider, type ProviderId } from "./providers";
 
 /**
  * One JSON answer from the first free AI service that gives a valid one.
@@ -50,7 +50,8 @@ export function parseJsonReply(content: unknown): unknown {
 export async function aiJson<T>(req: AiRequest<T>): Promise<AiResult<T>> {
   const env = req.env ?? process.env;
   const doFetch = req.fetchImpl ?? fetch;
-  const list = (req.providers ?? PROVIDERS).filter((p) => env[p.keyEnv] && (!req.vision || p.vision));
+  // Free models only (FREE_MODELS): a provider set to anything else is never called.
+  const list = (req.providers ?? PROVIDERS).filter((p) => onlyFree(p) && env[p.keyEnv] && (!req.vision || p.vision));
   if (!list.length) return { ok: false, reason: "unconfigured" };
   const until = Date.now() + (req.deadlineMs ?? 45_000);
 

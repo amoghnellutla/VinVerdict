@@ -61,3 +61,20 @@ export const PROVIDERS: readonly Provider[] = [
 ];
 
 export const PROVIDER_NAME: Record<ProviderId, string> = { glm: "GLM (Z.ai)", gemini: "Gemini (Google)", groq: "Groq" };
+
+/**
+ * Hard rule (Amogh, 2026-11-12: "I should never be charged"): the only models VinVerdict
+ * may ever call, each priced free on its provider's own pricing page. Z.ai lists these
+ * GLM Flash models at "Free"; Gemini's free tier is "Free of charge" for these as long as
+ * the key's project has no billing account; Groq's free plan never bills. The client
+ * refuses any provider whose model isn't here, and a test fails if one is changed
+ * without updating this list (with its source checked first).
+ */
+export const FREE_MODELS: Record<ProviderId, readonly string[]> = {
+  glm: ["glm-4.5-flash", "glm-4.7-flash", "glm-4.6v-flash"],
+  gemini: ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"],
+  groq: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+};
+
+/** Every model this provider would call is on the free list. */
+export const onlyFree = (p: Provider) => FREE_MODELS[p.id].includes(p.text) && (p.vision === null || FREE_MODELS[p.id].includes(p.vision));

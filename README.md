@@ -94,14 +94,22 @@ It reads private ads the way people write them: "Salvage? No. Flood: no. Acciden
 ### 4. AI mode (free AI, for everyone)
 
 Three buttons on a result, using free AI services (GLM by Z.ai first, then Google's Gemini or Groq when it's busy), with no login needed:
-- **Ask about this car:** answers come only from the report, each fact tagged with its section. An answer with a number or link that isn't in the report is thrown away.
+- **Tell VinVerdict or ask:** one box for anything you know about the car. Paste the listing, a dealer-auction record or the Carfax, attach screenshots, or just say "it sold at auction for 9,100". VinVerdict works out what it is on your device, and **the whole result updates at once**: verdict, price, costs, questions and report. Each change shows as a chip you can undo.
+  - Questions it can answer from the page ("is the price fair?", "what should I ask?", "what's next?") get an answer with buttons, without AI.
+  - Only open questions go to a free AI. Its answer comes from the report, each fact is tagged with its section, and an answer with a number or link that isn't in the report is thrown away.
 - **Read it closely with free AI:** on a Carfax or AutoCheck you pasted or screenshotted, it lists every accident and damage event with its date, owners, use and service work.
   - Only events whose words are in your copy change the verdict.
   - Good news ("no accidents") needs your Confirm.
   - VinVerdict never opens Carfax itself (their terms forbid it).
 - **Check the dealers now:** the server opens this car's own dealer links from its listing history (https only, never private addresses, robots.txt respected). It says whether each still lists the car, at what price and fees. The page's own listing data is read first; AI only fills the gaps.
 
-Five AI actions per visitor per day, behind the "I'm human" check. What's found goes into a separate "Found by AI" part of the report. The verdict itself stays rule-based.
+Five AI actions per visitor per day, behind the "I'm human" check. Messages answered without AI don't count.
+
+**It never costs money.** Every service runs on its free tier, and the code fails closed:
+- a paid data lookup is refused if VinVerdict can't confirm it's inside the free quota;
+- the AI calls only models priced free (a test enforces the list).
+
+The account-side checklist is in [`workflows/no_charges.md`](workflows/no_charges.md). What's found goes into a separate "Found by AI" part of the report. The verdict itself stays rule-based.
 
 ### 5. Reference: every model's fuel cost by year
 

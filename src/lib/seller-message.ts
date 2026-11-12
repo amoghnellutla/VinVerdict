@@ -79,6 +79,7 @@ export function sellerMessage(m: MessageInput): string {
   const problem = m.hits.find((h) => h.id === "seller-problem");
   if (problem) q.push(`The ad mentions ${problem.title.replace(/^Seller mentions a problem: /, "")}. Has a mechanic diagnosed it, and do you have a repair quote?`);
   if (has("auction")) q.push("Where was it bought at auction? Could you send the auction listing or its photos?");
+  if (has("dealer-auction")) q.push("Why did it go to a dealer auction, and could you send the auction's condition report?");
   if (dealer) q.push("Could you send the Carfax or AutoCheck report, and the out-the-door price with every fee?");
   if (c.anyAccidents == null && !has("accident-reported") && !has("live-accident")) q.push("Has it been in any accident, even a small one?");
   if (has("accident-reported") || has("live-accident")) q.push("What was damaged in the accident, and do you have the repair invoice?");

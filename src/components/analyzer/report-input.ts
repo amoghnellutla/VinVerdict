@@ -63,6 +63,9 @@ export type ReportState = {
   knownIssues: { title: string; label: string }[];
   phrase: string;
   selling: boolean;
+  /** What the person told VinVerdict (chip labels), and a dealer-auction sale. */
+  told?: string[];
+  auctionSale?: ReportInput["auctionSale"];
   /** What the cost panels last showed; missing ones are worked out with the page's defaults. */
   parts: CostParts;
 };
@@ -117,6 +120,8 @@ export function reportInput(s: ReportState): ReportInput {
     perYear: p.perYear ? { ...p.perYear, fromPage: true } : perYearDefault ? { years: 3, milesPerYear: DEFAULT_MILES_PER_YEAR, state, result: perYearDefault, fromPage: false } : null,
     running: p.running ? { ...p.running, fromPage: true } : runDefault ? { ...runDefault, fromPage: false } : null,
     manual: p.manual ? { ...p.manual, verdictText: MANUAL_VERDICT[p.manual.result.verdict].text } : null,
+    told: s.told ?? [],
+    auctionSale: s.auctionSale ?? null,
     aiDealers: p.aiDealers ?? null,
     aiAnswers: p.aiAnswers ?? null,
     sources: reportSourceItems({

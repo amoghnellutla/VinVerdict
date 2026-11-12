@@ -25,6 +25,29 @@ export type Attached = Proof & {
 
 const MAX_TEXT = 20_000;
 
+/** A pasted page or a screenshot's text as a proof card (sorted to its check by what it shows); null when it isn't one. */
+export function proofFromText(text: string, hint: ProofKind | null, label: string, thumb: string | null): Attached | null {
+  const read = readProof(text.slice(0, MAX_TEXT), hint);
+  const kind = read.kind ?? hint;
+  if (!kind) {
+    if (thumb) URL.revokeObjectURL(thumb);
+    return null;
+  }
+  return {
+    id: crypto.randomUUID(), kind, read, label, thumb, movedFrom: hint && read.kind && read.kind !== hint ? hint : null,
+    ...(kind === "history" ? { text: text.slice(0, MAX_TEXT) } : {}),
+  };
+}
+
+/** A free AI's reading of a history report, as its own card. */
+export function aiReadAttached(baseLabel: string, r: HistoryReadOk): Attached {
+  return {
+    id: crypto.randomUUID(), kind: "history", label: `AI read of ${baseLabel.toLowerCase()}`, thumb: null, movedFrom: null,
+    read: aiProofRead(r.ai, r.sentText, false, r.provider),
+    ai: { data: r.ai, sentText: r.sentText, provider: r.provider, confirmed: false },
+  };
+}
+
 const RATING: Record<CheckRating, { text: string; tone: string }> = {
   clear: { text: RATING_TEXT.clear, tone: "bg-good-soft text-good" },
   problem: { text: RATING_TEXT.problem, tone: "bg-bad-soft text-bad" },
@@ -71,27 +94,11 @@ export function CheckYourself({ vin, make, live, proofs, onProofs, summary, save
   }, [proofs]);
   useEffect(() => () => latest.current.forEach((p) => p.thumb && URL.revokeObjectURL(p.thumb)), []);
 
-  function attach(text: string, hint: ProofKind | null, label: string, thumb: string | null): Attached | null {
-    const read = readProof(text.slice(0, MAX_TEXT), hint);
-    const kind = read.kind ?? hint;
-    if (!kind) {
-      if (thumb) URL.revokeObjectURL(thumb);
-      return null;
-    }
-    return {
-      id: crypto.randomUUID(), kind, read, label, thumb, movedFrom: hint && read.kind && read.kind !== hint ? hint : null,
-      ...(kind === "history" ? { text: text.slice(0, MAX_TEXT) } : {}),
-    };
-  }
+  const attach = proofFromText;
 
   /** A free AI's reading of a history report becomes its own card, next to the one it read. */
   function addAiRead(base: Attached, r: HistoryReadOk) {
-    const next: Attached = {
-      id: crypto.randomUUID(), kind: "history", label: `AI read of ${base.label.toLowerCase()}`, thumb: null, movedFrom: null,
-      read: aiProofRead(r.ai, r.sentText, false, r.provider),
-      ai: { data: r.ai, sentText: r.sentText, provider: r.provider, confirmed: false },
-    };
-    onProofs([...latest.current, next]);
+    onProofs([...latest.current, aiReadAttached(base.label, r)]);
   }
 
   function confirmAiRead(id: string) {

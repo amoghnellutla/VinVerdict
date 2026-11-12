@@ -3,6 +3,8 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
+import { applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
+import type { PageContext } from "@/lib/assistant/answers";
 import { makerCertified } from "@/lib/protection";
 import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
@@ -23,8 +25,8 @@ import { mergeLive } from "@/lib/live/merge";
 import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
 import type { SellerChecklist } from "@/lib/scam/rules";
 import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Severity } from "@/lib/decision";
-import { ON_PAGE, raw, RULE_SOURCE } from "@/lib/sources";
-import { fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
+import { ON_PAGE, raw, RULE_SOURCE, verifyLinks } from "@/lib/sources";
+import { DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
 import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
@@ -53,11 +55,11 @@ import { CopyButton } from "@/components/CopyButton";
 import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
-import { AskCar } from "./AskCar";
+import { Assistant } from "./Assistant";
 import { DealerCheck } from "./DealerCheck";
 import { DealerCheckAi } from "./DealerCheckAi";
 import { checkReplies } from "@/lib/seller-replies";
-import { proofPhrase } from "@/lib/seller-message";
+import { proofPhrase, sellerMessage } from "@/lib/seller-message";
 import { knownIssuesFor } from "@/lib/inspection";
 import { VerdictCard } from "./VerdictCard";
 
@@ -90,7 +92,7 @@ function dealerUrls(live: Live | null, h: HistorySummary | null): string[] {
 /** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
 const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
 
-export function Result({ analysis: a, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
+export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -104,6 +106,10 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   /** Start a new check for a VIN (from "This may be the same car"). */
   onCheckVin?: ((vin: string) => void) | null;
 }) {
+  // What the person told VinVerdict (Assistant): applied to the car first, so every section below uses it.
+  const [told, setTold] = useState<Told[]>([]);
+  const a = useMemo(() => applyTold(original, told), [original, told]);
+  const auction = useMemo(() => toldAuction(told), [told]);
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
   // Proof attached in "Check it yourself" (read on this device, never uploaded).
@@ -171,7 +177,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
   }, [carId, proofs, goodVin]);
 
   const { result, valuation, sellV } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits] }, checklist);
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles)] }, checklist);
     if (!sources) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
@@ -195,9 +201,9 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         }
       : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits], valuePct: valuation.pctUnder }, checklist) : first;
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles)], valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction]);
 
   // What the cost panels currently show, for the downloadable report (a ref: no re-renders).
   const parts = useRef<CostParts>({});
@@ -243,14 +249,44 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
         proofs: proofs.map((x) => ({ kind: x.kind, findings: x.read.findings, source: x.read.source, screenshot: !!x.thumb })),
         checklist, replies, replyHits, knownIssues, phrase, selling,
         parts: parts.current,
+        told: told.map((t) => t.label),
+        auctionSale: auction ? { soldPrice: auction.soldPrice, house: auction.record?.house ?? null, consignor: auction.record?.consignor ?? null, crGrade: auction.record?.crGrade ?? null, odometer: auction.record?.odometer ?? null, odometerActual: !!auction.record?.odometerActual, saleDate: auction.record?.saleDate ?? null } : null,
       }),
       { short },
     );
   };
+  const pageCtx: PageContext = {
+    car: carName(m),
+    vin: goodVin,
+    make,
+    verdict: { title: decision.title, text: decision.text },
+    stops: hits.filter((f) => f.severity === "stop").map((f) => f.title),
+    checks: hits.filter((f) => f.severity === "verify").map((f) => f.title),
+    unknowns: decision.areas.flatMap((x) => x.unknown),
+    price: m.listing.price,
+    estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, label: valuation.label ? DEAL_TEXT[valuation.label] : null, open: valuation.offer?.open ?? null, walk: valuation.offer?.max ?? null } : null,
+    auctionSold: auction?.soldPrice ?? null,
+    priced: !!sources,
+    historyRead: answers.damage !== "unknown" || answers.title !== "unknown",
+    carfax: live?.carfaxUrl ?? null,
+    recalls: a.recalls?.length ?? null,
+    recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
+    sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
+    dealer: m.listing.sellerType === "dealer",
+  };
+
   const reportFile = (short: boolean) =>
     `vinverdict-${carName(m).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "car"}-${localDate()}${short ? "-short" : ""}.md`;
 
   const priceCheck = (
+    <>
+    {auction?.soldPrice && (
+      <p className="mb-4 rounded-md border border-accent/40 px-3 py-2">
+        <span className="font-semibold">Last sold at a dealer auction: ${auction.soldPrice.toLocaleString("en-US")}</span>
+        {auction.record?.saleDate ? ` on ${auction.record.saleDate}` : ""} (you told VinVerdict). That&apos;s a wholesale price: what a dealer paid before
+        auction fees and reconditioning. Dealers resell auction cars with a markup, so use it to judge how much room a dealer&apos;s asking price leaves.
+      </p>
+    )}
     <PriceCheck
       a={m}
       carId={carId}
@@ -267,6 +303,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
       known={{ miles: known.miles, trim: known.trim, milesFrom: known.milesFrom }}
       sell={sellV}
     />
+    </>
   );
   const historyReport = (
     <HistoryReport value={answers} onChange={(patch) => setReport((r) => ({ ...r, ...patch }))} from={proofSum.from} live={live} vin={goodVin} selling={selling} adOffers={adOffersHistoryReport(m.text)} />
@@ -369,7 +406,17 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
           <VerdictCard d={decision} />
         )}
         <ReportDownload build={reportText} fileName={reportFile} knownUrl={m.listing.url ?? live?.url ?? null} />
-        {AI_MODE && <AskCar build={() => reportText(m.listing.url ?? null, true)} guest={guest} />}
+        <Assistant
+          ctx={pageCtx}
+          told={told}
+          onTell={(t) => setTold((x) => [...x, t])}
+          onUndo={(id) => setTold((x) => x.filter((t) => t.id !== id))}
+          onProof={(p) => setProofs((x) => [...x, p])}
+          onCheckVin={onCheckVin}
+          build={() => reportText(m.listing.url ?? null, true)}
+          guest={guest}
+          ai={AI_MODE}
+        />
       </header>
 
       <SectionNav items={nav} />

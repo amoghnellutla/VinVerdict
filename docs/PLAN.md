@@ -372,6 +372,18 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **Assistant v2 ("Tell VinVerdict or ask"), approved plan, from Amogh's real session on VIN 4T1B11HK8JU145889.** His session: VIN only → "thinking of buying" → "auction sale … priced for 9,100" → the pasted Manheim-style record → the Carfax, which couldn't be attached. Nothing on the page changed, answers were generic, and every message used AI.
+- **Now: one box** for text, pasted pages and screenshots (OCR on the device).
+- **A no-AI router** (`lib/assistant/route.ts`) sorts each message: auction record, report or check page (proof card plus an AI close read), another listing (or a different car), facts in a sentence, a question answered from the page with action buttons, small talk.
+- **AI** is used only for open questions; its answer may return fixed actions and quoted facts.
+- **What you tell it is merged into the shown car before anything is computed** (`applyTold`), so the verdict, price (with "last sold at a dealer auction: $9,100, a wholesale price"), costs, seller message and report update at once, each change listed and undoable.
+- **Accuracy:** wholesale dealer auctions (Manheim, ADESA, ACV, MMR, CR grade, consignor) are now a "Check this" (`dealer-auction`), not the salvage-auction Stop, which stays for Copart/IAA/salvage.
+- **Money rule (Amogh: "I should never be charged"):**
+  - `quotaBlock` fails closed (no meter, no paid lookup);
+  - the AI client calls only `FREE_MODELS`, with tests;
+  - CLAUDE.md gains the hard rule;
+  - `workflows/no_charges.md` holds the account checklist.
+- **Verified:** a browser replay of his session on a local build, step by step; 439 tests pass |
 | 2026-11-12 | **AI mode switched on (keys set, migration run) and probed live.** `tools/probe_ai.py`:
 - **GLM:** glm-4.7-flash overloaded or slower than 40 s (it reasons first), so it's now **glm-4.5-flash with thinking off** (about 1 s). Free GLM allows only a few requests a minute (code 1302) and its vision model is often "overloaded" (1305); the chain moves on.
 - **Gemini:** gemini-3.8-flash vision timed out or answered 503, so **gemini-3.5-flash-lite** is used for images too (read the test image right in about 1 s).

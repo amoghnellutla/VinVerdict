@@ -220,7 +220,15 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // --- Auction source ---
   // "Auction photos documenting the vehicle's condition prior to repairs" says where it came from too.
   // "Our inventory comes directly from auto auctions" (an auction broker's ad, real case 33).
-  if (/auction pric|\bcopart\b|\biaai?\b|insurance auction|salvage auction|auction (car|vehicle|photos?|pictures?)|(bought|purchased) (it )?(at|from) (an |the )?auction|\b(inventory|cars?|vehicles?) (comes?|are|is) (directly )?(sourced )?from (auto |car |salvage |insurance )?auctions?\b/.test(t)) {
+  // Two kinds of auction (real case 34): salvage and insurance auctions (Copart, IAA) sell wrecked and
+  // written-off cars, a serious warning; wholesale dealer auctions (Manheim, ADESA, ACV: "MMR",
+  // "CR grade", "consignor") are how dealers trade ordinary trade-ins and unsold cars, worth knowing.
+  const salvageAuction = /\bcopart\b|\biaai?\b|insurance auction|salvage auction|\bsalvage ?reseller\b|total[- ]loss auction/.test(t);
+  const dealerAuction = !salvageAuction && /\bmanheim\b|\badesa\b|\bacv auctions?\b|\bove\.com\b|\bmmr\b|\bcr:? ?grade\b|\bcondition report grade\b|\bconsignor\b|\bdealer(-only)? auction\b|\bwholesale auction\b/.test(t);
+  if (dealerAuction) {
+    add("dealer-auction", "flag", "Went through a dealer auction",
+      "Dealers trade trade-ins and cars that didn't sell at wholesale auctions: that's normal, and not the same as a salvage auction. Ask why it went to auction, ask for the auction's condition report, and keep in mind it sold there at a wholesale price.");
+  } else if (salvageAuction || /auction pric|auction (car|vehicle|photos?|pictures?)|(bought|purchased) (it )?(at|from) (an |the )?auction|\b(inventory|cars?|vehicles?) (comes?|are|is) (directly )?(sourced )?from (auto |car |salvage |insurance )?auctions?\b/.test(t)) {
     add("auction", "hide", "Auction car", "Auction-sourced cars often have hidden damage or branded titles.");
   }
   // An online auction broker: the price is a Buy It Now or bid, with fees on top, usually as-is.

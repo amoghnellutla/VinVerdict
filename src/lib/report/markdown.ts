@@ -73,6 +73,10 @@ export type ReportInput = {
   running: (RunningSnapshot & { fromPage: boolean }) | null;
   manual: { asking: number; prices: number[]; result: ManualResult; verdictText: string } | null;
   sources: { items: SourceItem[]; guidance: SourceRef[] };
+  /** What the person told VinVerdict on the page (assistant), applied to the car above. */
+  told?: string[];
+  /** A dealer-auction sale the person gave (record or their words). */
+  auctionSale?: { soldPrice: number | null; house: string | null; consignor: string | null; crGrade: string | null; odometer: number | null; odometerActual: boolean; saleDate: string | null } | null;
   /** AI mode: dealer pages checked and questions answered on the page, if any. */
   aiDealers?: { at: string; lines: AiDealerLine[] } | null;
   aiAnswers?: AiAnswerLine[] | null;
@@ -193,6 +197,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
       ],
     ),
     "",
+    ...(r.told?.length ? [`**You told VinVerdict** (applied above; your own words, not verified): ${r.told.map(esc).join("; ")}.`, ""] : []),
     "**What's still open** (a ticked box is done; do the rest, record what you find on the VinVerdict page, then download the report again):",
     "",
     ...open.map(([done, text]) => `- [${done ? "x" : " "}] ${text}`),
@@ -299,6 +304,19 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
     );
   } else {
     push(notRun("Not priced", "the live price check wasn't run for this result (it uses a small free quota)"), "");
+  }
+  if (r.auctionSale && (r.auctionSale.soldPrice || r.auctionSale.consignor)) {
+    const s = r.auctionSale;
+    push(
+      `**Dealer auction (you told VinVerdict):** ${[
+        s.soldPrice ? `sold for ${money(s.soldPrice)}${s.saleDate ? ` on ${esc(s.saleDate)}` : ""}` : null,
+        s.house ? `at ${esc(s.house)}` : null,
+        s.consignor ? `consignor ${esc(s.consignor)}` : null,
+        s.odometer ? `odometer ${miles(s.odometer)}${s.odometerActual ? " (declared actual)" : ""}` : null,
+        `condition report grade ${s.crGrade ? esc(s.crGrade) : "not given"}`,
+      ].filter(Boolean).join(", ")}. A wholesale price: what a dealer paid before auction fees and reconditioning, not a retail price.`,
+      "",
+    );
   }
   if (r.manual) {
     push(

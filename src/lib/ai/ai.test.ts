@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { askMessages, checkAsk, reportSections } from "./ask";
 import { aiJson, parseJsonReply } from "./client";
 import { foreignLinks, inventedNumbers, numbersIn, plain, quoteIn } from "./guard";
-import { PROVIDERS } from "./providers";
+import { onlyFree, PROVIDERS } from "./providers";
 
 const ENV = { ZAI_API_KEY: "z", GEMINI_API_KEY: "g", GROQ_API_KEY: "q" };
 const reply = (content: string, status = 200) =>
@@ -114,5 +114,19 @@ describe("Ask about this car", () => {
     expect(checkAsk({ answer: "$18,000 is inside the estimate.", claims: [], unknowns: [], next: "" }, report, "Is $18,000 a good offer?")).not.toBeNull();
     expect(checkAsk(null, report, "q")).toBeNull();
     expect(checkAsk({ answer: "" }, report, "q")).toBeNull();
+  });
+});
+
+describe("never spend money: free models only", () => {
+  it("every model VinVerdict is set to call is on the free list", () => {
+    for (const p of PROVIDERS) expect(onlyFree(p), p.id).toBe(true);
+  });
+
+  it("a provider set to a paid model is never called", async () => {
+    const fetchImpl = vi.fn(async () => reply('{"v":1}'));
+    const paid = PROVIDERS.map((p) => (p.id === "glm" ? { ...p, text: "glm-5.3" } : p));
+    const r = await aiJson({ messages: [], validate: ok, fetchImpl, env: { ZAI_API_KEY: "z" }, providers: paid });
+    expect(r).toEqual({ ok: false, reason: "unconfigured" });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
