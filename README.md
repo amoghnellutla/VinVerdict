@@ -95,7 +95,12 @@ It reads private ads the way people write them: "Salvage? No. Flood: no. Acciden
 
 Three buttons on a result, using free AI services (GLM by Z.ai first, then Google's Gemini or Groq when it's busy), with no login needed:
 - **Tell VinVerdict or ask:** one box for anything you know about the car. Paste the listing, a dealer-auction record or the Carfax, attach screenshots, or just say "it sold at auction for 9,100". VinVerdict works out what it is on your device, and **the whole result updates at once**: verdict, price, costs, questions and report. Each change shows as a chip you can undo.
-  - Questions it can answer from the page ("is the price fair?", "what should I ask?", "what's next?") get an answer with buttons, without AI.
+  - Questions it can answer from the page ("is the price fair?", "what should I ask?", "what's next?") get an answer with buttons, without AI. The quick-start buttons fit the car: "What should I offer?" appears once a price is known, and the recall question names how many there are.
+  - **"What should I offer?"** sets out the gap between the asking price and a dealer-auction sale, the price estimate (open at, walk away above), a cheaper listing of the same VIN and your leverage, then gives you a message to copy. Every number is one the page already has.
+  - **Sections that change light up** for a moment (a steady outline with reduced motion), and the reply says what changed, out-the-door included.
+  - **A ZIP you mention** ("my zip is 19103") becomes your ZIP for out-the-door, cost per year and the price check.
+- **What VinVerdict knows:** a checklist under the verdict (the exact car, price, miles, accidents/title/owners, fair price, other listings, open recalls, the seller's answers, your mechanic's inspection), with "X of 9 known" and a button for each missing piece.
+- **Miles agree across sources:** when the listing, an auction record and a Carfax or AutoCheck give the same odometer reading (within 3% or 1,000 miles), the result says so. That's real evidence against a rollback. The ad and its live feed count once.
   - Only open questions go to a free AI. Its answer comes from the report, each fact is tagged with its section, and an answer with a number or link that isn't in the report is thrown away.
 - **Read it closely with free AI:** on a Carfax or AutoCheck you pasted or screenshotted, it lists every accident and damage event with its date, owners, use and service work.
   - Only events whose words are in your copy change the verdict.

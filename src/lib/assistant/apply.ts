@@ -40,7 +40,7 @@ export function applyTold(a: Analysis, told: Told[]): Analysis {
     for (const f of t.facts ?? []) {
       if (f.kind === "price") listing.price = f.value;
       else if (f.kind === "miles") listing.miles = f.value;
-      else if (f.kind === "zip") listing.zip = f.value;
+      // A ZIP is the buyer's (Result saves it for the costs and price check), never the car's location.
       else if (f.kind === "seller") listing.sellerType = f.value;
       else if (f.kind === "owners") listing.ownerCount = f.value;
       else if (f.kind === "accident") listing.accident = f.value;

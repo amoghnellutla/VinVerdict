@@ -5,22 +5,45 @@ import { askCarAction, readHistoryAction } from "@/app/actions/ai";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Turnstile } from "@/components/Turnstile";
 import type { AskAction } from "@/lib/ai/ask";
-import { answerIntent, SMALL_TALK, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
+import { answerIntent, SMALL_TALK, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
 import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
 import { routeMessage } from "@/lib/assistant/route";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
 import { aiReadAttached, proofFromText, type Attached } from "./CheckYourself";
+import { ATTACH_EVENT, TELL_EVENT } from "./KnowsPanel";
 
 /** `read`: a history report waiting for the person's tap (and "I'm human" check) to be read closely. */
-type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null } };
+type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null }; quote?: string };
 
 /** Quick starts shown before the first message. */
-const STARTERS = ["Is the price fair?", "What should I ask the seller?", "What's next?"];
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
 const uid = () => crypto.randomUUID();
+
+/** The sections a change shows up in, so they can light up. */
+function changedSections(before: PageContext, after: PageContext): string[] {
+  const s = new Set<string>();
+  if (before.verdict.title !== after.verdict.title || before.stops.join() !== after.stops.join() || before.checks.join() !== after.checks.join()) s.add("#verdict");
+  if (before.price !== after.price || before.auctionSold !== after.auctionSold || before.estimate?.low !== after.estimate?.low) s.add("#price-check");
+  if (before.price !== after.price || before.otd?.total !== after.otd?.total) s.add("#costs");
+  if (before.historyRead !== after.historyRead) s.add("#history-report");
+  if (s.size) s.add("#knows");
+  return [...s];
+}
+
+/** Briefly light up the sections that just changed (a steady outline with reduced motion). */
+function flash(targets: string[]) {
+  for (const t of targets) {
+    const el = document.querySelector(t);
+    if (!el) continue;
+    el.classList.remove("vv-flash");
+    void (el as HTMLElement).offsetWidth; // restart the animation
+    el.classList.add("vv-flash");
+    setTimeout(() => el.classList.remove("vv-flash"), 2_400);
+  }
+}
 
 /** What changed on the page between two moments, in plain words. */
 function changes(before: PageContext, after: PageContext): string[] {
@@ -36,6 +59,7 @@ function changes(before: PageContext, after: PageContext): string[] {
   const gone = [...added(after.stops, before.stops), ...added(after.checks, before.checks)];
   if (gone.length) out.push(`no longer flagged: ${gone.join("; ")}`);
   if (!before.historyRead && after.historyRead) out.push("history report answers filled in");
+  if (after.otd && (before.otd?.total !== after.otd.total || before.otd?.state !== after.otd.state)) out.push(`out the door: about ${$(Math.round(after.otd.total))} in ${after.otd.state}`);
   if (before.estimate?.low !== after.estimate?.low || before.estimate?.high !== after.estimate?.high) {
     if (after.estimate) out.push(`price estimate: ${$(after.estimate.low)}–${$(after.estimate.high)}`);
   }
@@ -83,6 +107,31 @@ export function Assistant(props: {
   const [token, setToken] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
+
+  // The "What VinVerdict knows" panel asks for a fact ("They're asking $") or a report.
+  useEffect(() => {
+    const tell = (e: Event) => {
+      const prefill = (e as CustomEvent<string>).detail ?? "";
+      setInput(prefill);
+      boxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => {
+        const el = boxRef.current;
+        if (!el) return;
+        el.focus();
+        // Put the cursor where the number goes ("It has | miles" or after "$").
+        const at = prefill.indexOf("  ");
+        el.setSelectionRange(at >= 0 ? at + 1 : prefill.length, at >= 0 ? at + 1 : prefill.length);
+      });
+    };
+    const attachReport = () => fileRef.current?.click();
+    window.addEventListener(TELL_EVENT, tell);
+    window.addEventListener(ATTACH_EVENT, attachReport);
+    return () => {
+      window.removeEventListener(TELL_EVENT, tell);
+      window.removeEventListener(ATTACH_EVENT, attachReport);
+    };
+  }, []);
   // After something is applied, say what changed once the page has re-rendered.
   const pending = useRef<{ msgId: string; before: PageContext } | null>(null);
 
@@ -91,6 +140,7 @@ export function Assistant(props: {
     if (!p) return;
     pending.current = null;
     const list = changes(p.before, ctx);
+    flash(changedSections(p.before, ctx));
     setThread((t) => t.map((m) => (m.id === p.msgId ? { ...m, note: list.length ? `Updated on this page: ${list.join("; ")}.` : "Applied. The verdict and price didn't change." } : m)));
   }, [ctx]);
 
@@ -99,7 +149,8 @@ export function Assistant(props: {
     if (before) pending.current = { msgId: msg.id, before };
     setThread((t) => [...t, msg]);
   };
-  const reply = (r: Reply, by?: string) => say({ text: r.text, points: r.points, actions: r.actions, by });
+  const reply = (r: Reply, by?: string) => say({ text: r.text, points: r.points, actions: r.actions, by, quote: r.quote });
+  const [copied, setCopied] = useState<string | null>(null);
 
   function takeToken(): string | null {
     const t = token;
@@ -218,6 +269,10 @@ export function Assistant(props: {
 
   function act(a: Action) {
     if (a.kind === "attach") return fileRef.current?.click();
+    if (a.kind === "copy") {
+      void navigator.clipboard?.writeText(a.text).then(() => setCopied(a.text), () => setCopied(null));
+      return;
+    }
     if (a.kind === "go") document.querySelector(a.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -231,12 +286,12 @@ export function Assistant(props: {
 
       {thread.length === 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {STARTERS.map((s) => (
+          {starters(ctx).map((s) => (
             <button key={s} type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => { setThread((t) => [...t, { id: uid(), who: "you", text: s }]); void handle(s, "Question", null); }}>
               {s}
             </button>
           ))}
-          <button type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>Add the Carfax (screenshot)</button>
+          {!ctx.historyRead && <button type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>Add the Carfax (screenshot)</button>}
         </div>
       )}
 
@@ -264,6 +319,7 @@ export function Assistant(props: {
               {m.points && m.points.length > 0 && (
                 <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">{m.points.map((p, i) => <li key={i}>{p}</li>)}</ul>
               )}
+              {m.quote && <blockquote className="mt-2 whitespace-pre-line rounded-md border-l-4 border-accent bg-surface-muted px-3 py-2 text-sm">{m.quote}</blockquote>}
               {m.note && <p className="mt-1 rounded-md bg-good-soft px-2 py-1 text-sm text-good">{m.note}</p>}
               {m.actions && m.actions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -271,7 +327,7 @@ export function Assistant(props: {
                     a.kind === "link" ? (
                       <ExternalLink key={i} href={a.href} className="btn btn-secondary text-sm">{a.label}</ExternalLink>
                     ) : (
-                      <button key={i} type="button" className="btn btn-secondary text-sm" onClick={() => act(a)}>{a.label}</button>
+                      <button key={i} type="button" className="btn btn-secondary text-sm" onClick={() => act(a)}>{a.kind === "copy" && copied === a.text ? "Copied" : a.label}</button>
                     ),
                   )}
                 </div>
@@ -302,6 +358,7 @@ export function Assistant(props: {
 
       <label htmlFor={id} className="sr-only">Tell VinVerdict or ask</label>
       <textarea
+        ref={boxRef}
         id={id}
         rows={3}
         maxLength={20_000}

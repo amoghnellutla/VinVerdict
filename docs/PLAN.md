@@ -372,6 +372,14 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **The assistant, finished (Amogh: "next time I test it should impress me").**
+- **What VinVerdict knows:** a checklist under the verdict with "X of 9 known" and a button for each missing piece (tell the price, add the report, run the price check, check recalls by VIN, see what to ask). The owner count comes from the report before the ad.
+- **"What should I offer?"** (`assistant/deal.ts`): the auction gap, the estimate's open and walk-away prices, a cheaper listing of the same VIN, leverage, and a message to copy. Page numbers only; with no estimate it asks for their best price instead of naming one. The auction isn't repeated as "leverage".
+- **Changed sections light up**, and the reply now says when out-the-door changed.
+- **Miles agree across sources** (`assistant/odometer.ts`, evidence "Readings compared"): the listing (counted once with its live feed), an auction record and each report. Carfax's header line ("126,357 mi \| VIN") is now read as the odometer.
+- **A told ZIP is the buyer's**: it was wrongly written into the car's location. It now becomes the saved ZIP for out-the-door, cost per year and the price check. Auction-record findings are labelled "What you told VinVerdict".
+- **Quick starts fit the page** (offer once a price is known, the recall count).
+- Checked: 603 tests, typecheck, lint, axe on every page (computer and phone), and the session replay at desktop and phone width (no sideways scroll). |
 | 2026-11-12 | **Assistant test set (Amogh: "keep improving until you are 100% confident").** `src/lib/assistant/eval.test.ts`: 120 labelled messages in every category, all 33 real corpus pages, report pages, and auction records (Manheim, ADESA, ACV); it must pass 100%. The first run found 11 misses, all fixed:
 - **4 real listing pages became "proof"** because dealer pages mention Carfax, AutoCheck or NHTSA. A page now counts as a report only with at least 2 report-only markers ("previous owners", "service history records", "AutoCheck score", "VINCheck … records"…).
 - **A pasted link** now explains "paste the page instead", or flags a different car from the VIN in the link.

@@ -28,6 +28,8 @@ export type ProofRead = {
   report: Partial<ReportAnswers>;
   odometer: { miles: number; date: string | null } | null;
   openRecalls: number | null;
+  /** Owner count the report states, or null. */
+  owners?: number | null;
 };
 
 export const SOURCE_NAME: Record<ProofSource, string> = {
@@ -124,7 +126,10 @@ function readHistoryReport(t: string, src: "carfax" | "autocheck", out: ProofRea
   const owners = t.match(/\bowners?\s*[-:]\s*(\d{1,2})\b/i) ?? t.match(/\b(\d{1,2})\s+(previous\s+)?owners?\b/i) ?? t.match(/\b(\d)-owner\b/i);
   if (owners) {
     const n = Number(owners[1]);
-    if (n >= 1 && n <= 20) add({ key: "owners", label: `${name}: ${n} owner${n > 1 ? "s" : ""}`, status: n >= 4 ? "warn" : "info" });
+    if (n >= 1 && n <= 20) {
+      out.owners = n;
+      add({ key: "owners", label: `${name}: ${n} owner${n > 1 ? "s" : ""}`, status: n >= 4 ? "warn" : "info" });
+    }
   }
 
   // Use.
@@ -139,6 +144,9 @@ function readHistoryReport(t: string, src: "carfax" | "autocheck", out: ProofRea
   // Odometer.
   const odo = t.match(/last reported odometer:?\s*([\d,]{3,9})\s*(?:mi(?:les)?)?\s*\(?(\d{1,2}\/\d{1,2}\/\d{4})?/i);
   if (odo && num(odo[1]) > 0) out.odometer = { miles: num(odo[1]), date: odo[2] ?? null };
+  // Carfax's header: "126,357 mi | VIN: 4T1B11HK8JU145889" (real case 34).
+  const head = !out.odometer ? t.match(/\b(\d{1,3}(?:,\d{3})+|\d{4,6})\s*mi\b\s*\|?\s*VIN\b/i) : null;
+  if (head && num(head[1]) > 0) out.odometer = { miles: num(head[1]), date: null };
   if (/odometer (problem|rollback|discrepancy|not actual|exceeds mechanical)|not actual mileage/i.test(t)) {
     add({ key: "odometer", label: `${name}: odometer problem reported`, status: "bad" });
   }

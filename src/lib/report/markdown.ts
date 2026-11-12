@@ -226,6 +226,8 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
     `- **${EVIDENCE_LABEL.feed}**: online listing data (MarketCheck, Auto.dev). It can add bad news but never clears a car.`,
     `- **${EVIDENCE_LABEL.report}** / **${EVIDENCE_LABEL.proof}**: what you read on a Carfax/AutoCheck report or attached.`,
     `- **${EVIDENCE_LABEL.estimate}**: worked out from similar cars' asking prices. Not a sale price.`,
+    `- **${EVIDENCE_LABEL.told}**: something you pasted or said (an auction record, a fact). Not verified by VinVerdict.`,
+    `- **${EVIDENCE_LABEL.compared}**: odometer readings from different sources set side by side.`,
     `- **Not checked**: unknown. Never read it as fine.`,
     "",
   );

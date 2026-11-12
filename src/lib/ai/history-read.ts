@@ -152,7 +152,10 @@ export function aiProofRead(ai: AiHistory, text: string, confirmed: boolean, who
     add({ key: "use", label: `${name}: ${ai.use.join(", ")} use${confirmed ? " (you confirmed)" : ": tap Confirm if the report says so"}`, status: "info" });
   }
 
-  if (ai.owners != null && ai.owners >= 1) add({ key: "owners", label: `${name}: ${ai.owners} owner${ai.owners > 1 ? "s" : ""}`, status: ai.owners >= 4 ? "warn" : "info" });
+  if (ai.owners != null && ai.owners >= 1) {
+    out.owners = ai.owners;
+    add({ key: "owners", label: `${name}: ${ai.owners} owner${ai.owners > 1 ? "s" : ""}`, status: ai.owners >= 4 ? "warn" : "info" });
+  }
   const service = ai.events.filter((e) => e.type === "service" && e.found);
   if (service.length) add({ key: "service", label: `${name}: service work, ${service.slice(0, 6).map(said).join("; ")}${service.length > 6 ? ` and ${service.length - 6} more` : ""}`, status: "info" });
   const odo = ai.events.filter((e) => e.type === "odometer" && e.found && /rollback|not actual|exceeds|discrepan|inconsisten|problem/i.test(e.text));

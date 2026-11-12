@@ -475,3 +475,21 @@ html {
     color: #555;
   }
 }
+
+/* A section that just changed because of something the person told VinVerdict (Assistant). */
+@keyframes vv-flash {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 55%, transparent); }
+  30% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.vv-flash {
+  border-radius: 0.5rem;
+  animation: vv-flash 2.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vv-flash {
+    animation: none;
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+}

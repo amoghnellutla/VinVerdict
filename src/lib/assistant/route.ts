@@ -15,7 +15,7 @@ import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel";
+export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
@@ -55,6 +55,7 @@ const INTENTS: [Intent, RegExp][] = [
   ["auction", /\bauction\b.*(?:\?|\b(?:bad|safe|ok|okay|good|risky|normal)\b)|\bbid(?:ding)?\b|\bhow much (?:should|to) bid\b/i],
   ["costs", /\bout[- ]the[- ]door\b|\bwhat will it cost\b|\btotal cost\b|\b(?:sales )?tax(?:es)?\b|\bregistration\b|\bfees?\b|\bcost (?:me|per|a) (?:year|month)\b|\bcost to own\b/i],
   ["fuel", /\bmpg\b|\bgas mileage\b|\bfuel (?:economy|cost)\b|\bmiles per gallon\b/i],
+  ["offer", /\bwhat (?:should|do|can|would) i offer\b|\bhow much (?:should|to|can|do) i offer\b|\bmake (?:an |a |my )?offer\b|\bnegotiat|\bopening offer\b|\bhow (?:low|much lower) can i go\b|\blowball\b|\bwhat (?:price )?should i pay\b|\bcounter ?offer\b/i],
   ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b/i],
   ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i (?:ask|say|tell|write)\b|\bmessage\b|\bquestions? (?:for|to ask)\b/i],
   ["recalls", /\brecalls?\b/i],

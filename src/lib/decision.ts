@@ -25,7 +25,7 @@ import type { DealLabel } from "@/lib/value/estimate";
 
 export type Severity = "stop" | "verify" | "note";
 export type Area = "listing" | "car" | "price" | "deal";
-export type Evidence = "ad" | "ad-or-seller" | "messages" | "record" | "feed" | "report" | "proof" | "estimate" | "saved" | "unknown";
+export type Evidence = "ad" | "ad-or-seller" | "messages" | "record" | "feed" | "report" | "proof" | "estimate" | "saved" | "told" | "compared" | "unknown";
 export type Level = "stop" | "verify" | "investigate" | "thin";
 export type AreaStatus = "stop" | "verify" | "ok" | "unchecked";
 
@@ -49,6 +49,8 @@ export const EVIDENCE_LABEL: Record<Evidence, string> = {
   proof: "Proof you attached",
   estimate: "Estimate",
   saved: "Your saved cars",
+  told: "What you told VinVerdict",
+  compared: "Readings compared",
   unknown: "Not checked",
 };
 
@@ -65,7 +67,7 @@ const STOP = new Set([
   "auction", "odometer-unknown", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
 ]);
 /** Facts worth knowing that say nothing bad about the seller or the car. */
-const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero", "new-account"]);
+const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero", "new-account", "miles-agree"]);
 
 const AREA: Record<string, Area> = {
   // Can the listing be trusted?
@@ -79,7 +81,7 @@ const AREA: Record<string, Area> = {
   "story-miles": "car", "story-title": "car", "story-accident": "car",
   "accident-reported": "car", "accident-unknown": "car", "live-accident": "car", "report-damage": "car",
   "report-commercial": "car", fleet: "car", "title-brand": "car", "report-title": "car", "title-washing": "car",
-  auction: "car", "odometer-unknown": "car", "miles-near-zero": "car", "seller-problem": "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
+  auction: "car", "odometer-unknown": "car", "miles-near-zero": "car", "seller-problem": "car", "miles-agree": "car", "mileage-low": "car", "high-miles": "car", manual: "car", "vin-decode-warning": "car",
   "history-rollback": "car", "history-miles-lower": "car", "live-miles-lower": "car", "history-turnover": "car",
   "history-dealer-recent": "car", "proof-stolen": "car", "proof-total-loss": "car", "proof-auction": "car",
   "proof-odometer": "car", "proof-open-recalls": "car", "proof-miles-lower": "car", "proof-reports-differ": "car",
@@ -103,6 +105,8 @@ export function evidenceOf(id: string): Evidence {
   if (id === "too-good" || id === "too-good-plus-flags") return "estimate";
   if (id === "vin-invalid" || id === "vin-mismatch" || id === "vin-decode-warning") return "record";
   if (id === "same-phone") return "saved";
+  if (id.startsWith("auction-")) return "told";
+  if (id === "miles-agree") return "compared";
   if (id === "accident-unknown" || id === "no-vin" || id === "vin-only") return "unknown";
   if (AD_OR_SELLER.has(id)) return "ad-or-seller";
   return "ad";

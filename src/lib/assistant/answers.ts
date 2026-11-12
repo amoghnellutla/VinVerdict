@@ -4,12 +4,15 @@
  * Each answer carries actions (buttons) that take the person to the next step.
  */
 
+import { dealAnswer } from "./deal";
+
 export type Action =
   | { kind: "go"; label: string; target: "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" }
   | { kind: "link"; label: string; href: string }
-  | { kind: "attach"; label: string };
+  | { kind: "attach"; label: string }
+  | { kind: "copy"; label: string; text: string };
 
-export type Reply = { text: string; points: string[]; actions: Action[] };
+export type Reply = { text: string; points: string[]; actions: Action[]; quote?: string };
 
 /** What the page knows right now (built in Result from the same state the sections use). */
 export type PageContext = {
@@ -24,6 +27,11 @@ export type PageContext = {
   /** Price estimate, when the price check ran. */
   estimate: { low: number; high: number; label: string | null; open: number | null; walk: number | null } | null;
   auctionSold: number | null;
+  auctionDate: string | null;
+  /** The cheapest other listing of this VIN (listing history), for negotiating. */
+  otherListing: { seller: string; price: number } | null;
+  /** Findings that give the buyer leverage, in plain words. */
+  leverage: string[];
   priced: boolean;
   historyRead: boolean;
   /** The dealer's free Carfax link, if there is one. */
@@ -39,6 +47,15 @@ export type PageContext = {
 };
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+/** Quick-start questions that fit what this page knows (each one is answered from the page, no AI). */
+export function starters(c: PageContext): string[] {
+  const out = ["What's next?"];
+  if (c.price || c.auctionSold || c.estimate) out.push("What should I offer?");
+  out.push("Is the price fair?", "What should I ask the seller?");
+  if (c.recalls) out.push(c.recalls === 1 ? "Is the recall fixed?" : `Are the ${c.recalls} recalls fixed?`);
+  return out.slice(0, 4);
+}
 
 function nextSteps(c: PageContext): { points: string[]; actions: Action[] } {
   const points: string[] = [];
@@ -64,6 +81,19 @@ function nextSteps(c: PageContext): { points: string[]; actions: Action[] } {
 export function answerIntent(intent: string, c: PageContext): Reply {
   const steps = nextSteps(c);
   switch (intent) {
+    case "offer": {
+      const d = dealAnswer({
+        car: c.car, asking: c.price, auctionSold: c.auctionSold, auctionDate: c.auctionDate,
+        estimate: c.estimate ? { low: c.estimate.low, high: c.estimate.high, open: c.estimate.open, walk: c.estimate.walk } : null,
+        otherListing: c.otherListing, leverage: c.leverage, dealer: c.dealer,
+      });
+      return {
+        text: d.text,
+        points: d.points,
+        quote: d.message,
+        actions: [{ kind: "copy", label: "Copy the message", text: d.message }, ...(!c.priced && c.vin ? [{ kind: "go" as const, label: "Run the price check", target: "#price-check" as const }] : [])],
+      };
+    }
     case "price": {
       const points: string[] = [];
       if (c.estimate) {

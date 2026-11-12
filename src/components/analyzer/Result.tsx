@@ -5,17 +5,20 @@ import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
 import { applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
+import { knowsList } from "@/lib/assistant/knows";
+import { milesAgree, type Reading } from "@/lib/assistant/odometer";
+import { SOURCE_NAME } from "@/lib/evidence/parse";
 import { loadTold, saveTold, toldKey } from "@/lib/assistant/store";
 import { defaultOtdInput, runningFor } from "@/lib/report/costs";
 import { outTheDoor } from "@/lib/costs/outTheDoor";
 import { DEFAULT_MILES_PER_YEAR } from "@/lib/costs/running";
-import { STATES } from "@/lib/geo/zip";
+import { STATES, zipToState } from "@/lib/geo/zip";
 import { makerCertified } from "@/lib/protection";
 import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
 import type { CostParts } from "@/lib/report/costs";
 import { buildReport } from "@/lib/report/markdown";
-import { readBuyerZip } from "@/lib/buyer-zip";
+import { readBuyerZip, saveBuyerZip } from "@/lib/buyer-zip";
 import { reportInput } from "./report-input";
 import { ReportDownload } from "./ReportDownload";
 import { ReportPartsContext, type SetReportPart } from "./report-parts";
@@ -23,8 +26,8 @@ import { priceCheckAction, type PriceState } from "@/app/actions/price";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Analysis } from "@/lib/analyze";
 import { savedProof, summarizeProof } from "@/lib/evidence/combine";
-import { accidentHistoryConfirmed, EMPTY_REPORT, mergeAnswers, type ReportAnswers } from "@/lib/history-report";
-import { recentMiles, summarizeHistory, type HistorySummary } from "@/lib/history/summary";
+import { accidentHistoryConfirmed, DAMAGE_LABEL, EMPTY_REPORT, mergeAnswers, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
+import { recentMiles, sameSeller, summarizeHistory, type HistorySummary } from "@/lib/history/summary";
 import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
@@ -61,6 +64,7 @@ import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
 import { Assistant } from "./Assistant";
+import { KnowsPanel } from "./KnowsPanel";
 import { DealerCheck } from "./DealerCheck";
 import { DealerCheckAi } from "./DealerCheckAi";
 import { checkReplies } from "@/lib/seller-replies";
@@ -94,6 +98,12 @@ function dealerUrls(live: Live | null, h: HistorySummary | null): string[] {
   return [...new Set([live?.url, ...recent.map((s) => s.url)].filter((u): u is string => !!u && u.startsWith("https://")))].slice(0, 5);
 }
 
+/** Findings a buyer can use to negotiate. */
+const LEVERAGE = new Set([
+  "accident-reported", "live-accident", "title-brand", "report-title", "high-miles", "history-price-cut", "history-two-sellers", "history-moved",
+  "dealer-auction", "auction", "seller-problem", "auction-broker", "proof-auction", "accident-unknown",
+]);
+
 /** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
 const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
 
@@ -117,6 +127,18 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   // Kept on this device for this car, so a refresh doesn't lose it.
   useEffect(() => saveTold(toldKeyFor, told), [toldKeyFor, told]);
   const a = useMemo(() => applyTold(original, told), [original, told]);
+  // A ZIP the person tells VinVerdict is theirs (not the car's): saved like the one typed in the
+  // costs section, and the sections that read it start over so they show the new state's numbers.
+  const [zipTick, setZipTick] = useState(0);
+  const tell = (t: Told) => {
+    const zip = t.facts?.findLast((f) => f.kind === "zip");
+    const st = zip ? zipToState(String(zip.value)) : null;
+    if (zip && st) {
+      saveBuyerZip(String(zip.value), st);
+      setZipTick((n) => n + 1);
+    }
+    setTold((x) => [...x, t]);
+  };
   const auction = useMemo(() => toldAuction(told), [told]);
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
@@ -184,8 +206,20 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     return () => clearTimeout(t);
   }, [carId, proofs, goodVin]);
 
+  // Independent odometer readings (what the person says isn't one): do they agree?
+  const milesHit = useMemo(() => {
+    const readings: Reading[] = [];
+    // The ad and its live feed are one listing (and past listings can include it), so they count once.
+    const listed = original.listing.miles ?? live?.miles ?? null;
+    if (listed) readings.push({ source: "This listing", miles: listed });
+    if (auction?.record?.odometer) readings.push({ source: "Auction record", miles: auction.record.odometer });
+    for (const p of proofs) if (p.read.odometer) readings.push({ source: SOURCE_NAME[p.read.source], miles: p.read.odometer.miles });
+    const hit = milesAgree(readings);
+    return hit ? [hit] : [];
+  }, [original, live, auction, proofs]);
+
   const { result, valuation, sellV } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles)] }, checklist);
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit] }, checklist);
     if (!sources) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
@@ -209,9 +243,9 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         }
       : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles)], valuePct: valuation.pctUnder }, checklist) : first;
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit], valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction, milesHit]);
 
   // What the cost panels currently show, for the downloadable report (a ref: no re-renders).
   const parts = useRef<CostParts>({});
@@ -274,6 +308,14 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     price: m.listing.price,
     estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, label: valuation.label ? DEAL_TEXT[valuation.label] : null, open: valuation.offer?.open ?? null, walk: valuation.offer?.max ?? null } : null,
     auctionSold: auction?.soldPrice ?? null,
+    auctionDate: auction?.record?.saleDate ?? null,
+    // The cheapest other dealer listing this VIN now (not the ad's own dealer).
+    otherListing: (() => {
+      const others = (history?.active ?? []).filter((s) => s.lastPrice && !(m.listing.dealerName && sameSeller(s.seller, m.listing.dealerName)) && s.lastPrice !== m.listing.price);
+      const best = others.sort((x, y) => x.lastPrice! - y.lastPrice!)[0];
+      return best ? { seller: best.seller, price: best.lastPrice! } : null;
+    })(),
+    leverage: hits.filter((f) => LEVERAGE.has(f.id.replace(/^msg-/, ""))).map((f) => f.title),
     priced: !!sources,
     historyRead: answers.damage !== "unknown" || answers.title !== "unknown",
     carfax: live?.carfaxUrl ?? null,
@@ -305,6 +347,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
       </p>
     )}
     <PriceCheck
+      key={zipTick}
       a={m}
       carId={carId}
       state={priceState}
@@ -420,13 +463,31 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         {selling ? (
           <SellBox v={sellV?.privateV ?? null} looking={!done} />
         ) : (
+          <>
           <VerdictCard d={decision} />
+          <KnowsPanel
+            items={knowsList({
+              car: carName(m), vin: goodVin, price: m.listing.price, miles: m.listing.miles,
+              history: answers.damage !== "unknown" || answers.title !== "unknown"
+                ? { damage: answers.damage === "unknown" ? "accidents not read" : DAMAGE_LABEL[answers.damage], title: answers.title === "unknown" ? "" : TITLE_LABEL[answers.title], owners: [...proofs].reverse().find((p) => p.read.owners)?.read.owners ?? m.listing.ownerCount }
+                : null,
+              carfax: live?.carfaxUrl ?? null,
+              estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high } : null,
+              listings: history ? history.stints.length : null,
+              recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
+              recalls: a.recalls?.length ?? null,
+              recallLookup: pageCtx.recallLookup,
+              sellerAnswers: Object.values(checklist).filter((x) => x != null).length,
+              auctionSold: auction?.soldPrice ?? null,
+            })}
+          />
+          </>
         )}
         <ReportDownload build={reportText} fileName={reportFile} knownUrl={m.listing.url ?? live?.url ?? null} />
         <Assistant
           ctx={pageCtx}
           told={told}
-          onTell={(t) => setTold((x) => [...x, t])}
+          onTell={tell}
           onUndo={(id) => setTold((x) => x.filter((t) => t.id !== id))}
           onClear={() => setTold([])}
           onProof={(p) => setProofs((x) => [...x, p])}
@@ -474,8 +535,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
             intro="The price is only the start: tax and fees on the day, then what it costs to own each year."
             tabs={[
               /* key: start the calculator again with the live price once it arrives */
-              { id: "otd", label: "Out the door", content: <OutTheDoor key={live ? "live" : "pasted"} a={m} /> },
-              { id: "year", label: "Cost per year", content: <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} /> },
+              { id: "otd", label: "Out the door", content: <OutTheDoor key={`${live ? "live" : "pasted"}-${zipTick}`} a={m} /> },
+              { id: "year", label: "Cost per year", content: <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}-${zipTick}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} /> },
               { id: "running", label: "Fuel and upkeep", content: <RunningCost a={m} /> },
             ]}
           />
@@ -506,7 +567,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
                 ),
               },
               { id: "inspect", label: "Inspection list", content: <InspectionList a={m} /> },
-              { id: "day", label: "Buying day", content: <BuyingDay vin={a.listing.vin} seller={m.listing.sellerType} /> },
+              { id: "day", label: "Buying day", content: <BuyingDay key={zipTick} vin={a.listing.vin} seller={m.listing.sellerType} /> },
             ]}
           />
           {sourcesList}
