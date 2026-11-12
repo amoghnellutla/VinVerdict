@@ -84,7 +84,8 @@ export function followUps(intent: string, c: PageContext): string[] {
 /** Quick-start questions that fit what this page knows (each one is answered from the page, no AI). */
 export function starters(c: PageContext): string[] {
   const out = ["What's next?"];
-  if (c.price || c.auctionSold || c.estimate) out.push("What should I offer?");
+  if (c.trust.stops.length) out.push("Is this a scam?");
+  else if (c.price || c.auctionSold || c.estimate) out.push("What should I offer?");
   out.push("Is the price fair?", "What should I ask the seller?");
   if (c.recalls) out.push(c.recalls === 1 ? "Is the recall fixed?" : `Are the ${c.recalls} recalls fixed?`);
   return out.slice(0, 4);

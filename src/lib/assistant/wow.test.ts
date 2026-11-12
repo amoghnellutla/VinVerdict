@@ -88,6 +88,8 @@ describe("quick starts fit the page", () => {
     expect(starters(ctx)).toEqual(["What's next?", "What should I offer?", "Is the price fair?", "What should I ask the seller?"]);
     expect(starters({ ...ctx, price: null, estimate: null, auctionSold: null })).toEqual(["What's next?", "Is the price fair?", "What should I ask the seller?", "Are the 3 recalls fixed?"]);
     expect(starters({ ...ctx, price: null, estimate: null, auctionSold: null, recalls: 1 })).toContain("Is the recall fixed?");
+    // A listing with serious warnings: no negotiating button, the scam question instead.
+    expect(starters({ ...ctx, trust: { stops: ["Gift card payment"], checks: [] } }).slice(0, 2)).toEqual(["What's next?", "Is this a scam?"]);
   });
 
   it("every quick start is answered from the page (never small talk, never the AI)", () => {
