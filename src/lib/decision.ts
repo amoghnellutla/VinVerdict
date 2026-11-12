@@ -74,7 +74,7 @@ const AREA: Record<string, Area> = {
   "too-good": "listing", "too-good-plus-flags": "listing", "same-phone": "listing", "new-account": "listing", "no-vin": "listing",
   "no-price": "listing", "far-away": "listing", "vin-invalid": "listing", "vin-mismatch": "listing",
   "live-cloned": "listing", "live-dealer-too": "listing", "live-price-differs": "listing", "live-ended": "listing",
-  "history-two-sellers": "listing", "vin-only": "listing",
+  "history-two-sellers": "listing", "history-moved": "listing", "vin-only": "listing",
   // What shape is the car in? (story-*: the seller's messages contradict the ad)
   "story-miles": "car", "story-title": "car", "story-accident": "car",
   "accident-reported": "car", "accident-unknown": "car", "live-accident": "car", "report-damage": "car",

@@ -61,7 +61,9 @@ export function CostPerYear({ a, valuation, comps }: Props) {
       <p className="mt-3 text-sm text-muted">
         {result.method === "local-sales"
           ? "Value lost is worked out from nearby sales: how much one model year older and the extra miles cost."
-          : `Value lost assumes a typical ${Math.round(TYPICAL_DECLINE * 100)}% a year. Run the price check above for a local estimate.`}{" "}
+          : result.compsUnusual
+            ? `Value lost assumes a typical ${Math.round(TYPICAL_DECLINE * 100)}% a year: the nearby sales gave a figure too far from typical to trust.`
+            : `Value lost assumes a typical ${Math.round(TYPICAL_DECLINE * 100)}% a year. Run the price check above for a local estimate.`}{" "}
         Insurance isn&apos;t included: it depends on you, not the car.
       </p>
     </section>

@@ -16,7 +16,7 @@ import type { ReportAnswers } from "@/lib/history-report";
 import type { HistoryRecord } from "@/lib/history/parse";
 import type { HistorySummary } from "@/lib/history/summary";
 import { buildChecklist } from "@/lib/inspection";
-import type { LiveListing } from "@/lib/live/parse";
+import { liveSeller, type LiveListing } from "@/lib/live/parse";
 import { buyerProtection } from "@/lib/protection";
 import { checkRows } from "@/lib/report/checks";
 import { buyingDay, carFactRows, dealerCheck, photoCheck } from "@/lib/report/content";
@@ -103,7 +103,7 @@ export function reportInput(s: ReportState): ReportInput {
     }),
     replies: s.replies,
     replyHits: s.replyHits,
-    dealerSteps: dealer ? dealerCheck(live?.sellerName ?? m.listing.dealerName ?? null) : null,
+    dealerSteps: dealer ? dealerCheck(m.listing.dealerName ?? (live ? liveSeller(live).name : null)) : null,
     protection: buyerProtection({ text: m.text, sourceHost: m.listing.sourceHost, sellerType: m.listing.sellerType, year: m.decoded?.year ?? m.listing.year, price: m.listing.price, miles: m.listing.miles }),
     inspection: buildChecklist({
       year: m.vehicle?.year ?? null, make: m.vehicle?.make ?? null, model: m.vehicle?.model ?? null,

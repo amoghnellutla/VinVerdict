@@ -61,6 +61,8 @@ export type ValueInput = {
   priceCut?: { from: number; to: number } | null;
   /** Damage level from the history report; "unknown" falls back to `accident`. */
   damage?: Damage;
+  /** The ad says it's maker-certified (a warranty most comparable cars don't have). */
+  certified?: boolean;
 };
 
 export type ValueSource = { name: string; value: number; note: string };
@@ -180,6 +182,12 @@ export function valueCar(src: PriceSources, car: ValueInput): Valuation | null {
       : stretch ? "few comparable cars have miles like this one"
         : disagree > 0.15 ? `the sources disagree by ${Math.round(disagree * 200)}%`
           : "few comparable cars nearby";
+  }
+  // The comparable cars are mostly not certified, and a maker warranty is worth something the
+  // ads don't price in. No figure for it is put on (no source for one); the confidence says so.
+  if (car.certified && confidence !== "low") {
+    confidence = confidence === "high" ? "medium" : "low";
+    confidenceWhy += "; this car is advertised as maker-certified (with a warranty) and most similar cars aren't, so a certified one can fairly cost more";
   }
 
   // Suggested offer: start under the fair range, more room when it has sat unsold or has issues.

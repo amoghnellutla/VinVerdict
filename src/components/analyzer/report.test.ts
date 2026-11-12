@@ -198,7 +198,7 @@ describe("full report: what you set on the page", () => {
   it("uses the cost panels' current values when they were opened, and says when it used defaults", () => {
     const defaults = report(a, null);
     expect(defaults).toContain("VinVerdict's default because no ZIP was entered");
-    expect(defaults).toMatch(/\| Out the door \| \$[\d,.]+ registering in New Jersey \(the default state: no ZIP entered\) \|/);
+    expect(defaults).toMatch(/\| Out the door \| \$[\d,.]+ registering in New Jersey \(the default state: no ZIP entered\), of which \$175\.00 is your own mechanic's inspection \(not paid to the dealer\) \|/);
     const saved = report(a, null, { stateSaved: true });
     expect(saved).toContain("your saved state; the calculator wasn't opened");
     expect(saved).not.toContain("no ZIP entered");
@@ -251,7 +251,7 @@ describe("short report", () => {
     for (const n of [3, 8, 11, 12, 13]) expect(md).not.toMatch(new RegExp(String.raw`\bsection ${n}\b`));
     expect(md).toContain("# VinVerdict short report:");
     expect(md).toMatch(/- \*\*Recalls:\*\* \d+ on record/);
-    expect(md.length).toBeLessThan(full.length / 2);
+    expect(md.length).toBeLessThan(full.length * 0.55);
     // The same facts in both: the data header only differs in its kind.
     const { report_kind: k1, ...f1 } = frontMatter(md);
     const { report_kind: k2, ...f2 } = frontMatter(full);

@@ -179,3 +179,24 @@ export function parseMarketCheckListing(body: unknown, vin: string): LiveListing
     removedAt: null,
   };
 }
+
+/**
+ * The feed's seller name, unless it disagrees with the listing's own link (Auto.dev once returned
+ * "Fast Track Motors" with DCH Wappingers Falls Toyota's link and price). A dealer's site address
+ * almost always contains its name, so a name with none of its words in the address isn't trusted.
+ */
+export function liveSeller(l: Pick<LiveListing, "sellerName" | "url">): { name: string | null; mismatch: boolean } {
+  if (!l.sellerName || !l.url) return { name: l.sellerName, mismatch: false };
+  let host = "";
+  try {
+    host = new URL(l.url).hostname.replace(/^www\./, "").split(".").slice(0, -1).join("").toLowerCase();
+  } catch {
+    return { name: l.sellerName, mismatch: false };
+  }
+  // Marketplaces carry every seller: the address says nothing about the name.
+  if (/autotrader|cars|cargurus|carmax|carvana|facebook|craigslist|truecar|edmunds|kbb|autodev|marketcheck/.test(host)) return { name: l.sellerName, mismatch: false };
+  const words = l.sellerName.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !["auto", "autos", "motors", "motor", "group", "sales", "cars"].includes(w));
+  if (!words.length) return { name: l.sellerName, mismatch: false };
+  return words.some((w) => host.includes(w)) ? { name: l.sellerName, mismatch: false } : { name: null, mismatch: true };
+}
+

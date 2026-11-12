@@ -18,8 +18,18 @@ describe("ownershipCost", () => {
     const o = ownershipCost({ ...base, perModelYear: null, perMile: null });
     expect(o.method).toBe("typical");
     expect(o.resale).toBe(Math.round(10_500 * 0.88 ** 3));
-    const old = ownershipCost({ ...base, years: 10, perModelYear: 3_000, perMile: -0.2 });
+    // Ten years at 1,080 a year (within 1.5× of typical) would go below zero: the floor holds.
+    const old = ownershipCost({ ...base, years: 10, perModelYear: 600, perMile: -0.04 });
+    expect(old.method).toBe("local-sales");
     expect(old.resale).toBe(Math.round(10_500 * 0.15));
+  });
+
+  it("doesn't trust a comps fit far from a typical decline (case 32: a 2020 Camry 'worth $7,535' in 3 years)", () => {
+    const o = ownershipCost({ ...base, price: 20_167, marketValue: 16_700, perModelYear: 1_600, perMile: -0.121 });
+    expect(o.compsUnusual).toBe(true);
+    expect(o.method).toBe("typical");
+    expect(o.resale).toBe(Math.round(16_700 * 0.88 ** 3));
+    expect(ownershipCost({ ...base, perModelYear: 800, perMile: -0.05 }).compsUnusual).toBe(false);
   });
 
   it("ignores a backwards fit and leaves running costs out when unknown", () => {

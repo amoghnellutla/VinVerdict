@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
-import type { LiveListing as Live } from "@/lib/live/parse";
+import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
 
 const money = (n: number | null) => (n == null ? null : `$${n.toLocaleString("en-US")}`);
 // Only risky use is shown: a feed's "personal" can be wrong (see lib/history-report.ts).
@@ -19,7 +19,7 @@ export function LiveFacts({ l }: { l: Live }) {
   const rows: [string, ReactNode][] = [
     ["Price", money(l.price)],
     ["Miles", l.miles == null ? null : `${l.miles.toLocaleString("en-US")} mi`],
-    ["Seller", [l.sellerName, where].filter(Boolean).join(", ") || null],
+    ["Seller", liveSeller(l).mismatch ? `Not clear: ${l.source}'s seller name (${l.sellerName}) doesn't match its link` : [l.sellerName, where].filter(Boolean).join(", ") || null],
     ["Accidents", accidents],
     ["Use", USAGE[l.usage]],
     ["Certified pre-owned", l.certified ? "Yes" : null],

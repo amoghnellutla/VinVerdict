@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSafeImageSrc } from "./parse";
+import { isSafeImageSrc, liveSeller } from "./parse";
 
 describe("isSafeImageSrc", () => {
   it("allows listing photos from the approved host over https, and local previews", () => {
@@ -19,5 +19,17 @@ describe("isSafeImageSrc", () => {
     ]) {
       expect(isSafeImageSrc(bad), bad).toBe(false);
     }
+  });
+});
+
+describe("liveSeller (case 32: the feed named one dealer with another dealer's link)", () => {
+  it("doesn't trust a seller name that isn't in the dealer site's address", () => {
+    const dch = "https://www.dchwappingerstoyota.com/inventory/certified-used-2020-toyota-camry-fwd-4-door-xle-sedan-4t1f11ak9lu310542/";
+    expect(liveSeller({ sellerName: "Fast Track Motors", url: dch })).toEqual({ name: null, mismatch: true });
+    expect(liveSeller({ sellerName: "Dch Wappingers Falls Toyota", url: dch })).toEqual({ name: "Dch Wappingers Falls Toyota", mismatch: false });
+    expect(liveSeller({ sellerName: "Fast Track Motors", url: "https://www.fasttrackmotors.com/2020-Toyota-Camry/used_car/x" }).mismatch).toBe(false);
+    // Marketplaces list every seller, so their address proves nothing either way.
+    expect(liveSeller({ sellerName: "Fast Track Motors", url: "https://www.autotrader.com/cars-for-sale/vehicle/123" }).mismatch).toBe(false);
+    expect(liveSeller({ sellerName: null, url: dch })).toEqual({ name: null, mismatch: false });
   });
 });

@@ -147,6 +147,11 @@ function certified(text: string, miles: number | null): { name: string; warranty
   return { name, warranty, notes };
 }
 
+/** A dealer's ad that says the car is maker-certified (Toyota Gold Certified, Certified Pre-Owned...). */
+export function makerCertified(text: string, sellerType: string): boolean {
+  return sellerType === "dealer" && certified(text, null) !== null;
+}
+
 export function buyerProtection(i: ProtectionInput): Protection {
   const hay = `${i.sourceHost ?? ""} ${i.text}`;
   const big = PATTERNS.find(([re]) => re.test(hay))?.[1];

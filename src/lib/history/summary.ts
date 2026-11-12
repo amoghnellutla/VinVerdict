@@ -29,9 +29,11 @@ export type HistorySummary = {
   stints: Stint[];
   /** Stints seen in the last few days: on sale now. */
   active: Stint[];
-  /** Start of the current time on sale, and days since. */
+  /** When the seller(s) listing it now started, and days since. Earlier sellers aren't counted in. */
   forSaleSince: string | null;
   daysListed: number | null;
+  /** Sellers that had it earlier in this same time on sale (it changed hands, e.g. through an auction). */
+  earlierSellers: Stint[];
   priceCut: { from: number; to: number; since: string } | null;
   /** Highest odometer reading on record. `count` = readings that agree with it. */
   maxMiles: { miles: number; date: string; seller: string; count: number } | null;
@@ -103,15 +105,18 @@ export function summarizeHistory(records: HistoryRecord[], now: Date = new Date(
   }
   const current = active.length ? salePeriods.find((p) => active.some((s) => s.firstSeen >= p.start && s.lastSeen <= p.end)) ?? null : null;
 
-  // Price cut in the current time on sale: highest asked → best price now.
+  // Price cut: one seller lowering its own asking price. Another seller's price isn't a cut (a car that
+  // went through an auction to a cheaper dealer), and a first price over 1.5× the price now is more likely a
+  // list-price or "retail value" figure than an asking price, so it isn't counted.
   let priceCut: HistorySummary["priceCut"] = null;
   if (current) {
-    const now$ = active.map((s) => s.lastPrice).filter((p): p is number => p !== null);
-    const inPeriod = recs.filter((r) => !r.isNew && r.price !== null && r.firstSeen >= current.start);
-    const top = inPeriod.reduce<HistoryRecord | null>((m, r) => (!m || r.price! > m.price! ? r : m), null);
-    if (now$.length && top) {
-      const to = Math.min(...now$);
-      if (top.price! - to >= Math.max(200, top.price! * 0.02)) priceCut = { from: top.price!, to, since: top.firstSeen };
+    for (const s of active) {
+      if (s.lastPrice === null) continue;
+      const own = recs.filter((r) => !r.isNew && r.price !== null && r.firstSeen >= current.start && sellerKey(r) === s.seller.toLowerCase());
+      const top = own.reduce<HistoryRecord | null>((m, r) => (!m || r.price! > m.price! ? r : m), null);
+      if (!top || top.price! > s.lastPrice * 1.5) continue;
+      const cut = top.price! - s.lastPrice;
+      if (cut >= Math.max(200, top.price! * 0.02) && (!priceCut || cut > priceCut.from - priceCut.to)) priceCut = { from: top.price!, to: s.lastPrice, since: top.firstSeen };
     }
   }
 
@@ -130,6 +135,8 @@ export function summarizeHistory(records: HistoryRecord[], now: Date = new Date(
     } else if (r.miles >= maxMiles.miles - rollbackGap(maxMiles.miles)) maxMiles.count++;
   }
 
+  const since = active.length ? active.map((x) => x.firstSeen).sort()[0] : null;
+
   const states: string[] = [];
   for (const r of recs) if (r.state && states[states.length - 1] !== r.state) states.push(r.state);
 
@@ -137,8 +144,9 @@ export function summarizeHistory(records: HistoryRecord[], now: Date = new Date(
     records: recs.length,
     stints,
     active,
-    forSaleSince: current?.start ?? null,
-    daysListed: current ? daysBetween(current.start, now) : null,
+    forSaleSince: since,
+    daysListed: since ? daysBetween(since, now) : null,
+    earlierSellers: current ? stints.filter((x) => !x.isNew && !active.includes(x) && x.firstSeen >= current.start && !active.some((a) => a.seller === x.seller)) : [],
     priceCut,
     maxMiles,
     rollback,
@@ -204,16 +212,49 @@ export function historyRuleHits(pasted: ParsedListing, h: HistorySummary | null,
     });
   }
 
-  const sellersNow = new Set(h.active.map((s) => s.seller.toLowerCase()));
-  if (sellersNow.size >= 2) {
+  // The pasted ad's own dealer, when the page names it ("DCH Wappingers Falls Toyota").
+  const own = isListing && pasted.dealerName ? h.stints.filter((s) => sameSeller(s.seller, pasted.dealerName!)) : [];
+  const ownActive = own.some((s) => h.active.includes(s));
+  const others = h.active.filter((s) => !own.includes(s));
+  const place = (s: Stint) => (s.place ? ` (${s.place})` : "");
+  const line = (s: Stint) => `${s.seller}${place(s)} since ${shortDate(s.firstSeen)}${s.lastPrice ? ` for ${money(s.lastPrice)}` : ""}`;
+
+  if (own.length && !ownActive && others.length) {
+    // The ad's dealer stopped listing it, and another dealer lists it now: the ad is probably out of date.
+    const last = own.reduce((a, b) => (b.lastSeen > a.lastSeen ? b : a));
     hits.push({
-      id: "history-two-sellers",
-      action: "info",
-      title: `Listed by ${sellersNow.size} sellers at once`,
-      reason: `${h.active.map((s) => `${s.seller}${s.lastPrice ? ` (${money(s.lastPrice)})` : ""}`).join(", ")}. Usually a wholesaler or consignment. Buy from the one that holds the title, and use the lower price.`,
+      id: "history-moved",
+      action: "flag",
+      title: "This ad may be out of date: another dealer lists the car now",
+      reason: `${last.seller} last listed this VIN on ${shortDate(last.lastSeen)}. Since then: ${others.map(line).join("; ")}. Before you travel or pay a deposit, call ${last.seller} on a number you look up yourself and ask whether they still have it. A warranty or "certified" label in the old ad doesn't come with the car.`,
     });
+  } else {
+    const sellersNow = new Set(h.active.map((s) => s.seller.toLowerCase()));
+    if (sellersNow.size >= 2) {
+      const prices = h.active.map((s) => s.lastPrice).filter((p): p is number => p !== null);
+      const gap = prices.length >= 2 ? Math.max(...prices) - Math.min(...prices) : 0;
+      const earlier = h.earlierSellers.length ? ` Before that: ${h.earlierSellers.map((s) => `${s.seller}${place(s)}, ${shortDate(s.firstSeen)} to ${shortDate(s.lastSeen)}`).join("; ")}.` : "";
+      hits.push({
+        id: "history-two-sellers",
+        action: "info",
+        title: ownActive && others.length ? `Another dealer lists this same car${gap >= 500 ? ` for ${money(gap)} ${others.some((o) => o.lastPrice !== null && o.lastPrice === Math.min(...prices)) ? "less" : "more"}` : ""}` : `Listed by ${sellersNow.size} sellers at once`,
+        reason: `Same VIN: ${[...h.active].sort((a, b) => a.firstSeen.localeCompare(b.firstSeen)).map(line).join("; ")}.${earlier} One car can't be at two dealers: one ad is probably out of date (sites and feeds keep showing sold cars), or it's a wholesaler or consignment. Call each dealer on a number you look up yourself and ask who has the car and its title today. Buy from that one, use the lower price in your offer, and don't count on a warranty or "certified" label from the other dealer's ad.`,
+      });
+    }
   }
   return hits;
+}
+
+const SELLER_STOP = new Set(["of", "the", "inc", "llc", "co", "and", "auto", "autos", "motors", "group", "dealership", "cars"]);
+const sellerWords = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 1 && !SELLER_STOP.has(w));
+
+/** Two names for the same dealer ("DCH Wappingers Falls Toyota" / "Dch Wappingers Falls Toyota"): most distinctive words shared. */
+export function sameSeller(a: string, b: string): boolean {
+  const x = sellerWords(a);
+  const y = new Set(sellerWords(b));
+  if (!x.length || !y.size) return false;
+  const shared = x.filter((w) => y.has(w)).length;
+  return shared >= 2 && shared >= Math.min(x.length, y.size) * 0.6;
 }
 
 /** Plain one-line facts for the history panel. */
@@ -224,6 +265,7 @@ export function historyHighlights(h: HistorySummary): string[] {
   const used = h.salePeriods.length - (h.forSaleSince ? 1 : 0);
   if (used > 0) out.push(`Was for sale as a used car ${used === 1 ? "once" : `${used} times`} before now.`);
   if (h.forSaleSince && h.daysListed !== null) out.push(`On sale now for ${h.daysListed} day${h.daysListed === 1 ? "" : "s"} (since ${shortDate(h.forSaleSince)}).`);
+  if (h.earlierSellers.length) out.push(`It changed hands during this time: ${h.earlierSellers.map((s) => `${s.seller} listed it ${shortDate(s.firstSeen)} to ${shortDate(s.lastSeen)}`).join("; ")}.`);
   if (h.states.length >= 2) out.push(`Listed in ${h.states.join(" → ")}. Moving between states is common through auctions; just check the title's history matches.`);
   return out;
 }

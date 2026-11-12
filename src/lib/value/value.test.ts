@@ -61,6 +61,13 @@ describe("valueCar", () => {
     expect(v.label).toBe("good");
   });
 
+  it("is less sure about a maker-certified car, since most comparable cars aren't (case 32)", () => {
+    const v = valueCar(src, { ...clean, certified: true })!;
+    expect(v.confidence).toBe("medium");
+    expect(v.confidenceWhy).toContain("advertised as maker-certified");
+    expect(v.fair).toBe(valueCar(src, clean)!.fair); // no invented premium
+  });
+
   it("takes an accident and a private seller off the value, and says why in the offer", () => {
     const v = valueCar(src, { ...clean, accident: "reported", sellerType: "private", daysOnMarket: 60 })!;
     expect(v.adjustments.map((a) => a.label)).toEqual(["Reported damage", "Private seller (no dealer markup)"]);

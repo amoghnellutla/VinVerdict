@@ -40,6 +40,7 @@ export const ON_PAGE: Record<string, { name: string; anchor: string }> = {
   "history-turnover": { name: "this car's listing history, below", anchor: "#listing-history" },
   "history-price-cut": { name: "this car's listing history, below", anchor: "#listing-history" },
   "history-two-sellers": { name: "this car's listing history, below", anchor: "#listing-history" },
+  "history-moved": { name: "this car's listing history, below", anchor: "#listing-history" },
   "live-accident": { name: "the live listing, below", anchor: "#price-check" },
   "live-cloned": { name: "the live listing, below", anchor: "#price-check" },
   "live-dealer-too": { name: "the live listing, below", anchor: "#price-check" },

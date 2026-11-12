@@ -36,6 +36,8 @@ export type Ownership = {
   taxAndFeesPerYear: number;
   running: number | null;
   method: "local-sales" | "typical";
+  /** The nearby sales gave a loss far from a typical one (a noisy fit), so the typical decline was used. */
+  compsUnusual: boolean;
 };
 
 export const TYPICAL_DECLINE = 0.12;
@@ -44,14 +46,15 @@ const FLOOR = 0.15;
 
 export function ownershipCost(i: OwnershipInput): Ownership {
   const years = Math.max(1, Math.min(10, Math.round(i.years)));
-  const useComps = i.perModelYear !== null && i.perMile !== null && i.perModelYear > 0 && i.perMile < 0;
-  let resale: number;
-  if (useComps) {
-    const lossPerYear = i.perModelYear! + -i.perMile! * i.milesPerYear;
-    resale = i.marketValue - lossPerYear * years;
-  } else {
-    resale = i.marketValue * (1 - TYPICAL_DECLINE) ** years;
-  }
+  const typicalResale = i.marketValue * (1 - TYPICAL_DECLINE) ** years;
+  const typicalLoss = (i.marketValue - typicalResale) / years;
+  const hasComps = i.perModelYear !== null && i.perMile !== null && i.perModelYear > 0 && i.perMile < 0;
+  const compsLoss = hasComps ? i.perModelYear! + -i.perMile! * i.milesPerYear : null;
+  // A fit from a few dozen nearby ads can be noisy (age and miles move together). A loss more than
+  // 1.5× or under half the typical one is more likely the fit than the car, so the typical one is used.
+  const compsUnusual = compsLoss !== null && (compsLoss > typicalLoss * 1.5 || compsLoss < typicalLoss * 0.5);
+  const useComps = compsLoss !== null && !compsUnusual;
+  let resale = useComps ? i.marketValue - compsLoss! * years : typicalResale;
   resale = Math.max(resale, i.marketValue * FLOOR);
   const lostPerYear = Math.max(0, (i.price - resale) / years);
   const taxAndFeesPerYear = Math.max(0, i.taxAndFees) / years;
@@ -64,5 +67,6 @@ export function ownershipCost(i: OwnershipInput): Ownership {
     taxAndFeesPerYear: Math.round(taxAndFeesPerYear),
     running: i.running === null ? null : Math.round(i.running),
     method: useComps ? "local-sales" : "typical",
+    compsUnusual,
   };
 }

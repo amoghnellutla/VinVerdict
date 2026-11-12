@@ -221,6 +221,7 @@ flowchart LR
 - **Rules make the calls, not a language model.** Every warning is a deterministic rule with a named source. The same listing always gets the same answer, it can be measured against labelled ads, and it costs nothing per check.
 - **Evidence has a type.** A finding is labelled by where it came from: the ad, an official record, listing data, an estimate, the seller's messages, or the buyer's own proof. "No title issue in the records checked" is never shown as "title verified clean".
 - **Listing feeds can only add bad news.** An accident, a price cut or an odometer drop from a feed adds a warning; a feed's "0 accidents" never removes one.
+- **Each dealer's history is its own.** A price cut is one seller lowering its own price, days on sale run from the dealer selling it now, and when the same VIN is listed by another dealer (or the ad's dealer stopped listing it) the result says so first, with each dealer's dates and price. A feed's seller name that doesn't match its own link isn't trusted.
 - **Private by default.** Screenshots, chat messages and My list stay on the visitor's device. The verdict is computed in the browser, so answering a question updates it instantly with no server call.
 - **$0 to run.**
   - Free government data (NHTSA, FuelEconomy.gov), free-plan listing APIs and free hosting.

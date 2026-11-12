@@ -3,7 +3,7 @@ import { parseListing } from "@/lib/listing/parse";
 import { buildVerdict } from "@/lib/verdict";
 import camry from "./fixtures/camry-4T1C11AK3MU436772.json";
 import { parseMarketCheckHistory, type HistoryRecord } from "./parse";
-import { historyHighlights, historyRuleHits, recentMiles, savedHistory, summarizeHistory } from "./summary";
+import { historyHighlights, historyRuleHits, recentMiles, sameSeller, savedHistory, summarizeHistory } from "./summary";
 
 // Real MarketCheck History reply (2026-11-09) for the AutoTrader Camry in corpus case 01.
 const NOW = new Date("2026-11-09T12:00:00Z");
@@ -129,5 +129,61 @@ describe("recentMiles and savedHistory", () => {
     expect(kept.rollback).toBe(true);
     // The dealer listing ended over 6 months ago, so no "recently at a dealer" flag.
     expect(kept.flags).toEqual(["Fewer miles than the car had before"]);
+  });
+});
+
+describe("the real case 32 history (2020 Camry XLE, 4T1F11AK9LU310542): one car, several dealers", () => {
+  // Amogh's VinVerdict report, 2026-11-11 (MarketCheck history, one record per row here).
+  const NOW32 = new Date("2026-11-11T12:00:00Z");
+  const r = (seller: string, place: [string, string], firstSeen: string, lastSeen: string, price: number | null, miles: number | null, isNew = false) =>
+    rec({ sellerName: seller, city: place[0], state: place[1], firstSeen, lastSeen, price, miles, isNew });
+  const records32 = [
+    r("Staten Island Toyota", ["Staten Island", "NY"], "2019-10-24", "2019-10-26", 29717, null, true),
+    r("Island Toyota", ["Staten Island", "NY"], "2025-12-14", "2026-01-10", null, 82612),
+    r("Island Toyota", ["Staten Island", "NY"], "2026-01-11", "2026-02-19", 17950, 82612),
+    r("Lithia Auto Stores", ["Medford", "OR"], "2026-02-19", "2026-03-20", 21990, 82633),
+    r("Lithia Auto Stores", ["Medford", "OR"], "2026-03-21", "2026-04-16", 19992, 82633),
+    r("Dch Wappingers Falls Toyota", ["Wappingers Falls", "NY"], "2026-02-19", "2026-04-30", 21990, 82633),
+    r("Dch Wappingers Falls Toyota", ["Wappingers Falls", "NY"], "2026-05-22", "2026-06-30", 32274, 82633),
+    r("Fast Track Motors", ["Paterson", "NJ"], "2026-06-29", "2026-11-10", 17985, 82654),
+    r("Dch Wappingers Falls Toyota", ["Wappingers Falls", "NY"], "2026-09-17", "2026-10-20", 20167, 82633),
+    r("Dch Wappingers Falls Toyota", ["Wappingers Falls", "NY"], "2026-10-21", "2026-11-11", 20342, 82633),
+  ];
+  const h = summarizeHistory(records32, NOW32);
+  const pasted = parseListing("2020 Camry XLE FWD $20,167 82,633 mi Gold Certified\nDCH Wappingers Falls Toyota\nOpen Today|9:00 AM - 8:00 PM");
+
+  it("counts days from when the dealers selling it now started, not from another dealer a year ago", () => {
+    expect(h.forSaleSince).toBe("2026-06-29");
+    expect(h.daysListed).toBe(135);
+    expect(h.earlierSellers.map((s) => s.seller)).toContain("Lithia Auto Stores");
+  });
+
+  it("never calls another dealer's price, or a jump to a list-price figure, a price cut", () => {
+    // Was "cut from $32,274 to $17,985": DCH's $32,274 against Fast Track's $17,985.
+    expect(h.priceCut).toBeNull();
+  });
+
+  it("says plainly that another dealer lists the same car for less, with the timeline", () => {
+    const hits = historyRuleHits(pasted, h, NOW32);
+    const two = hits.find((x) => x.id === "history-two-sellers")!;
+    expect(two.title).toBe("Another dealer lists this same car for $2,357 less");
+    expect(two.reason).toContain("Fast Track Motors (Paterson, NJ) since Jun 29, 2026 for $17,985");
+    expect(two.reason).toContain("don't count on a warranty or \"certified\" label");
+    expect(hits.map((x) => x.id)).not.toContain("history-price-cut");
+  });
+
+  it("when the pasted dealer has stopped listing it, says the ad may be out of date", () => {
+    const stale = summarizeHistory(records32.slice(0, -2), NOW32); // DCH's September listing never happened
+    const hit = historyRuleHits(pasted, stale, NOW32).find((x) => x.id === "history-moved");
+    expect(hit?.action).toBe("flag");
+    expect(hit?.reason).toContain("Dch Wappingers Falls Toyota last listed this VIN on Jun 30, 2026");
+    expect(hit?.reason).toContain("Fast Track Motors (Paterson, NJ) since Jun 29, 2026 for $17,985");
+  });
+
+  it("matches dealer names written differently, but not different dealers", () => {
+    expect(sameSeller("DCH Wappingers Falls Toyota", "Dch Wappingers Falls Toyota")).toBe(true);
+    expect(sameSeller("Island Toyota", "Staten Island Toyota")).toBe(true);
+    expect(sameSeller("DCH Wappingers Falls Toyota", "Fast Track Motors")).toBe(false);
+    expect(sameSeller("Toyota of Edison", "Toyota of Paterson")).toBe(false);
   });
 });

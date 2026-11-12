@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
+import { makerCertified } from "@/lib/protection";
 import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
 import type { CostParts } from "@/lib/report/costs";
@@ -19,7 +20,7 @@ import { accidentHistoryConfirmed, EMPTY_REPORT, mergeAnswers, type ReportAnswer
 import { recentMiles, summarizeHistory } from "@/lib/history/summary";
 import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
-import type { LiveListing as Live } from "@/lib/live/parse";
+import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
 import type { SellerChecklist } from "@/lib/scam/rules";
 import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Severity } from "@/lib/decision";
 import { ON_PAGE, raw, RULE_SOURCE } from "@/lib/sources";
@@ -171,7 +172,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     const base: ValueInput = {
       price: l.price, miles: milesUsed, sellerType: l.sellerType, accident, titleStatus, usage, damage: answers.damage,
       daysOnMarket: live?.daysOnMarket ?? history?.daysListed ?? null, highMiles: first.hits.some((h) => h.id === "high-miles"),
-      priceCut: history?.priceCut ?? null,
+      priceCut: history?.priceCut ?? null, certified: makerCertified(m.text, l.sellerType),
     };
     const valuation = valueCar(srcs, base);
     // Selling your own car: what a private buyer pays, and a dealer's retail for comparison.
@@ -421,7 +422,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
                       phrase={phrase}
                     />
                     <SellerReplies value={replies} onChange={setReplies} hits={replyHits} />
-                    {m.listing.sellerType === "dealer" && <DealerCheck name={live?.sellerName ?? m.listing.dealerName ?? null} />}
+                    {m.listing.sellerType === "dealer" && <DealerCheck name={m.listing.dealerName ?? (live ? liveSeller(live).name : null)} />}
                   </Checklist>
                 ),
               },
