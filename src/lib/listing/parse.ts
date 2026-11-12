@@ -44,6 +44,8 @@ export type ParsedListing = {
   distanceMiles: number | null;
   /** US phone numbers in the text, as 10 digits (for the "same phone on several listings" check). */
   phones: string[];
+  /** The dealer's name when the page shows it above its opening hours ("DCH Wappingers Falls Toyota / Open Today|9:00 AM"). */
+  dealerName?: string | null;
 };
 
 // Brands in scope first (PLAN.md §1), then common others so text still parses.
@@ -153,6 +155,25 @@ function findMakeModel(text: string): { make: string | null; model: string | nul
   for (const [alias, make] of Object.entries(MAKE_ALIASES)) {
     const m = new RegExp(`\\b${alias}\\b`).exec(text);
     if (m) consider(make, m.index, text.slice(m.index + alias.length));
+  }
+  // The make was named, but not next to a model: it's in a dealer's name ("DCH Wappingers Falls Toyota
+  // Open Today"), while the heading says "2020 Camry". A model right after a year is the car itself:
+  // this make's models first, then any make's (a Toyota dealer selling a "2019 Accord").
+  if (best && !(best as { model: string | null }).model) {
+    const found = best as { make: string; model: string | null; at: number };
+    const makes = [found.make, ...Object.keys(MODELS).filter((x) => x !== found.make)];
+    for (const make of makes) {
+      const hit = [...(MODELS[make] ?? [])]
+        .filter((model) => make === found.make || model.length >= 3)
+        .sort((a, b) => b.length - a.length)
+        .map((model) => ({ model, m: new RegExp(`\\b(?:19[89]\\d|20[0-4]\\d) ${model.toLowerCase().replace(/[-]/g, "[- ]?")}\\b`).exec(text) }))
+        .filter((x) => x.m)
+        .sort((a, b) => a.m!.index - b.m!.index)[0];
+      if (hit) {
+        best = { make, model: hit.model, at: hit.m!.index + 5 };
+        break;
+      }
+    }
   }
   // No make named: a model name alone ("2017 accord") is enough.
   if (!best) {
@@ -337,14 +358,31 @@ function findAccident(text: string): AccidentStatus {
   return "unknown";
 }
 
+// Maker paint names that don't contain a plain colour word, and what colour they are
+// (Toyota, Honda, Lexus, Subaru, Mazda). Only read when labelled as the exterior.
+const PAINT: Record<string, string> = {
+  "wind chill": "white", "super white": "white", "blizzard": "white", "ice cap": "white", "eminent white": "white", "ultra white": "white", "crystal white": "white",
+  "platinum white": "white", "taffeta white": "white", "snowflake white": "white", "rallye white": "white", "lunar rock": "gray", "underground": "gray",
+  "magnetic gray": "gray", "predawn": "gray", "celestial": "silver", "classic silver": "silver", "lunar silver": "silver", "modern steel": "gray",
+  "sonic gray": "gray", "meteorite": "gray", "urban gray": "gray", "machine gray": "gray", "polymetal": "gray", "nebula gray": "gray", "atomic silver": "silver",
+  "midnight black": "black", "crystal black": "black", "attitude black": "black", "obsidian": "black", "jet black": "black", "caviar": "black",
+  "blueprint": "blue", "cavalry blue": "blue", "still night": "blue", "obsidian blue": "blue", "aegean": "blue", "canyon river": "blue", "nautical blue": "blue",
+  "galactic aqua": "blue", "deep crystal blue": "blue", "soul red": "red", "supersonic red": "red", "ruby flare": "red", "radiant red": "red", "barcelona red": "red",
+  "san marino red": "red", "rallye red": "red", "army green": "green", "cement": "gray", "quicksand": "beige",
+};
+
 function findColor(text: string): string | null {
+  // "Ext. Color: Wind Chill Pearl" (toyota.com): the maker's paint name, labelled as the exterior.
+  const names = Object.keys(PAINT).sort((a, b) => b.length - a.length).join("|"); // "obsidian blue" before "obsidian"
+  const paint = text.match(new RegExp(`\\b(?:exterior|ext\\.?)(?: colou?r)?[:\\s-]*(${names})\\b`));
+  if (paint) return PAINT[paint[1]];
   const list = COLORS.join("|");
   const labelled =
     // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
     // Not a part's colour ("Exterior: Black Grille", "black side windows trim") or the next
     // line's interior ("Gravity Grey Exterior / Black Interior" reads "exterior black interior").
-    text.match(new RegExp(`exterior(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
-    text.match(new RegExp(`(?<!interior )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
+    text.match(new RegExp(`(?:exterior|\\bext\\.?)(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
+    text.match(new RegExp(`(?<!(?:interior|\\bint\\.?) )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));
   if (!labelled) return null;
@@ -408,7 +446,8 @@ function findUsage(text: string): Usage {
 function findTransmission(text: string): TransmissionKind {
   // 1) "Transmission: 8-Speed Automatic", "Transmission CVT". Stop at punctuation
   //    so "owner's manual" later in the text can't leak in.
-  for (const m of text.matchAll(/\btransmission\b[:\s-]+([^.;·|,]{2,40})/g)) {
+  // The label as sites misspell it too ("Transmimssion" on toyota.com).
+  for (const m of text.matchAll(/\btransmi[a-z]{0,3}ssion\b[:\s-]+([^.;·|,]{2,40})/g)) {
     const k = classifyTransmission(m[1].split(/\b(?:engine|fuel|drive|mpg|exterior|interior|vin|highlights)\b/)[0]);
     if (k !== "unknown") return k;
   }
@@ -481,5 +520,24 @@ export function parseListing(input: string): ParsedListing {
     zip: findZip(raw.replace(URL_RE, " ")),
     distanceMiles: findDistance(text),
     phones: findPhones(raw.replace(URL_RE, " ")),
+    dealerName: findDealerName(raw),
   };
+}
+
+const DEALER_WORD = new RegExp(String.raw`\b(?:${Object.keys(MODELS).join("|")}|chevy|motors?|auto(?:s|motive| group| mall|plex)?|cars|dealership)\b`, "i");
+
+/**
+ * A dealer's name, only in one strict layout: a short line naming a car brand or a dealer word,
+ * directly above its opening hours. Nothing else is guessed (a wrong name would send the buyer
+ * to verify the wrong business).
+ */
+function findDealerName(raw: string): string | null {
+  const lines = raw.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length - 1; i++) {
+    const name = lines[i];
+    if (!/^(?:open(?: today| now)?|closed(?: now| today)?)\b|^hours\b/i.test(lines[i + 1])) continue;
+    if (name.length > 60 || !/^[A-Z0-9][\w&'.-]*(?: [\w&'.-]+){1,7}$/.test(name) || !DEALER_WORD.test(name)) continue;
+    return name;
+  }
+  return null;
 }

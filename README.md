@@ -137,7 +137,7 @@ Then everything on the result page, in 14 numbered sections:
 - the photo check;
 - recalls, crash stars and owner complaints with NHTSA numbers;
 - out-the-door and yearly costs, using the state and fees you set on the page;
-- buyer protection, and what to ask (seller questions, your message, their replies, the inspection list, buying day);
+- buyer protection (for a maker-certified car, the warranty terms the ad lists and how many miles of cover could be left), and what to ask (seller questions, your message, their replies, the inspection list, buying day);
 - sources, and questions to ask your AI.
 
 At the end, the ad as you pasted it, with phone numbers and emails removed.
@@ -186,13 +186,13 @@ These limits are deliberate. A tool that sounds sure when it isn't does more har
 **Listing parser.** Real page layouts (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`src/lib/listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong is a case:
 
 ```
-Listing corpus scorecard (31 cases)
-  accident     22/22    make         26/26    price         31/31
-  miles        28/28    model        26/26    titleStatus   18/18
-  sellerType   22/22    transmission 16/16    verdict       25/25
-  rules fired  34/34    false alarms avoided 119/119
-  ownerCount   15/15    exteriorColor 12/12   usage          5/5
-  kind          9/9     docFee        7/7     vin           13/13   distanceMiles 6/6
+Listing corpus scorecard (32 cases)
+  accident     23/23    make         27/27    price         32/32
+  miles        29/29    model        27/27    titleStatus   19/19
+  sellerType   23/23    transmission 17/17    verdict       26/26
+  rules fired  34/34    false alarms avoided 145/145
+  ownerCount   16/16    exteriorColor 13/13   usage          5/5
+  kind         10/10    docFee        8/8     vin           14/14   distanceMiles 7/7
 ```
 
 **The dataset.** Every labelled ad, pasted page and seller reply is in one file, [`dataset/vinverdict-labelled.jsonl`](dataset/) (about 140 rows, one JSON object per line, loadable with pandas), with a [description](dataset/README.md) of how it was labelled and its limits. A test fails if the file and the measurements drift apart. To grow it: `npm run add-case` adds a pasted listing (phone numbers and emails removed automatically), you fill in the right answers by hand, and `npm run retrain` retrains the model and refreshes the scorecard and the dataset.

@@ -16,7 +16,8 @@ export function classifyTransmission(text: string | null | undefined): Transmiss
   const t = text.toLowerCase();
   if (/automated manual|dual[- ]?clutch|\bdct\b|\bamt\b/.test(t)) return "automatic";
   if (/\bmanual\b|stick ?shift/.test(t)) return "manual";
-  if (/automatic|\bauto\b|\bcvt\b|continuously variable|tiptronic|e-?cvt/.test(t)) return "automatic";
+  // Toyota writes its automatics as ECT-i ("8-Speed ECT-i", "8ECTI": Electronically Controlled Transmission).
+  if (/automatic|\bauto\b|\bcvt\b|continuously variable|tiptronic|e-?cvt|\b\d{0,2}[- ]?(?:speed )?ect-?i\b/.test(t)) return "automatic";
   return "unknown";
 }
 

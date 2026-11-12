@@ -103,7 +103,7 @@ export function reportInput(s: ReportState): ReportInput {
     }),
     replies: s.replies,
     replyHits: s.replyHits,
-    dealerSteps: dealer ? dealerCheck(live?.sellerName ?? null) : null,
+    dealerSteps: dealer ? dealerCheck(live?.sellerName ?? m.listing.dealerName ?? null) : null,
     protection: buyerProtection({ text: m.text, sourceHost: m.listing.sourceHost, sellerType: m.listing.sellerType, year: m.decoded?.year ?? m.listing.year, price: m.listing.price, miles: m.listing.miles }),
     inspection: buildChecklist({
       year: m.vehicle?.year ?? null, make: m.vehicle?.make ?? null, model: m.vehicle?.model ?? null,

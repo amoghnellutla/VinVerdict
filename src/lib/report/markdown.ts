@@ -27,6 +27,7 @@ import { DEAL_TEXT, type PriceSources, type Valuation } from "@/lib/value/estima
 import type { ManualResult } from "@/lib/value/manual";
 import type { StepGroup } from "./content";
 import type { RunningSnapshot } from "./costs";
+import { adOffersHistoryReport } from "./checks";
 import { redact } from "./redact";
 import type { SourceItem } from "./sources";
 import { esc, fence, lineToMd, mdLink, type Line } from "./text";
@@ -521,7 +522,7 @@ function stillOpen(r: ReportInput, at: (n: number) => string): [boolean, string]
   const items: [boolean, string][] = [
     [!!vin, vin ? "VIN known and decoded" : "Get the VIN from the seller (nothing about this exact car can be checked without it)"],
     [!!r.valuation, r.valuation ? `Price check run (${at(5)})` : "Run the price check (free, a few per day) for an estimate from similar cars nearby"],
-    [history, history ? `History report read (${at(4)})` : `Read a vehicle history report (Carfax or AutoCheck)${r.live?.carfaxUrl ? `: the dealer has a free Carfax link in ${at(7)}` : ""}, and record what it says`],
+    [history, history ? `History report read (${at(4)})` : `Read a vehicle history report (Carfax or AutoCheck)${r.live?.carfaxUrl ? `: the dealer has a free Carfax link in ${at(7)}` : adOffersHistoryReport(r.a.text) ? `: the ad says a free ${adOffersHistoryReport(r.a.text)} report comes with it, so ask the dealer for it` : ""}, and record what it says`],
   ];
   if (vin) items.push([checkable > 0 && checksDone === checkable, `Outside checks done: ${checksDone} of ${checkable} (${at(7)})`]);
   items.push(

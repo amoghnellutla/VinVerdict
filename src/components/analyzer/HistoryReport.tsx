@@ -15,6 +15,8 @@ type Props = {
   vin: string | null;
   /** Selling your own car: same questions, worded for the owner. */
   selling: boolean;
+  /** The ad offers a free history report but doesn't link it ("Free Carfax Report"). */
+  adOffers?: "Carfax" | "AutoCheck" | null;
 };
 
 const DAMAGES: Damage[] = ["unknown", "none", "minor", "moderate", "severe"];
@@ -26,7 +28,7 @@ const TITLES: ReportTitle[] = ["unknown", "clean", "branded"];
  * allow automated access), and listing feeds aren't history reports, so the
  * verdict and the price wait for what the person reads there.
  */
-export function HistoryReport({ value, onChange, from, live, vin, selling }: Props) {
+export function HistoryReport({ value, onChange, from, live, vin, selling, adOffers = null }: Props) {
   const set = onChange;
   const fromNote = (k: keyof ReportAnswers) => (from[k] ? `From your ${from[k]} proof. Remove it under Check it yourself to change this.` : null);
   return (
@@ -38,6 +40,11 @@ export function HistoryReport({ value, onChange, from, live, vin, selling }: Pro
             The dealer gives this car&apos;s Carfax report for free:{" "}
             <ExternalLink href={live.carfaxUrl} className="link font-semibold">open the Carfax report</ExternalLink>. Read its accident, title and
             owner sections and pick what it says below.
+          </p>
+        ) : adOffers && !selling ? (
+          <p>
+            The ad says a free {adOffers} report comes with this car. Ask the dealer for it (or look for its link on the listing page), read its
+            accident, title and owner sections, and pick what it says below.
           </p>
         ) : selling ? (
           <p>

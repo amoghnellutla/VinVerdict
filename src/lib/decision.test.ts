@@ -107,10 +107,12 @@ describe("decide: the four areas", () => {
 describe("dealer listings and branded titles (real case 29)", () => {
   it("asks a dealer only the dealer questions, so a far-away dealer isn't pushed into 'Seller isn't local'", () => {
     const deal = (o: Partial<DecisionInput>) => run(o).areas.find((a) => a.area === "deal")!;
-    expect(deal({ dealer: true }).line).toBe("0 of 2 seller questions answered");
+    expect(deal({ dealer: true }).line).toBe("0 of 1 seller question answered");
+    // A dealer pays off any loan itself (case 32, a Toyota dealer's certified car): not a question for them.
+    expect(deal({ dealer: true }).unknown.join(" ")).not.toMatch(/loan|lien/);
     expect(deal({ dealer: true }).unknown.join(" ")).not.toMatch(/meet in person|title in the seller's name/);
     expect(deal({}).line).toBe("0 of 4 seller questions answered");
-    expect(deal({ dealer: true, checklist: { lienOnTitle: false, allowsInspection: true } }).line).toBe("Dealer says: no lien, inspection allowed");
+    expect(deal({ dealer: true, checklist: { allowsInspection: true } }).line).toBe("Dealer says: inspection allowed");
   });
 
   it("doesn't say the title wasn't checked as if the ad's own brand was missed", () => {

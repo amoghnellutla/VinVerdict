@@ -6,7 +6,7 @@
 
 export const PROTECTION_AS_OF = "2026-11-09";
 
-export type ProtectionSource = "carmax" | "carvana" | "enterprise" | "hertz" | "psx" | "dealer" | "private" | "unknown";
+export type ProtectionSource = "carmax" | "carvana" | "enterprise" | "hertz" | "psx" | "certified" | "dealer" | "private" | "unknown";
 
 /** Autotrader Private Seller Exchange: a private sale run through Autotrader's checkout (checked 2026-11-10). */
 const PSX: Omit<Protection, "source"> = {
@@ -100,6 +100,53 @@ export function njDealerWarranty(i: Pick<ProtectionInput, "year" | "price" | "mi
   return "30 days or 1,000 miles";
 }
 
+const MAKERS = "toyota|honda|lexus|acura|nissan|infiniti|subaru|mazda|hyundai|kia|genesis|ford|chevrolet|gmc|buick|cadillac|bmw|mini|mercedes-benz|audi|volkswagen|vw|porsche|volvo|jeep|ram|dodge|chrysler|land rover|jaguar|mitsubishi";
+const TERM = String.raw`(\d{1,2})[- ]?(year|month)s?\s*\/\s*(\d{1,3}(?:,\d{3})+|\d{1,6}|unlimited)[- ]?(?:miles?|mi)\b`;
+const WARRANTY_NAME = /(limited comprehensive|comprehensive|limited powertrain|powertrain|bumper[- ]to[- ]bumper|roadside assistance)/i;
+
+/**
+ * A maker-certified car, as the ad describes it ("Toyota Gold Certified", "Certified Pre-Owned").
+ * Only what the ad states: its program name and the warranty terms it lists. Programs differ on
+ * when a warranty starts (the car's first sale, or the day you buy it), so that's a question, not a fact.
+ */
+function certified(text: string, miles: number | null): { name: string; warranty: string | null; notes: string[] } | null {
+  const t = text.replace(/\s+/g, " ");
+  const named = new RegExp(`\\b(${MAKERS}) (?:(gold|silver|platinum) )?certified(?: used| pre-?owned)?\\b|\\b(gold|silver|platinum) certified\\b|\\bcertified pre-?owned\\b|\\bcpo\\b`, "i").exec(t);
+  if (!named) return null;
+  const make = named[1] ? (named[1].toLowerCase() === "bmw" || named[1].toLowerCase() === "gmc" ? named[1].toUpperCase() : named[1].replace(/\b\w/g, (c) => c.toUpperCase())) : null;
+  const makeInText = make ?? new RegExp(`\\b(${MAKERS}) certified\\b`, "i").exec(t)?.[1]?.replace(/\b\w/g, (c) => c.toUpperCase()) ?? null;
+  const tier = (named[2] ?? named[3])?.replace(/^\w/, (c) => c.toUpperCase()) ?? null;
+  const name = `${makeInText ? `${makeInText} ` : ""}${tier ? `${tier} ` : ""}Certified${makeInText ? "" : " Pre-Owned"} (as the ad says)`;
+
+  // "Limited Powertrain Warranty 7-year/100,000-mile": a warranty name, then its term within a few words.
+  const terms: { label: string; years: number; miles: number | null; text: string }[] = [];
+  for (const m of t.matchAll(new RegExp(`${WARRANTY_NAME.source}(?: warranty| plan)?[^/]{0,25}?${TERM}`, "gi"))) {
+    const label = m[1].toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+    if (terms.some((x) => x.label === label)) continue;
+    const n = Number(m[2]);
+    const years = m[3].toLowerCase() === "year" ? n : n / 12;
+    const limit = m[4].toLowerCase() === "unlimited" ? null : Number(m[4].replace(/,/g, ""));
+    terms.push({ label, years, miles: limit, text: `${n} ${m[3].toLowerCase()}${n === 1 ? "" : "s"}/${limit == null ? "unlimited miles" : `${limit.toLocaleString("en-US")} miles`}` });
+  }
+  const warranty = terms.length ? terms.map((x) => `${x.label}: ${x.text}`).join("; ") : null;
+  const notes = [
+    "The ad says it's maker-certified. Ask for the certification in writing: the completed inspection checklist and the warranty booklet with its terms.",
+  ];
+  // The longest mileage limit, against this car's miles, if it counts from the car's first sale.
+  const longest = terms.filter((x) => x.miles != null && x.years >= 3).sort((a, b) => b.miles! - a.miles!)[0];
+  if (longest && miles != null) {
+    const left = longest.miles! - miles;
+    notes.push(
+      left > 0
+        ? `Ask when each warranty starts. Some count from the car's first sale and its total miles, not from your purchase: if the ${longest.label.toLowerCase()} warranty does, its ${longest.miles!.toLocaleString("en-US")}-mile limit leaves at most ${left.toLocaleString("en-US")} miles of cover on this car (${miles.toLocaleString("en-US")} now).`
+        : `Ask when each warranty starts. If the ${longest.label.toLowerCase()} warranty counts the car's total miles, its ${longest.miles!.toLocaleString("en-US")}-mile limit has already passed (${miles.toLocaleString("en-US")} now).`,
+    );
+  } else {
+    notes.push("Ask when each warranty starts: some count from the car's first sale, not the day you buy it, so less may be left than it sounds.");
+  }
+  return { name, warranty, notes };
+}
+
 export function buyerProtection(i: ProtectionInput): Protection {
   const hay = `${i.sourceHost ?? ""} ${i.text}`;
   const big = PATTERNS.find(([re]) => re.test(hay))?.[1];
@@ -130,6 +177,10 @@ export function buyerProtection(i: ProtectionInput): Protection {
       ? `If the dealer is in New Jersey, state law requires at least a ${nj} warranty on this car.`
       : "In New Jersey, dealers must include a short warranty on cars up to 7 model years old with ≤ 100,000 miles costing $3,000+.",
   ];
+  const cpo = i.sellerType === "dealer" ? certified(i.text, i.miles) : null;
+  if (cpo) {
+    return { source: "certified", name: cpo.name, level: "some", returns: null, warranty: cpo.warranty, notes: [...cpo.notes, ...notes], links: [FTC, NJ_LAW] };
+  }
   return {
     source: i.sellerType === "dealer" ? "dealer" : "unknown",
     name: i.sellerType === "dealer" ? "Dealer" : "Seller type unknown",

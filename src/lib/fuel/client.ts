@@ -68,7 +68,7 @@ export async function findFuelEconomy(year: number, make: string, t: FuelTarget)
 
   const optionLists = await Promise.all(models.map((m) => getOptions(year, make, m)));
   const picks = rankVariants(
-    models.flatMap((m, i) => pickOptions(optionLists[i], t).map((o) => ({ id: Number(o.value), model: m, text: o.text, label: `${m} · ${o.text}` }))),
+    models.flatMap((m, i) => pickOptions(optionLists[i], t).map((o) => ({ id: Number(o.value), model: m, text: o.text, label: `${m}, ${o.text}` }))),
     t,
   ).slice(0, 8);
 

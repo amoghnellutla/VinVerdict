@@ -54,6 +54,12 @@ describe("matching", () => {
     expect(pickModels(HONDA_2017, t({ model: "Accord", hybrid: true }))).toEqual(["Accord Hybrid"]);
   });
 
+  it("keeps the VIN's trim even when the model has more names than it keeps (2020 Camry XLE, case 32)", () => {
+    const camry2020 = ["Camry", "Camry AWD LE/SE", "Camry AWD XLE/XSE", "Camry Hybrid LE", "Camry Hybrid XLE/SE", "Camry LE/SE", "Camry TRD", "Camry XLE/XSE", "Camry XSE"];
+    expect(pickModels(camry2020, t({ model: "Camry", drive: "2wd", trim: "XLE" }))[0]).toBe("Camry XLE/XSE");
+    expect(pickModels(camry2020, t({ model: "Camry", drive: "2wd" }))).not.toContain("Camry XLE/XSE");
+  });
+
   it("uses the drive to choose between AWD and 2WD names", () => {
     expect(pickModels(HONDA_2017, t({ model: "CR-V", drive: "awd" }))).toEqual(["CR-V AWD"]);
     expect(pickModels(HONDA_2017, t({ model: "CR-V", drive: "2wd" }))).toEqual(["CR-V FWD"]);

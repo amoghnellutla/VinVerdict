@@ -9,6 +9,7 @@ import { summarizeHistory } from "@/lib/history/summary";
 import { parseListing } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import { buildReport } from "@/lib/report/markdown";
+import { adOffersHistoryReport } from "@/lib/report/checks";
 import { fence, mdLink } from "@/lib/report/text";
 import { checkVin } from "@/lib/vin";
 import { valueCar } from "@/lib/value/estimate";
@@ -271,5 +272,17 @@ describe("short report", () => {
     expect(md).toContain("- **Worth investigating**: nothing wrong in what was checked");
     expect(frontMatter(md)).toMatchObject({ verdict_level: "stop" });
     expect(md).toContain("If I can do only one more check before deciding, which should it be, and why?");
+  });
+});
+
+describe("a free history report the ad offers", () => {
+  it("is named, so the buyer asks the dealer for it", () => {
+    expect(adOffersHistoryReport("Free Carfax Report Vehicle History Report")).toBe("Carfax");
+    expect(adOffersHistoryReport("AutoCheck report included")).toBe("AutoCheck");
+    expect(adOffersHistoryReport("Get a Carfax before you buy")).toBeNull();
+    const md = report(offline(readFileSync(join(process.cwd(), "src/lib/listing/corpus/cases/32-toyota-certified-camry-xle.txt"), "utf8")), null);
+    expect(md).toContain("the ad says a free Carfax report comes with it, so ask the dealer for it");
+    expect(md).toContain("**Toyota Gold Certified (as the ad says)**");
+    expect(md).toContain("Search the name with");
   });
 });

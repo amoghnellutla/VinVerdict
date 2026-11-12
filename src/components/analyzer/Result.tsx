@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
+import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
 import type { CostParts } from "@/lib/report/costs";
 import { buildReport } from "@/lib/report/markdown";
@@ -256,7 +257,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
     />
   );
   const historyReport = (
-    <HistoryReport value={answers} onChange={(patch) => setReport((r) => ({ ...r, ...patch }))} from={proofSum.from} live={live} vin={goodVin} selling={selling} />
+    <HistoryReport value={answers} onChange={(patch) => setReport((r) => ({ ...r, ...patch }))} from={proofSum.from} live={live} vin={goodVin} selling={selling} adOffers={adOffersHistoryReport(m.text)} />
   );
   const checkYourself = (
     <CheckYourself
@@ -420,7 +421,7 @@ export function Result({ analysis: a, carId = null, saveNote = null, phoneMatche
                       phrase={phrase}
                     />
                     <SellerReplies value={replies} onChange={setReplies} hits={replyHits} />
-                    {m.listing.sellerType === "dealer" && <DealerCheck name={live?.sellerName ?? null} />}
+                    {m.listing.sellerType === "dealer" && <DealerCheck name={live?.sellerName ?? m.listing.dealerName ?? null} />}
                   </Checklist>
                 ),
               },

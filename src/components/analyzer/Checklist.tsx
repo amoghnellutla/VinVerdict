@@ -14,8 +14,8 @@ export const QUESTIONS: { key: Key; q: string; good: boolean }[] = [
   { key: "meetsInPersonLocally", q: "Will they meet in person, locally, with the title in hand?", good: true },
 ];
 
-/** Private-seller questions that don't fit a dealer: a dealer's title paperwork and a far-away showroom are normal. */
-export const PRIVATE_ONLY: Key[] = ["titleInSellerName", "meetsInPersonLocally"];
+/** Private-seller questions that don't fit a dealer: a dealer handles the title and pays off any loan itself, and a far-away showroom is normal. */
+export const PRIVATE_ONLY: Key[] = ["titleInSellerName", "lienOnTitle", "meetsInPersonLocally"];
 
 const ALSO_ASK = [
   "Do you have service records?",

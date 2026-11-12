@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildChecklist, checklistText, complaintChecks, KNOWN_ISSUES, knownIssuesFor, type CarForChecklist } from "./inspection";
 import { buyerProtection, njDealerWarranty } from "./protection";
@@ -64,6 +65,21 @@ describe("buyerProtection", () => {
     // Look-alike hosts aren't Facebook or Craigslist.
     expect(buyerProtection({ ...base, sourceHost: "notfacebook.com" }).source).not.toBe("private");
     expect(buyerProtection({ ...base, sourceHost: "craigslist.org.example.net" }).source).not.toBe("private");
+  });
+
+  it("a maker-certified car shows the warranty terms the ad lists, and how much of the mileage cover could be left (case 32)", () => {
+    const text = readFileSync("src/lib/listing/corpus/cases/32-toyota-certified-camry-xle.txt", "utf8");
+    const p = buyerProtection({ ...base, text, sellerType: "dealer", year: 2020, price: 20167, miles: 82633 });
+    expect(p.source).toBe("certified");
+    expect(p.name).toBe("Toyota Gold Certified (as the ad says)");
+    expect(p.warranty).toBe("Limited comprehensive: 12 months/12,000 miles; Limited powertrain: 7 years/100,000 miles; Roadside assistance: 7 years/100,000 miles");
+    expect(p.notes.join(" ")).toContain("its 100,000-mile limit leaves at most 17,367 miles of cover on this car (82,633 now)");
+    expect(p.notes.join(" ")).toContain("FTC Buyers Guide");
+    // A private seller saying "certified" isn't a maker program.
+    expect(buyerProtection({ ...base, text, sellerType: "private" }).source).toBe("private");
+    // Past the limit: says so, without inventing what's left.
+    expect(buyerProtection({ ...base, text: "Honda Certified. Powertrain warranty 7-year/100,000-mile", sellerType: "dealer", miles: 104000 }).notes.join(" ")).toContain("has already passed (104,000 now)");
+    expect(buyerProtection({ ...base, text: "Certified Pre-Owned", sellerType: "dealer" }).name).toBe("Certified Pre-Owned (as the ad says)");
   });
 
   it("dealers get the Buyers Guide and NJ warranty tier", () => {

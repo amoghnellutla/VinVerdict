@@ -264,9 +264,10 @@ export function decide(d: DecisionInput): Decision {
   // ----- Ready to pay -----
   const c = d.checklist;
   const ask: string[] = [];
-  const asked = d.dealer ? 2 : 4;
+  // A dealer clears any loan on the car and handles the title itself, so only the inspection is asked.
+  const asked = d.dealer ? 1 : 4;
   if (!d.dealer && c.titleInSellerName == null) ask.push("Is the title in the seller's name?");
-  if (c.lienOnTitle == null) ask.push("Is there a loan (lien) on it?");
+  if (!d.dealer && c.lienOnTitle == null) ask.push("Is there a loan (lien) on it?");
   if (c.allowsInspection == null) ask.push("Will they allow a mechanic's inspection?");
   if (!d.dealer && c.meetsInPersonLocally == null) ask.push("Can you meet in person, locally?");
   const dw = worst("deal");
@@ -280,10 +281,12 @@ export function decide(d: DecisionInput): Decision {
         ? dw.title
         : ask.length === 0
           ? d.dealer
-            ? "Dealer says: no lien, inspection allowed"
+            ? "Dealer says: inspection allowed"
             : "Seller says: title in their name, no lien, inspection allowed, meets locally"
-          : `${asked - ask.length} of ${asked} seller questions answered`,
-    unknown: ask.length ? ["Ask the seller: " + ask.join(" ")] : ["Check the title and the seller's ID match, in person"],
+          : `${asked - ask.length} of ${asked} seller question${asked === 1 ? "" : "s"} answered`,
+    unknown: ask.length
+      ? ["Ask the seller: " + ask.join(" ")]
+      : [d.dealer ? "Get the out-the-door price and the buyer's order in writing before you pay" : "Check the title and the seller's ID match, in person"],
   };
 
   const areas = [listing, car, price, deal];

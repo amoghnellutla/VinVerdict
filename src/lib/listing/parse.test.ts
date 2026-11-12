@@ -83,6 +83,21 @@ describe("parseListing", () => {
   it("detects branded titles, accidents and manual transmissions", () => {
     expect(parseListing("2014 Corolla rebuilt title runs great").titleStatus).toBe("rebuilt");
     expect(parseListing("2014 Corolla, rebuilt transmission, clean title").titleStatus).toBe("clean");
+    // Maker paint names, labelled as the exterior; the interior's colour never counts.
+    expect(parseListing("2020 Camry Ext. Color WIND CHILL PEARL Int. Color BLACK").exteriorColor).toBe("white");
+    expect(parseListing("2019 Honda Accord Exterior Color: Obsidian Blue Pearl").exteriorColor).toBe("blue");
+    expect(parseListing("2019 Honda Accord Exterior: Crystal Black Pearl").exteriorColor).toBe("black");
+    expect(parseListing("2020 Camry Ext. Color: Celestial Silver Metallic Int. Color: Ash").exteriorColor).toBe("silver");
+    expect(parseListing("2020 Toyota Camry Int. Color: Black").exteriorColor).toBeNull();
+    // The make only in a dealer's name, the model after the year; Toyota's "8ECTI" is an automatic.
+    const dealerName = parseListing("19348 2020 Camry | XLE FWD Mileage 82,633 mi Transmimssion 8ECTI DCH Wappingers Falls Toyota Open Today");
+    expect([dealerName.make, dealerName.model, dealerName.year, dealerName.transmission]).toEqual(["Toyota", "Camry", 2020, "automatic"]);
+    const otherMake = parseListing("Smith Toyota of Springfield. Used 2019 Accord EX-L, $21,500, 40,000 miles");
+    expect([otherMake.make, otherMake.model]).toEqual(["Honda", "Accord"]);
+    // The dealer's name, only above its opening hours (toyota.com); never guessed from other lines.
+    expect(parseListing("2020 Camry $20,167\nDCH Wappingers Falls Toyota\nOpen Today|9:00 AM - 8:00 PM").dealerName).toBe("DCH Wappingers Falls Toyota");
+    expect(parseListing("2020 Camry $20,167\nGreat car, runs well\nOpen Today|9:00 AM").dealerName).toBeNull();
+    expect(parseListing("2020 Toyota Camry $20,167 DCH Wappingers Falls Toyota").dealerName).toBeNull();
     // Private ads answer their own questions. "Salvage? No" must never read as a salvage title.
     const qa = (s: string) => parseListing(`2015 Honda Civic LX $7,500 120,000 miles. ${s}`);
     for (const s of ["Salvage? No. Flood? No. Accidents? None.", "Flood: no\nSalvage: no\nAccidents: none", "Accidents: 0, Flood: No, Rebuilt: No", "Salvage - no. Accident - no."]) {

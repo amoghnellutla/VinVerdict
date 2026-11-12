@@ -18,6 +18,13 @@ export const RATING_TEXT: Record<CheckRating, string> = {
 };
 
 /** The history-report row: the dealer's free Carfax when the live listing has one, otherwise Carfax/AutoCheck in general. */
+/** The ad offers a free history report ("Free Carfax Report", "AutoCheck report included") without its link. */
+export function adOffersHistoryReport(text: string): "Carfax" | "AutoCheck" | null {
+  const m = /\bfree (carfax|autocheck)\b|\b(carfax|autocheck)(?: vehicle history)? report (?:included|available|provided)\b/i.exec(text);
+  if (!m) return null;
+  return (m[1] ?? m[2]).toLowerCase() === "carfax" ? "Carfax" : "AutoCheck";
+}
+
 export function historyReportLink(live: Pick<LiveListing, "carfaxUrl"> | null): { name: string; href: string; cost: string; what: string } {
   return live?.carfaxUrl
     ? { name: "The dealer's free Carfax report", href: live.carfaxUrl, cost: "Free from the dealer", what: "Accidents, title brands, owners, use and odometer readings. Open it, then screenshot or copy the summary." }

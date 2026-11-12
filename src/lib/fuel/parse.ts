@@ -12,7 +12,7 @@ export type FuelKind = "regular" | "midgrade" | "premium" | "diesel" | "electric
 
 export type FuelVehicle = {
   id: number;
-  /** e.g. "Accord · Auto (AV-S7), 4 cyl, 2.4 L" */
+  /** e.g. "Accord, Auto (AV-S7), 4 cyl, 2.4 L" */
   label: string;
   comb: number;
   city: number;
@@ -129,7 +129,11 @@ export function pickModels(names: string[], t: FuelTarget, max = 4): string[] {
   // An untagged name ("RAV4") is usually the 2WD one when an "RAV4 AWD" exists.
   if (t.drive === "awd") list = narrow(narrow(list, (n) => !TWO_WD.test(norm(n))), (n) => AWD.test(norm(n)));
   if (t.drive === "2wd") list = narrow(list, (n) => !AWD.test(norm(n)));
-  return [...list].sort((a, b) => a.length - b.length).slice(0, max);
+  // Names carrying the VIN's trim first ("Camry XLE/XSE" for an XLE), so the cut to `max` can't drop them;
+  // then the shortest (the plainest name).
+  const trim = t.trim ? norm(t.trim).split(" ")[0] : "";
+  const withTrim = (n: string) => (trim && norm(n).split(" ").includes(trim) ? 0 : 1);
+  return [...list].sort((a, b) => withTrim(a) - withTrim(b) || a.length - b.length).slice(0, max);
 }
 
 const cyl = (s: string) => Number(s.match(/(\d+) cyl/)?.[1] ?? NaN);
