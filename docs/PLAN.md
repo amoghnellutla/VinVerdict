@@ -372,6 +372,23 @@ The analyzer is usable for real car shopping after Phase 4; each phase ends with
 
 | Date | Change |
 | --- | --- |
+| 2026-11-12 | **Assistant audit ("make sure I don't get dissatisfied again").**
+- **Checked:** the free AI with the new answer format (GLM: a grounded answer, sections, unknowns, next step, action buttons).
+- **Checked:** 40 everyday phrasings run through the router. **Fixed:**
+  - "what's next" (with an apostrophe) got the small-talk reply, the quick-start button among them;
+  - real questions ("is it reliable", "what's the mpg", "insurance cost?") were treated as small talk;
+  - **a question was read as a fact** ("has it been in an accident?" recorded an accident). Facts now come only from statements, including the part before ", is that good?";
+  - off-topic questions ("what's the weather?") never spend an AI action.
+- **New answers from the page, no AI:** out the door (costs section default, inspection shown apart) and MPG and fuel cost.
+- **Added:**
+  - quick-start buttons;
+  - a "Read it closely with free AI" button in the conversation for pasted or attached reports (screenshots go to the vision model too);
+  - what you told VinVerdict is kept on the device per car for 7 days (refresh-safe), plus "Clear all";
+  - "priced for $X" counts as the asking price;
+  - AI action buttons never suggest a step that's done;
+  - "thinking of buying" includes the estimate and auction sale.
+- **Accessibility:** the assistant's file picker had no label (axe critical), now fixed: 0 violations.
+- **Verified:** phone width (no sideways scroll), a fact survives a reload, and the session replay passes |
 | 2026-11-12 | **Assistant v2 ("Tell VinVerdict or ask"), approved plan, from Amogh's real session on VIN 4T1B11HK8JU145889.** His session: VIN only → "thinking of buying" → "auction sale … priced for 9,100" → the pasted Manheim-style record → the Carfax, which couldn't be attached. Nothing on the page changed, answers were generic, and every message used AI.
 - **Now: one box** for text, pasted pages and screenshots (OCR on the device).
 - **A no-AI router** (`lib/assistant/route.ts`) sorts each message: auction record, report or check page (proof card plus an AI close read), another listing (or a different car), facts in a sentence, a question answered from the page with action buttons, small talk.

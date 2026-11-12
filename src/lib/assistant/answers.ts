@@ -5,7 +5,7 @@
  */
 
 export type Action =
-  | { kind: "go"; label: string; target: "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" }
+  | { kind: "go"; label: string; target: "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" }
   | { kind: "link"; label: string; href: string }
   | { kind: "attach"; label: string };
 
@@ -32,6 +32,10 @@ export type PageContext = {
   recallLookup: string | null;
   sellerMessage: string;
   dealer: boolean;
+  /** Out the door, as the costs section works it out now. */
+  otd: { total: number; state: string; inspection: number } | null;
+  /** EPA fuel economy and yearly fuel + upkeep, as the costs section shows it. */
+  fuel: { label: string; mpg: string; perYear: number; perMonth: number } | null;
 };
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
@@ -72,6 +76,22 @@ export function answerIntent(intent: string, c: PageContext): Reply {
         ? { text: "Here's the price, from this page:", points, actions: [{ kind: "go", label: "See the price details", target: "#price-check" }] }
         : { text: "VinVerdict hasn't priced it yet.", points: [...points, "Run the price check for an estimate from similar cars nearby (it uses a small free daily quota)."], actions: [{ kind: "go", label: "Run the price check", target: "#price-check" }] };
     }
+    case "costs":
+      return c.otd
+        ? {
+            text: `Out the door in ${c.otd.state}: about ${$(Math.round(c.otd.total))}.`,
+            points: [
+              ...(c.otd.inspection ? [`That includes ${$(c.otd.inspection)} for your own mechanic's inspection (not paid to the dealer).`] : []),
+              "It's tax, title and registration on the price. Dealer fees beyond the ones in the ad aren't known: ask for the out-the-door price in writing.",
+              "Put your ZIP in the costs section for your own state's tax and fees.",
+            ],
+            actions: [{ kind: "go", label: "See the costs", target: "#costs" }],
+          }
+        : { text: "There's no price yet, so the out-the-door cost can't be worked out. Tell VinVerdict the asking price (\"they're asking 14,500\").", points: [], actions: [] };
+    case "fuel":
+      return c.fuel
+        ? { text: `${c.fuel.label}: ${c.fuel.mpg} (EPA).`, points: [`Fuel and upkeep: about ${$(c.fuel.perYear)} a year (${$(c.fuel.perMonth)} a month) at 12,000 miles a year.`], actions: [{ kind: "go", label: "See the costs", target: "#costs" }] }
+        : { text: "No EPA fuel-economy match for this car yet: check fueleconomy.gov with its year, model and engine.", points: [], actions: [{ kind: "link", label: "Open fueleconomy.gov", href: "https://www.fueleconomy.gov/feg/findacar.shtml" }] };
     case "auction":
       return {
         text: "About the auction:",
@@ -97,7 +117,11 @@ export function answerIntent(intent: string, c: PageContext): Reply {
     default:
       return {
         text: `${c.verdict.title}. ${c.verdict.text}${c.stops.length ? ` Serious: ${c.stops.join("; ")}.` : ""}${c.checks.length ? ` To check: ${c.checks.slice(0, 3).join("; ")}.` : ""}`,
-        points: steps.points,
+        points: [
+          ...(c.estimate ? [`Price: ${c.price ? `${$(c.price)} asked; ` : ""}similar cars ${$(c.estimate.low)}–${$(c.estimate.high)}${c.estimate.label ? ` (${c.estimate.label})` : ""}.`] : []),
+          ...(c.auctionSold ? [`It sold at a dealer auction for ${$(c.auctionSold)} (wholesale): a dealer's asking price above that includes their markup, fees and reconditioning.`] : []),
+          ...steps.points,
+        ],
         actions: steps.actions,
       };
   }

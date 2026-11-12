@@ -13,9 +13,9 @@
 import { readProof, type ProofSource } from "@/lib/evidence/parse";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
-import { factsFromSentence, type Fact } from "./facts";
+import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "price" | "seller" | "recalls" | "history" | "next" | "auction";
+export type Intent = "overview" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
@@ -34,16 +34,19 @@ const READABLE: ProofSource[] = ["carfax", "autocheck", "nicb", "nhtsa", "maker"
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
 
 const INTENTS: [Intent, RegExp][] = [
-  ["auction", /\bauction\b.*\?|\bbid(?:ding)?\b|\bhow much (?:should|to) bid\b/i],
-  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\bgood deal\b|\bhow much\b|\bpay\b/i],
-  ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i ask\b|\bmessage\b|\bquestions? (?:for|to ask)\b/i],
+  ["auction", /\bauction\b.*(?:\?|\b(?:bad|safe|ok|okay|good|risky|normal)\b)|\bbid(?:ding)?\b|\bhow much (?:should|to) bid\b/i],
+  ["costs", /\bout[- ]the[- ]door\b|\bwhat will it cost\b|\btotal cost\b|\b(?:sales )?tax(?:es)?\b|\bregistration\b|\bfees?\b|\bcost (?:me|per|a) (?:year|month)\b|\bcost to own\b/i],
+  ["fuel", /\bmpg\b|\bgas mileage\b|\bfuel (?:economy|cost)\b|\bmiles per gallon\b/i],
+  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b/i],
+  ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i (?:ask|say|tell|write)\b|\bmessage\b|\bquestions? (?:for|to ask)\b/i],
   ["recalls", /\brecalls?\b/i],
   ["history", /\bcarfax\b|\bautocheck\b|\baccidents?\b|\bhistory\b|\bowners?\b|\btitle\b/i],
-  ["next", /\bwhat (?:now|next)\b|\bnext steps?\b|\bwhat (?:should|do) i do\b|\bwhere (?:do i )?start\b/i],
-  ["overview", /\b(?:thinking|think) (?:of|about) buying\b|\bshould i (?:buy|get)\b|\bis (?:it|this) (?:a )?(?:good|safe|ok|worth)\b|\bbuy (?:it|this)\b|\binterested in\b|\bwhat do you think\b|\bverdict\b|\bany (?:red flags|problems|issues)\b/i],
+  ["next", /\bwhat(?:'?s| is)? (?:now|next)\b|\bnext steps?\b|\bwhat (?:should|do) i do\b|\bwhere (?:do i |should i )?start\b|\bwhat else\b/i],
+  ["overview", /\b(?:thinking|think) (?:of|about) buying\b|\bshould i (?:buy|get)\b|\bwould you buy\b|\bis (?:it|this) (?:a )?(?:good|safe|ok|worth)\b|\bbuy (?:it|this)\b|\binterested in\b|\bwhat do you think\b|\bverdict\b|\bany (?:red flags|problems|issues)\b/i],
 ];
 
-const CAR_WORDS = /\b(car|vehicle|camry|price|miles?|dealer|seller|title|accident|engine|vin|auction|buy|offer|carfax|recall|warranty|inspect|owner|history|deal|tires?|brakes?|transmission|fee|tax|insurance|loan|finance)\b/i;
+/** Words that make a message about the car (anything else short and unasked is small talk). */
+const CAR_WORDS = /\b(car|vehicle|camry|corolla|accord|civic|model|price|miles?|mileage|mpg|gas|fuel|dealer|seller|title|accident|engine|vin|auction|bid|buy|offer|carfax|autocheck|recall|warranty|inspect|inspection|check|owner|history|deal|tires?|brakes?|transmission|timing|belt|chain|oil|maintenance|repair|reliable|reliability|fee|tax|insurance|loan|finance|cost|grade|cr|mmr|consignor|rust|flood|salvage|rebuilt|lien|last|problems?|issues?|break|breaks|repairs?|safe|safety)\b/i;
 
 export function intentOf(text: string): Intent | null {
   return INTENTS.find(([, re]) => re.test(text))?.[0] ?? null;
@@ -79,13 +82,17 @@ export function routeMessage(raw: string, carVin: string | null): Route {
     }
   }
 
+  const question = isQuestion(text);
   const facts = factsFromSentence(text);
   const intent = intentOf(text);
-  const question = /\?\s*$|^(?:is|are|will|would|should|can|could|does|do|what|how|why|which)\b/i.test(text);
   if (facts.length) return { kind: "facts", facts, intent: question ? intent : null, question };
   if (intent) return { kind: "intent", intent };
 
-  const words = text.split(/\s+/).length;
-  if (/^(hi|hello|hey|yo|thanks|thank you|thx|ok|okay|cool|nice|great|test|testing)\b/i.test(text) || words < 3 || !CAR_WORDS.test(text)) return { kind: "small-talk" };
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const greeting = /^(hi|hello|hey|yo|thanks|thank you|thx|ty|ok|okay|cool|nice|great|lol|test|testing|help)\b/i.test(text);
+  if (greeting || !/[a-z]/i.test(text)) return { kind: "small-talk" };
+  // A real question about the car goes to the AI; a few words with nothing about the car don't.
+  // Off-topic, even as a question ("what's the weather tomorrow?"), never spends an AI action.
+  if (!CAR_WORDS.test(text) || words < 2) return { kind: "small-talk" };
   return { kind: "ai" };
 }

@@ -26,9 +26,18 @@ export function money(s: string): number | null {
 
 const AMOUNT = String.raw`(\$?\s?\d{1,3}(?:,\d{3})+|\$?\s?\d{3,7}(?:\.\d+)?\s?k?|\$?\s?\d{1,3}(?:\.\d)?\s?k)\b`;
 
+/** A question, not a statement: "has it been in an accident?" must never be read as "it has". */
+export const isQuestion = (text: string) => /\?\s*$|^(?:is|are|was|were|has|have|had|did|does|do|can|could|should|would|will|how|what|what's|whats|why|which|who|where|when|any)\b/i.test(text.trim());
+
 export function factsFromSentence(raw: string): Fact[] {
-  const text = raw.replace(/\s+/g, " ").trim();
-  const t = text.toLowerCase();
+  const whole = raw.replace(/\s+/g, " ").trim();
+  // Facts come only from statements: questions in the message are left out.
+  // "The auction sold it for $9,100, is that good?": the part before the question still counts.
+  const text = whole
+    .split(/(?<=[.!?])\s+|,\s*(?=(?:is|are|was|were|has|have|did|does|do|can|could|should|would|will|how|what|why|which)\b)/i)
+    .filter((s) => !isQuestion(s))
+    .join(" ");
+  const t = whole.toLowerCase();
   const out: Fact[] = [];
   const quote = (m: RegExpExecArray) => text.slice(m.index, m.index + m[0].length);
 
@@ -41,7 +50,7 @@ export function factsFromSentence(raw: string): Fact[] {
     if (v) out.push({ kind: "auctionSold", value: v, quote: quote(sold) });
   }
   // Asking price.
-  const ask = new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced at|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for))\s*:?\s*${AMOUNT}`, "i").exec(text);
+  const ask = new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for))\s*:?\s*${AMOUNT}`, "i").exec(text);
   if (ask && !(sold && ask.index === sold.index)) {
     const v = money(ask[1]);
     if (v) out.push({ kind: "price", value: v, quote: quote(ask) });

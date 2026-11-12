@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Analysis } from "@/lib/analyze";
 import { parseListing } from "@/lib/listing/parse";
 import { parseAuctionRecord } from "@/lib/listing/auction";
@@ -47,10 +47,20 @@ describe("the router: what each message is, without AI (Amogh's real session)", 
   it("small talk and vague messages cost nothing; open questions go to AI", () => {
     for (const s of ["hi", "thanks!", "what's the weather tomorrow", "ok"]) expect(routeMessage(s, VIN).kind, s).toBe("small-talk");
     expect(routeMessage("Is the price fair?", VIN)).toEqual({ kind: "intent", intent: "price" });
+    // The quick-start buttons, and everyday ways to say them.
+    for (const [q, intent] of [["What should I ask the seller?", "seller"], ["What's next?", "next"], ["what is next", "next"], ["whats next", "next"], ["What else?", "next"], ["any red flags?", "overview"], ["Should I buy it?", "overview"], ["what about recalls", "recalls"]] as const) {
+      expect(routeMessage(q, VIN), q).toEqual({ kind: "intent", intent });
+    }
     expect(routeMessage("What should I ask the dealer?", VIN)).toEqual({ kind: "intent", intent: "seller" });
-    // A fact inside an open question: the miles are applied, then the question goes to AI.
-    expect(routeMessage("Will a 2018 Camry with 126k miles be fine for 5 more years of commuting?", VIN)).toMatchObject({ kind: "facts", question: true, intent: null, facts: [{ kind: "miles", value: 126000 }] });
+    // A question is never read as a statement of fact ("has it been in an accident?" isn't "it has");
+    // an open question goes to AI, which may return facts quoted from it.
+    expect(routeMessage("Will a 2018 Camry with 126k miles be fine for 5 more years of commuting?", VIN).kind).toBe("ai");
+    expect(routeMessage("Has it been in an accident?", VIN)).toEqual({ kind: "intent", intent: "history" });
+    expect(routeMessage("Is 14500 too much?", VIN)).toEqual({ kind: "intent", intent: "price" });
+    expect(routeMessage("The auction sold it for $9,100, is that good?", VIN)).toMatchObject({ kind: "facts", facts: [{ kind: "auctionSold", value: 9100 }] });
     expect(routeMessage("Will this engine last another 5 years of commuting?", VIN).kind).toBe("ai");
+    expect(routeMessage("will it last?", VIN).kind).toBe("ai");
+    expect(routeMessage("What's the weather tomorrow?", VIN).kind).toBe("small-talk");
   });
 });
 
@@ -104,6 +114,7 @@ describe("answers built from the page", () => {
     car: "2018 Toyota Camry LE", vin: VIN, make: "Toyota", verdict: { title: "Worth investigating", text: "Nothing wrong found in what was checked." },
     stops: [], checks: ["Went through a dealer auction"], unknowns: [], price: null, estimate: null, auctionSold: 9100, priced: false, historyRead: false,
     carfax: `https://www.carfax.com/VehicleHistory/p/Report.cfx?vin=${VIN}&partner=FRD_2`, recalls: 8, recallLookup: "https://www.toyota.com/recall", sellerMessage: "Hi, …", dealer: true,
+    otd: { total: 15742.3, state: "New Jersey", inspection: 175 }, fuel: { label: "Camry, Auto (S8), 4 cyl, 2.5 L", mpg: "34 MPG combined", perYear: 2790, perMonth: 232 },
   };
 
   it("'thinking of buying' gets the verdict and the next steps as buttons", () => {
@@ -118,7 +129,37 @@ describe("answers built from the page", () => {
     expect(r.points.join(" ")).toContain("sold at a dealer auction for $9,100: that's a wholesale price");
   });
 
+  it("out the door and fuel are answered from the costs section, without AI", () => {
+    expect(answerIntent("costs", ctx).text).toBe("Out the door in New Jersey: about $15,742.");
+    expect(answerIntent("costs", ctx).points[0]).toContain("$175 for your own mechanic's inspection");
+    expect(answerIntent("costs", { ...ctx, otd: null }).text).toContain("no price yet");
+    expect(answerIntent("fuel", ctx).points[0]).toBe("Fuel and upkeep: about $2,790 a year ($232 a month) at 12,000 miles a year.");
+  });
+
   it("small talk shows what you can do", () => {
     expect(SMALL_TALK.points.length).toBe(3);
+  });
+});
+
+describe("what you told VinVerdict is kept on this device, per car, for a week", () => {
+  it("saves, loads, expires and survives blocked storage", async () => {
+    const { loadTold, saveTold, toldKey } = await import("./store");
+    const mem = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) });
+    const key = toldKey(VIN, "x");
+    expect(key).toBe(`vv-told:${VIN}`);
+    expect(toldKey(null, "some ad")).toBe(toldKey(null, "some ad"));
+    const told: Told[] = [{ id: "1", label: "Sold at auction for $9,100", facts: factsFromSentence(SAID.auction) }];
+    saveTold(key, told, 1_000);
+    expect(loadTold(key, 2_000)).toEqual(told);
+    expect(loadTold(key, 1_000 + 8 * 86_400_000)).toEqual([]);
+    saveTold(key, [], 3_000);
+    expect(mem.has(key)).toBe(false);
+    mem.set(key, "{not json");
+    expect(loadTold(key)).toEqual([]);
+    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); }, removeItem: () => {} });
+    expect(loadTold(key)).toEqual([]);
+    expect(() => saveTold(key, told)).not.toThrow();
+    vi.unstubAllGlobals();
   });
 });

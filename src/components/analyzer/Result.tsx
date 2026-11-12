@@ -5,6 +5,11 @@ import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
 import { applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
+import { loadTold, saveTold, toldKey } from "@/lib/assistant/store";
+import { defaultOtdInput, runningFor } from "@/lib/report/costs";
+import { outTheDoor } from "@/lib/costs/outTheDoor";
+import { DEFAULT_MILES_PER_YEAR } from "@/lib/costs/running";
+import { STATES } from "@/lib/geo/zip";
 import { makerCertified } from "@/lib/protection";
 import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
@@ -107,7 +112,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   onCheckVin?: ((vin: string) => void) | null;
 }) {
   // What the person told VinVerdict (Assistant): applied to the car first, so every section below uses it.
-  const [told, setTold] = useState<Told[]>([]);
+  const toldKeyFor = toldKey(original.vinCheck?.ok ? original.listing.vin : null, original.text);
+  const [told, setTold] = useState<Told[]>(() => loadTold(toldKeyFor));
+  // Kept on this device for this car, so a refresh doesn't lose it.
+  useEffect(() => saveTold(toldKeyFor, told), [toldKeyFor, told]);
   const a = useMemo(() => applyTold(original, told), [original, told]);
   const auction = useMemo(() => toldAuction(told), [told]);
   const [checklist, setChecklist] = useState<SellerChecklist>({});
@@ -273,6 +281,15 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
     sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
     dealer: m.listing.sellerType === "dealer",
+    // The costs section's own default (your saved ZIP's state); the answer points there for changes.
+    otd: (() => {
+      const input = defaultOtdInput(m, readBuyerZip().state);
+      return input ? { total: outTheDoor(input).total, state: STATES[input.state], inspection: input.inspection } : null;
+    })(),
+    fuel: (() => {
+      const r = runningFor(m, 0, DEFAULT_MILES_PER_YEAR);
+      return r ? { label: r.label, mpg: r.mpg, perYear: Math.round(r.cost.total), perMonth: Math.round(r.cost.perMonth) } : null;
+    })(),
   };
 
   const reportFile = (short: boolean) =>
@@ -411,6 +428,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           told={told}
           onTell={(t) => setTold((x) => [...x, t])}
           onUndo={(id) => setTold((x) => x.filter((t) => t.id !== id))}
+          onClear={() => setTold([])}
           onProof={(p) => setProofs((x) => [...x, p])}
           onCheckVin={onCheckVin}
           build={() => reportText(m.listing.url ?? null, true)}

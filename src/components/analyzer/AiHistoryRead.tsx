@@ -8,7 +8,7 @@ import { HISTORY_LIMITS } from "@/lib/ai/history-read";
 export type HistoryReadOk = Extract<HistoryReadState, { status: "ok" }>;
 
 /** A screenshot (blob: URL) as a JPEG data URL that fits the request limit; drops the photo's metadata (re-drawn). */
-async function shrink(blobUrl: string): Promise<string | null> {
+export async function shrink(blobUrl: string): Promise<string | null> {
   const img = new Image();
   img.src = blobUrl;
   try {

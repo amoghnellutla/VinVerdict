@@ -10,9 +10,14 @@ import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
 import { routeMessage } from "@/lib/assistant/route";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
+import { shrink } from "./AiHistoryRead";
 import { aiReadAttached, proofFromText, type Attached } from "./CheckYourself";
 
-type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string };
+/** `read`: a history report waiting for the person's tap (and "I'm human" check) to be read closely. */
+type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null } };
+
+/** Quick starts shown before the first message. */
+const STARTERS = ["Is the price fair?", "What should I ask the seller?", "What's next?"];
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
 const uid = () => crypto.randomUUID();
@@ -40,6 +45,8 @@ function changes(before: PageContext, after: PageContext): string[] {
 function aiActions(keys: AskAction[], c: PageContext): Action[] {
   const out: Action[] = [];
   for (const k of keys) {
+    // Never suggest a step that's already done.
+    if ((k === "price-check" && c.priced) || (k === "add-history" && c.historyRead)) continue;
     if (k === "price-check") out.push({ kind: "go", label: "Run the price check", target: "#price-check" });
     else if (k === "add-history") out.push({ kind: "attach", label: "Add a history report" });
     else if (k === "recall-lookup" && c.recallLookup) out.push({ kind: "link", label: "Open the recall lookup", href: c.recallLookup });
@@ -60,6 +67,7 @@ export function Assistant(props: {
   told: Told[];
   onTell: (t: Told) => void;
   onUndo: (id: string) => void;
+  onClear: () => void;
   onProof: (p: Attached) => void;
   onCheckVin: ((vin: string) => void) | null;
   /** The short report, for AI questions (built when asked). */
@@ -67,7 +75,7 @@ export function Assistant(props: {
   guest: boolean;
   ai: boolean;
 }) {
-  const { ctx, told, onTell, onUndo, onProof, onCheckVin, build, guest, ai } = props;
+  const { ctx, told, onTell, onUndo, onClear, onProof, onCheckVin, build, guest, ai } = props;
   const id = useId();
   const [thread, setThread] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -115,12 +123,15 @@ export function Assistant(props: {
     say({ text: r.answer, points: [...r.claims.map((c) => `${c.text} (${c.section === "At a glance" ? "At a glance" : `section ${c.section}`})`), ...(r.unknowns.length ? [`Not in the report: ${r.unknowns.join("; ")}`] : []), ...(r.next ? [`Next: ${r.next}`] : [])], actions: aiActions(r.actions, ctx), by: r.provider }, r.facts.length ? ctx : undefined);
   }
 
-  async function closeRead(text: string, label: string) {
+  async function closeRead(text: string, label: string, thumb: string | null) {
     if (!ai) return;
-    if (guest && !token) return say({ text: "To read it closely (every accident and damage date, service work), tick the \"I'm human\" box below and use \"Read it closely with free AI\" under the report in Check it yourself." });
+    if (guest && !token) {
+      return say({ text: "Want every accident and damage date, the owners and the service work? Tick the \"I'm human\" box below, then:", read: { text, label, thumb } });
+    }
     setBusy("Reading the report closely…");
     const before = ctx;
-    const r = await readHistoryAction({ text, image: null, token: takeToken() }).catch(() => null);
+    const image = thumb ? await shrink(thumb).catch(() => null) : null;
+    const r = await readHistoryAction({ text, image, token: takeToken() }).catch(() => null);
     setBusy(null);
     if (!r || r.status === "error") return say({ text: r?.message ?? "Couldn't read it closely right now." });
     const card = aiReadAttached(label, r);
@@ -137,7 +148,7 @@ export function Assistant(props: {
         if (!card) return reply(SMALL_TALK);
         onProof(card);
         say({ text: `Added to Check it yourself as ${route.source === "carfax" ? "a Carfax report" : route.source === "autocheck" ? "an AutoCheck report" : "proof"}:`, points: card.read.findings.map((f) => f.label), actions: [{ kind: "go", label: "See it", target: "#check-yourself" }] }, before);
-        if ((route.source === "carfax" || route.source === "autocheck") && card.text) await closeRead(card.text, label);
+        if ((route.source === "carfax" || route.source === "autocheck") && card.text) await closeRead(card.text, label, thumb);
         return;
       }
       case "auction": {
@@ -213,6 +224,17 @@ export function Assistant(props: {
         whole result updates. Questions are answered from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq when busy) helps only with open questions and reading a report closely, and may keep what's sent" : ""}.
       </p>
 
+      {thread.length === 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {STARTERS.map((s) => (
+            <button key={s} type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => { setThread((t) => [...t, { id: uid(), who: "you", text: s }]); void handle(s, "Question", null); }}>
+              {s}
+            </button>
+          ))}
+          <button type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>Add the Carfax (screenshot)</button>
+        </div>
+      )}
+
       {told.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-2" aria-label="What you've told VinVerdict">
           {told.map((t) => (
@@ -221,6 +243,11 @@ export function Assistant(props: {
               <button type="button" className="link text-xs" onClick={() => onUndo(t.id)} aria-label={`Undo: ${t.label}`}>Undo</button>
             </li>
           ))}
+          {told.length > 1 && (
+            <li>
+              <button type="button" className="link text-xs" onClick={onClear}>Clear all</button>
+            </li>
+          )}
         </ul>
       )}
 
@@ -243,6 +270,20 @@ export function Assistant(props: {
                     ),
                   )}
                 </div>
+              )}
+              {m.read && (
+                <button
+                  type="button"
+                  className="btn btn-primary mt-2 text-sm"
+                  disabled={!!busy || (guest && !token)}
+                  onClick={() => {
+                    const r = m.read!;
+                    setThread((t) => t.map((x) => (x.id === m.id ? { ...x, read: undefined } : x)));
+                    void closeRead(r.text, r.label, r.thumb);
+                  }}
+                >
+                  Read it closely with free AI
+                </button>
               )}
               {m.vin && onCheckVin && (
                 <button type="button" className="btn btn-secondary mt-2 text-sm" onClick={() => onCheckVin(m.vin!)}>Check that car instead</button>
@@ -274,7 +315,7 @@ export function Assistant(props: {
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <button type="button" className="btn btn-primary" disabled={!input.trim() || !!busy} onClick={() => void send()}>Send</button>
         <button type="button" className="btn btn-secondary" disabled={!!busy} onClick={() => fileRef.current?.click()}>Attach screenshots</button>
-        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} />
+        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} aria-label="Attach screenshots" onChange={(e) => { void attach(e.target.files); e.target.value = ""; }} />
         {ai && guest && <span className="text-xs text-muted">The free AI is used only when needed (5 a day per visitor).</span>}
       </div>
     </section>
