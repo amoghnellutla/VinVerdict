@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
-import { toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
+import { toldGuide, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
 import { milesAgree, type Reading } from "@/lib/assistant/odometer";
@@ -102,7 +102,7 @@ function dealerUrls(live: Live | null, h: HistorySummary | null): string[] {
 // Findings that help the buyer negotiate, strongest first.
 const LEVERAGE = [
   "title-brand", "report-title", "accident-reported", "live-accident", "report-damage", "history-price-cut", "high-miles", "history-two-sellers",
-  "dealer-auction", "auction", "auction-broker", "proof-auction", "seller-problem", "history-moved", "accident-unknown",
+  "dealer-auction", "auction", "auction-broker", "proof-auction", "seller-problem", "history-moved",
 ];
 // Bad news about the car's past from listing data (before any report).
 const FEED_HISTORY = /^(?:live-accident|history-|fleet|accident-reported)/;
@@ -143,6 +143,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     setTold((x) => [...x, t]);
   };
   const auction = useMemo(() => toldAuction(told), [told]);
+  // A price guide value the person quoted (KBB, Edmunds…): a priced estimate even with no price check.
+  const guide = useMemo(() => toldGuide(told), [told]);
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
   // Proof attached in "Check it yourself" (read on this device, never uploaded).
@@ -225,10 +227,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
 
   const { result, valuation, sellV } = useMemo(() => {
     const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit] }, checklist);
-    if (!sources) return { result: first, valuation: null, sellV: null };
+    if (!sources && !guide) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
-    const srcs = revalue(sources, { year, miles: milesUsed, trim: trimUsed });
+    const read = sources ? revalue(sources, { year, miles: milesUsed, trim: trimUsed }) : { predicted: null, sold: null, active: null, zip: readBuyerZip().zip || l.zip || "" };
+    const srcs = guide ? { ...read, guide } : read;
     // Accidents: the history report first, then the listing; a seller admitting one counts too.
     const accident: AccidentStatus = checklist.anyAccidents === true ? "reported" : l.accident;
     const titleStatus: TitleStatus = answers.title === "branded" ? "branded" : answers.title === "clean" && l.titleStatus === "unknown" ? "clean" : l.titleStatus;
@@ -250,7 +253,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     // A real market value lets the "far below market" scam rules run.
     const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit], valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction, milesHit]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction, milesHit, guide]);
 
   // What the cost panels currently show, for the downloadable report (a ref: no re-renders).
   const parts = useRef<CostParts>({});
@@ -311,7 +314,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     checks: hits.filter((f) => f.severity === "verify").map((f) => f.title),
     unknowns: decision.areas.flatMap((x) => x.unknown),
     price: m.listing.price,
-    estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, label: valuation.label ? DEAL_TEXT[valuation.label] : null, open: valuation.offer?.open ?? null, walk: valuation.offer?.max ?? null } : null,
+    estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, label: valuation.label ? DEAL_TEXT[valuation.label] : null, open: valuation.offer?.open ?? null, walk: valuation.offer?.max ?? null, basis: sources ? "similar cars" : `the ${guide?.name ?? "price guide"} value you quoted` } : null,
     auctionSold: auction?.soldPrice ?? null,
     auctionDate: auction?.record?.saleDate ?? null,
     // The cheapest other dealer listing this VIN now (not the ad's own dealer).
@@ -500,7 +503,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
                 ? { damage: answers.damage === "unknown" ? "accidents not read" : DAMAGE_LABEL[answers.damage], title: answers.title === "unknown" ? "" : TITLE_LABEL[answers.title], owners: [...proofs].reverse().find((p) => p.read.owners)?.read.owners ?? m.listing.ownerCount }
                 : null,
               carfax: live?.carfaxUrl ?? null,
-              estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high } : null,
+              estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, basis: sources ? null : `your ${guide?.name ?? "price guide"} number` } : null,
               listings: history ? history.stints.length : null,
               recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
               recalls: a.recalls?.length ?? null,

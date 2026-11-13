@@ -18,7 +18,7 @@ export type DealInput = {
   asking: number | null;
   auctionSold: number | null;
   auctionDate: string | null;
-  estimate: { low: number; high: number; open: number | null; walk: number | null } | null;
+  estimate: { low: number; high: number; open: number | null; walk: number | null; basis?: string } | null;
   /** The cheapest other listing of the same VIN, if the listing history shows one. */
   otherListing: { seller: string; price: number } | null;
   /** Findings that give the buyer leverage (accident, branded title, high miles, price cut…). */
@@ -91,7 +91,8 @@ export function dealAnswer(input: DealInput): DealAnswer {
     points.push(`It sold at a dealer auction for ${$(d.auctionSold)}: that's roughly what a dealer paid, before their fees and reconditioning.`);
   }
   if (d.estimate) {
-    points.push(`Similar cars nearby: ${$(d.estimate.low)}–${$(d.estimate.high)}${d.asking ? ` (asking ${$(d.asking)})` : ""}.`);
+    const basis = d.estimate.basis && d.estimate.basis !== "similar cars" ? `From ${d.estimate.basis}` : "Similar cars nearby";
+    points.push(`${basis}: ${$(d.estimate.low)}–${$(d.estimate.high)}${d.asking ? ` (asking ${$(d.asking)})` : ""}.`);
     if (!cheap && d.estimate.open && d.estimate.walk) points.push(`VinVerdict's suggestion: open at ${$(d.estimate.open)}, walk away above ${$(Math.min(d.estimate.walk, d.asking ?? d.estimate.walk))}.`);
   }
   if (d.otherListing && (!d.asking || d.otherListing.price < d.asking)) points.push(`${d.otherListing.seller} lists the same VIN for ${$(d.otherListing.price)}${d.asking ? `, ${$(d.asking - d.otherListing.price)} less` : ""}.`);

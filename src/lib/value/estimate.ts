@@ -44,7 +44,11 @@ export type PriceSources = {
   marketDays?: number | null;
   /** The comps themselves and what they were read at, so the page can re-price instantly. */
   comps?: { sold: Comp[]; active: Comp[]; target: CompTarget };
+  /** A price guide value the person looked up and quoted (KBB, Edmunds…): never checked, never alone confident. */
+  guide?: PriceGuide | null;
 };
+
+export type PriceGuide = { name: string; value: number; kind: "retail" | "private" | "unknown" };
 
 export type ValueInput = {
   price: number | null;
@@ -128,15 +132,29 @@ export function valueCar(src: PriceSources, car: ValueInput): Valuation | null {
     sources.push({ name: `For sale now near ${src.zip}`, value: Math.round(v), note: `${src.active.n} similar cars listed now within 100 miles (asking prices), minus the usual ${Math.round(ASKING_GAP * 100)}% between asking and selling price` });
     weighted.push({ v, w: 0.2 * Math.min(1, src.active.n / 10) * (src.active.extrapolated ? 0.6 : 1) });
   }
+  if (src.guide && src.guide.value > 0) {
+    const g = src.guide;
+    // The estimate is on a dealer basis (a private seller comes off below), so a private-party value is put back on it.
+    const v = g.kind === "private" ? g.value / (1 + PRIVATE) : g.value * (1 - SOLD_HAGGLE);
+    const kbb = /\b(?:kbb|kelley)/i.test(g.name);
+    sources.push({
+      name: `${g.name} value you quoted`,
+      value: Math.round(v),
+      note: `${g.kind === "private" ? `Private-party value ${fmt(g.value)}, put on a dealer basis` : g.kind === "retail" ? `Dealer retail value ${fmt(g.value)}, minus a small haggle margin` : `${fmt(g.value)}, read as a retail value, minus a small haggle margin`}. You looked it up; VinVerdict didn't check it${kbb ? ", and KBB tends to read high" : ""}`,
+    });
+    weighted.push({ v, w: 0.25 });
+  }
   const totalW = weighted.reduce((s, x) => s + x.w, 0);
   if (!weighted.length || totalW <= 0) return null;
+  const guideOnly = !!src.guide && sources.length === 1;
   const base = weighted.reduce((s, x) => s + x.v * x.w, 0) / totalW;
 
   // Range: how far the sources disagree, or the comps' own spread, at least ±5%, at most ±15%.
   const vals = weighted.map((x) => x.v);
   const disagree = vals.length > 1 ? (Math.max(...vals) - Math.min(...vals)) / 2 / base : 0;
   const spreads = [src.sold, src.active].filter((e): e is CompEstimate => !!e).map((e) => (e.high - e.low) / 2 / e.value);
-  const half = Math.min(0.15, Math.max(0.05, disagree, spreads.length ? Math.min(...spreads) : 0));
+  // One quoted guide value says nothing about the spread: at least ±10%.
+  const half = Math.min(0.15, Math.max(guideOnly ? 0.1 : 0.05, disagree, spreads.length ? Math.min(...spreads) : 0));
 
   // This car's history and seller.
   const adjustments: Adjustment[] = [];
@@ -178,7 +196,7 @@ export function valueCar(src: PriceSources, car: ValueInput): Valuation | null {
   if (sources.length >= 2 && disagree <= 0.08 && soldN >= 10 && !stretch) confidence = "high";
   else if (sources.length === 1 || soldN + (src.active?.n ?? 0) < 5 || disagree > 0.15 || stretch) {
     confidence = "low";
-    confidenceWhy = sources.length === 1 ? "only one source answered"
+    confidenceWhy = guideOnly ? "only the price guide value you quoted, not checked against cars for sale" : sources.length === 1 ? "only one source answered"
       : stretch ? "few comparable cars have miles like this one"
         : disagree > 0.15 ? `the sources disagree by ${Math.round(disagree * 200)}%`
           : "few comparable cars nearby";

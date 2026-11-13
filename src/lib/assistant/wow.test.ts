@@ -32,8 +32,8 @@ describe("What VinVerdict knows (the checklist under the verdict)", () => {
     expect(k.filter((x) => x.done)).toHaveLength(0);
     expect(k.find((x) => x.key === "price")?.action).toMatchObject({ kind: "tell", prefill: "They're asking $" });
     expect(k.find((x) => x.key === "history")?.action).toMatchObject({ kind: "attach" });
-    // No VIN: the price check can't run, so it isn't offered.
-    expect(k.find((x) => x.key === "estimate")?.action).toBeNull();
+    // No VIN: the price check can't run, so a guide value is asked for instead.
+    expect(k.find((x) => x.key === "estimate")?.action).toMatchObject({ kind: "tell", prefill: "KBB private party value $" });
   });
 
   it("fills in from the page, and a known auction sale is said without pretending it's an estimate", () => {
@@ -253,5 +253,16 @@ describe("the message to the seller", () => {
     expect(r.quote).toBe("Hi, is the title in your name?");
     expect(r.actions[0]).toEqual({ kind: "copy", label: "Copy the message", text: "Hi, is the title in your name?" });
     expect(answerIntent("seller", { ...ctx, trust: { stops: ["Gift card payment"], checks: [] } }).text).toMatch(/^Don't send money/);
+  });
+});
+
+describe("no price check left (or no VIN): a guide value is the way in", () => {
+  it("the price and offer answers point to Edmunds and KBB", () => {
+    const c = { ...ctx, estimate: null, auctionSold: null, priced: false };
+    const price = answerIntent("price", c);
+    expect(price.points.join(" ")).toContain("Or, with no quota at all: look it up on Edmunds or KBB");
+    expect(price.actions.map((a) => a.label)).toEqual(["Run the price check", "Edmunds appraisal", "Kelley Blue Book"]);
+    expect(answerIntent("price", { ...c, vin: null }).actions.map((a) => a.label)).toEqual(["Edmunds appraisal", "Kelley Blue Book"]);
+    expect(answerIntent("offer", c).points.join(" ")).toContain("tell me a KBB or Edmunds value");
   });
 });

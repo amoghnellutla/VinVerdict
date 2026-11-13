@@ -13,6 +13,7 @@
 import { readProof, type ProofSource } from "@/lib/evidence/parse";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
+import { isChat, sellerSide } from "./chat";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
 export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems";
@@ -27,6 +28,8 @@ export type Route =
   | { kind: "intent"; intent: Intent }
   /** What the seller said or asked for ("he wants a deposit", "she'd take 13,500"): checked like their reply, plus any facts in it. */
   | { kind: "said"; facts: Fact[] }
+  /** A pasted or screenshotted conversation with the seller: their side, checked like a reply. */
+  | { kind: "chat"; seller: string; facts: Fact[] }
   | { kind: "small-talk" }
   /** A pasted link: VinVerdict doesn't open listing links, so ask for the page's text. */
   | { kind: "link"; host: string }
@@ -118,6 +121,15 @@ export function routeMessage(raw: string, carVin: string | null): Route {
   const proof = (): Route => (carVin && read!.vins.length && !read!.vins.includes(carVin) ? { kind: "other-car", vin: read!.vins[0] } : { kind: "proof", source: read!.source });
   // A page with report-only wording is a report, whatever else it mentions.
   if (readable && reportMarkers(text) >= 2) return proof();
+
+  // A conversation with the seller (before the listing check: a chat mentions the price and the car too).
+  const pre = text.length >= 80 ? parseListing(text) : null;
+  const preSignals = pre ? [pre.vin, pre.price, pre.miles, pre.year && pre.model].filter(Boolean).length : 0;
+  if (isChat(text, preSignals)) {
+    const seller = sellerSide(text);
+    // The seller's own claims and prices; a ZIP or "dealer/private" in a chat isn't reliable.
+    return { kind: "chat", seller, facts: factsFromSentence(seller).filter((f) => f.kind !== "zip" && f.kind !== "seller") };
+  }
 
   if (text.length >= 80) {
     const listing = parseListing(text);

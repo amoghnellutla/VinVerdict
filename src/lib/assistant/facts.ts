@@ -14,7 +14,9 @@ export type Fact =
   | { kind: "accident"; value: "none" | "reported"; quote: string }
   | { kind: "title"; value: "clean" | "salvage" | "rebuilt" | "flood"; quote: string }
   | { kind: "docFee"; value: number; quote: string }
-  | { kind: "usage"; value: "rental" | "fleet"; quote: string };
+  | { kind: "usage"; value: "rental" | "fleet"; quote: string }
+  /** A price guide value the person looked up ("KBB says 13,200", "Edmunds private party 12,500"). Trade-in is kept only to explain why it isn't used. */
+  | { kind: "guide"; value: number; name: string; guide: "retail" | "private" | "trade" | "unknown"; quote: string };
 
 const WORD_NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
 
@@ -88,6 +90,18 @@ export function factsFromSentence(raw: string): Fact[] {
   // Title.
   const title = /\b(clean|salvage|rebuilt|flood)(?: title)\b|\btitle is (clean|salvage|rebuilt|flood)\b/i.exec(text);
   if (title) out.push({ kind: "title", value: (title[1] ?? title[2]).toLowerCase() as "clean" | "salvage" | "rebuilt" | "flood", quote: quote(title) });
+  // A price guide value ("KBB says 13,200", "kelley blue book private party value is $12,500", "edmunds 13k").
+  const GUIDES: [RegExp, string][] = [[/\bkbb\b|\bkelley(?: blue book)?\b|\bblue book\b/i, "KBB"], [/\bedmunds\b/i, "Edmunds"], [/\bnada(?:guides)?\b|\bj\.?d\.? power\b/i, "J.D. Power (NADA)"], [/\bcargurus\b/i, "CarGurus"], [/\bcarfax value\b|\bcarfax says (?:it'?s )?worth\b/i, "Carfax"]];
+  const guideName = GUIDES.find(([re]) => re.test(text))?.[1];
+  if (guideName) {
+    const g = new RegExp(String.raw`(?:kbb|kelley(?: blue book)?|blue book|edmunds|nada(?:guides)?|j\.?d\.? power|cargurus|carfax)[^.?!$\d]{0,60}${AMOUNT}`, "i").exec(text);
+    const v = g ? money(g[1]) : null;
+    if (g && v && v >= 1_000) {
+      const said = g[0].toLowerCase();
+      const kind = /trade[- ]?in/.test(said) ? "trade" : /private(?: party)?/.test(said) ? "private" : /retail|dealer|fair purchase|typical listing|market value|instant market/.test(said) ? "retail" : "unknown";
+      out.push({ kind: "guide", value: v, name: guideName, guide: kind, quote: quote(g) });
+    }
+  }
   // The dealer's doc fee ("doc fee is 499", "added a $899 doc fee").
   const doc = /\bdoc(?:ument(?:ation|ary)?)?[ -]?fees?\b(?:\s*(?:is|of|:|=))?\s*\$?\s?(\d{2,4})\b|\$\s?(\d{2,4})\s*(?:dealer\s+)?doc(?:ument(?:ation|ary)?)?[ -]?fee/i.exec(text);
   const docFee = doc ? Number(doc[1] ?? doc[2]) : 0;
@@ -95,7 +109,9 @@ export function factsFromSentence(raw: string): Fact[] {
   // A former rental or fleet car, stated ("it was a rental"; "it's not a rental" doesn't match).
   const use = /\b(?:was|it'?s|it is|is|former|ex-?)\s*(?:an?\s+)?(rental|fleet|company car)\b|\bused (?:as )?(?:a |in a )?(rental|fleet)\b/i.exec(text);
   if (use) out.push({ kind: "usage", value: (use[1] ?? use[2]).toLowerCase() === "rental" ? "rental" : "fleet", quote: quote(use) });
-  return out;
+  const guide = out.find((f) => f.kind === "guide");
+  // "KBB private party value" describes the guide's number, not who's selling.
+  return guide ? out.filter((f) => !(f.kind === "price" && f.value === guide.value) && !(f.kind === "seller" && guide.quote.toLowerCase().includes(f.quote.toLowerCase()))) : out;
 }
 
 export const FACT_LABEL: Record<Fact["kind"], string> = {
@@ -109,6 +125,7 @@ export const FACT_LABEL: Record<Fact["kind"], string> = {
   title: "title",
   docFee: "doc fee",
   usage: "past use",
+  guide: "price guide",
 };
 
 export function factText(f: Fact): string {
@@ -123,5 +140,6 @@ export function factText(f: Fact): string {
     case "title": return `${f.value[0].toUpperCase()}${f.value.slice(1)} title`;
     case "docFee": return `Doc fee $${f.value.toLocaleString("en-US")}`;
     case "usage": return f.value === "rental" ? "Former rental car" : "Former fleet car";
+    case "guide": return `${f.name}${f.guide === "private" ? " private party" : f.guide === "retail" ? " retail" : f.guide === "trade" ? " trade-in" : ""} value $${f.value.toLocaleString("en-US")}`;
   }
 }

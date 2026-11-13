@@ -25,7 +25,7 @@ export type PageContext = {
   unknowns: string[];
   price: number | null;
   /** Price estimate, when the price check ran. */
-  estimate: { low: number; high: number; label: string | null; open: number | null; walk: number | null } | null;
+  estimate: { low: number; high: number; label: string | null; open: number | null; walk: number | null; basis?: string } | null;
   auctionSold: number | null;
   auctionDate: string | null;
   /** The cheapest other listing of this VIN (listing history), for negotiating. */
@@ -57,6 +57,9 @@ export type PageContext = {
 };
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+/** Free price guides a person can look the car up on and quote back (the same ones the price section lists). */
+export const GUIDE_LINKS = { edmunds: "https://www.edmunds.com/appraisal/", kbb: "https://www.kbb.com/whats-my-car-worth/" };
 
 const FOLLOW: Record<string, string[]> = {
   overview: ["What should I offer?", "Is this a scam?"],
@@ -131,16 +134,21 @@ export function answerIntent(intent: string, c: PageContext): Reply {
     case "offer": {
       const d = dealAnswer({
         car: c.car, asking: c.price, auctionSold: c.auctionSold, auctionDate: c.auctionDate,
-        estimate: c.estimate ? { low: c.estimate.low, high: c.estimate.high, open: c.estimate.open, walk: c.estimate.walk } : null,
+        estimate: c.estimate ? { low: c.estimate.low, high: c.estimate.high, open: c.estimate.open, walk: c.estimate.walk, basis: c.estimate.basis } : null,
         otherListing: c.otherListing, leverage: c.leverage, dealer: c.dealer,
         scam: c.trust.stops, concerns: c.trust.checks,
       });
       if (!d.message) return { text: d.text, points: d.points, actions: [{ kind: "go", label: "See the warnings", target: "#verdict" }] };
+      const noBasis = !c.estimate && !c.auctionSold;
       return {
         text: d.text,
-        points: d.points,
         quote: d.message,
-        actions: [{ kind: "copy", label: "Copy the message", text: d.message }, ...(!c.priced && c.vin ? [{ kind: "go" as const, label: "Run the price check", target: "#price-check" as const }] : [])],
+        points: noBasis ? [...d.points, "For a number to offer, run the price check, or tell me a KBB or Edmunds value (\"Edmunds private party 12,500\")."] : d.points,
+        actions: [
+          { kind: "copy", label: "Copy the message", text: d.message },
+          ...(!c.priced && c.vin ? [{ kind: "go" as const, label: "Run the price check", target: "#price-check" as const }] : []),
+          ...(noBasis ? [{ kind: "link" as const, label: "Edmunds appraisal", href: GUIDE_LINKS.edmunds }] : []),
+        ],
       };
     }
     case "price": {
@@ -161,18 +169,33 @@ export function answerIntent(intent: string, c: PageContext): Reply {
       }
       if (c.estimate && c.price) {
         const e = c.estimate;
-        const where = c.price > e.high ? `${$(c.price - e.high)} above similar cars (${$(e.low)}–${$(e.high)})`
-          : c.price < e.low ? `${$(e.low - c.price)} below similar cars (${$(e.low)}–${$(e.high)})`
-          : `within what similar cars ask (${$(e.low)}–${$(e.high)})`;
+        const basis = e.basis ?? "similar cars";
+        const comps = basis === "similar cars";
+        const where = c.price > e.high ? `${$(c.price - e.high)} above ${comps ? "similar cars" : `the range from ${basis}`} (${$(e.low)}–${$(e.high)})`
+          : c.price < e.low ? `${$(e.low - c.price)} below ${comps ? "similar cars" : `the range from ${basis}`} (${$(e.low)}–${$(e.high)})`
+          : `within ${comps ? "what similar cars ask" : `the range from ${basis}`} (${$(e.low)}–${$(e.high)})`;
         const head = `${e.label ? `${e.label}: ` : ""}${$(c.price)} is ${where}.`;
         const rest = points.filter((x) => !x.startsWith("Estimate from"));
         if (c.price < e.low) rest.push("Below the range usually has a reason: check the history and get an inspection before you pay.");
+        if (!comps) rest.push("That's from one guide value and wasn't compared with cars for sale: run the price check to see what similar cars ask nearby.");
         return { text: head, points: rest, actions: [{ kind: "go", label: "See the price details", target: "#price-check" }] };
       }
       if (c.price) points.push(`Asking price: ${$(c.price)}.`);
       return c.estimate
         ? { text: "Here's the price, from this page:", points, actions: [{ kind: "go", label: "See the price details", target: "#price-check" }] }
-        : { text: "VinVerdict hasn't priced it yet.", points: [...points, "Run the price check for an estimate from similar cars nearby (it uses a small free daily quota)."], actions: [{ kind: "go", label: "Run the price check", target: "#price-check" }] };
+        : {
+            text: "VinVerdict hasn't priced it yet.",
+            points: [
+              ...points,
+              ...(c.vin ? ["Run the price check for an estimate from similar cars nearby (it uses a small free daily quota)."] : []),
+              `${c.vin ? "Or, with no quota at all: " : ""}look it up on Edmunds or KBB and tell me the value ("KBB private party 12,500"). It's priced from that straight away.`,
+            ],
+            actions: [
+              ...(c.vin ? [{ kind: "go" as const, label: "Run the price check", target: "#price-check" as const }] : []),
+              { kind: "link", label: "Edmunds appraisal", href: GUIDE_LINKS.edmunds },
+              { kind: "link", label: "Kelley Blue Book", href: GUIDE_LINKS.kbb },
+            ],
+          };
     }
     case "costs":
       return c.otd
@@ -295,7 +318,7 @@ export function answerIntent(intent: string, c: PageContext): Reply {
         text: `${c.verdict.title}. ${c.verdict.text}${c.stops.length ? ` Serious: ${c.stops.join("; ")}.` : ""}${c.checks.length ? ` To check: ${c.checks.slice(0, 3).join("; ")}.` : ""}`,
         points: [
           ...(c.trust.stops.length ? steps.points : []),
-          ...(c.estimate ? [`Price: ${c.price ? `${$(c.price)} asked; ` : ""}similar cars ${$(c.estimate.low)}–${$(c.estimate.high)}${c.trust.stops.length ? ": far below, which is part of the warning" : c.estimate.label ? ` (${c.estimate.label})` : ""}.`] : []),
+          ...(c.estimate ? [`Price: ${c.price ? `${$(c.price)} asked; ` : ""}${c.estimate.basis && c.estimate.basis !== "similar cars" ? `from ${c.estimate.basis}` : "similar cars"} ${$(c.estimate.low)}–${$(c.estimate.high)}${c.trust.stops.length ? ": far below, which is part of the warning" : c.estimate.label ? ` (${c.estimate.label})` : ""}.`] : []),
           ...(c.auctionSold ? [`It sold at a dealer auction for ${$(c.auctionSold)} (wholesale): a dealer's asking price above that includes their markup, fees and reconditioning.`] : []),
           ...(c.trust.stops.length ? [] : steps.points),
         ],

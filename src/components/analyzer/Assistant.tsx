@@ -259,6 +259,15 @@ export function Assistant(props: {
       }
       case "other-car":
         return say({ text: `That's a different car (VIN ${route.vin}). Nothing was added to this one.`, vin: route.vin });
+      case "chat": {
+        if (!route.seller.trim()) return say({ text: "That looks like a chat, but there's nothing from the seller in it yet. Paste it again once they've replied." });
+        const lines = route.seller.split("\n").length;
+        onTell({ id: uid(), label: `Chat with the seller (${lines} line${lines === 1 ? "" : "s"} from them)`, reply: route.seller, facts: route.facts.length ? route.facts : undefined });
+        return say({
+          text: `Read as your chat with the seller. Their side (${lines} line${lines === 1 ? "" : "s"}) is checked for warning signs and for stories that change from the ad${route.facts.length ? `, and what they said is applied: ${route.facts.map(factText).join("; ")}` : ""}.`,
+          actions: [{ kind: "go", label: "See the seller checks", target: "#before-you-buy" }],
+        }, before, true);
+      }
       case "said": {
         const short = text.length > 60 ? `${text.slice(0, 57)}…` : text;
         onTell({ id: uid(), label: `Seller said: "${short}"`, reply: text, facts: route.facts.length ? route.facts : undefined });
@@ -270,8 +279,16 @@ export function Assistant(props: {
         }, before, true);
       }
       case "facts": {
-        onTell({ id: uid(), label: route.facts.map(factText).join(", "), facts: route.facts });
-        say({ text: `Got it: ${route.facts.map(factText).join("; ")}. Applied to the whole page (marked "you told VinVerdict"; undo it below).` }, before);
+        // A trade-in value is what a dealer pays you, not a buying price: explained, never applied.
+        const trade = route.facts.some((f) => f.kind === "guide" && f.guide === "trade");
+        const facts = route.facts.filter((f) => !(f.kind === "guide" && f.guide === "trade"));
+        if (facts.length) {
+          onTell({ id: uid(), label: facts.map(factText).join(", "), facts });
+          say({ text: `Got it: ${facts.map(factText).join("; ")}. Applied to the whole page (marked "you told VinVerdict"; undo it below).` }, before);
+        }
+        if (trade) {
+          say({ text: "A trade-in value is what a dealer would pay you, not what you'd pay, so it isn't used for the price. Tell me the private party or dealer retail value instead (\"KBB private party 12,500\")." });
+        }
         if (route.intent) return reply(answerIntent(route.intent, ctx));
         if (route.question) return askAi(text);
         return;

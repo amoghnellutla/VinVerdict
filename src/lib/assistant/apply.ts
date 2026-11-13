@@ -12,6 +12,7 @@ import type { Analysis } from "@/lib/analyze";
 import type { AuctionRecord } from "@/lib/listing/auction";
 import type { ParsedListing } from "@/lib/listing/parse";
 import type { RuleHit } from "@/lib/scam/rules";
+import type { PriceGuide } from "@/lib/value/estimate";
 import type { Fact } from "./facts";
 
 export type Told = {
@@ -54,6 +55,12 @@ export function applyTold(a: Analysis, told: Told[]): Analysis {
   }
   const extra = told.map((t) => t.text).filter((x): x is string => !!x);
   return { ...a, listing, text: extra.length ? `${a.text}\n\n${extra.join("\n\n")}` : a.text };
+}
+
+/** The latest price guide value the person quoted (a trade-in value isn't a buying price, so it's left out). */
+export function toldGuide(told: Told[]): PriceGuide | null {
+  const g = [...told].reverse().flatMap((t) => [...(t.facts ?? [])].reverse()).find((f) => f.kind === "guide" && f.guide !== "trade");
+  return g && g.kind === "guide" && g.guide !== "trade" ? { name: g.name, value: g.value, kind: g.guide } : null;
 }
 
 /** What the seller said, from everything the person told VinVerdict (checked with the pasted replies). */

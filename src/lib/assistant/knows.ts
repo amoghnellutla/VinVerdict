@@ -22,7 +22,7 @@ export type KnowsInput = {
   /** History report answers (from a report the person read or attached). */
   history: { damage: string; title: string; owners: number | null } | null;
   carfax: string | null;
-  estimate: { low: number; high: number } | null;
+  estimate: { low: number; high: number; basis?: string | null } | null;
   /** Past listings of this VIN (from the price check), or null when not looked up. */
   listings: number | null;
   /** The recall lookup for this VIN was checked (proof attached). */
@@ -56,8 +56,13 @@ export function knowsList(k: KnowsInput): Known[] {
         }
       : { key: "history", label: "Accidents, title, owners", done: false, detail: k.feedHistory?.length ? `Known so far: ${k.feedHistory[0]}; the report has the details` : k.carfax ? "The dealer has a free Carfax" : "Needs the Carfax or AutoCheck", action: { kind: "attach", label: "Add the report" } },
     k.estimate
-      ? { key: "estimate", label: "Fair price", done: true, detail: `Similar cars ${$(k.estimate.low)}–${$(k.estimate.high)}`, action: null }
-      : { key: "estimate", label: "Fair price", done: false, detail: k.auctionSold ? `Sold at auction for ${$(k.auctionSold)}; not compared yet` : "Not compared with similar cars", action: k.vin ? { kind: "go", label: "Run the price check", target: "#price-check" } : null },
+      ? { key: "estimate", label: "Fair price", done: true, detail: k.estimate.basis ? `${$(k.estimate.low)}–${$(k.estimate.high)} from ${k.estimate.basis}` : `Similar cars ${$(k.estimate.low)}–${$(k.estimate.high)}`, action: null }
+      : {
+          key: "estimate", label: "Fair price", done: false,
+          detail: k.auctionSold ? `Sold at auction for ${$(k.auctionSold)}; not compared yet` : k.vin ? "Not compared with similar cars" : "Tell a KBB or Edmunds value to price it",
+          // Without a VIN the price check can't run, but a guide value the person looks up can.
+          action: k.vin && !k.priced ? { kind: "go", label: "Run the price check", target: "#price-check" } : { kind: "tell", label: "Tell a guide value", prefill: "KBB private party value $" },
+        },
     k.listings !== null
       ? { key: "listings", label: "Where else it's been listed", done: true, detail: `${k.listings} past listing${k.listings === 1 ? "" : "s"} found`, action: null }
       : !k.vin

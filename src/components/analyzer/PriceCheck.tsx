@@ -198,6 +198,14 @@ export function PriceCheck(props: Props) {
           {state.message} The rest of this report doesn&apos;t need the lookup and is already complete.
         </p>
       )}
+      {!done && !v && !selling && (
+        <p className="text-sm text-muted">
+          No lookup needed: get a value from{" "}
+          <ExternalLink href={CHECK_YOURSELF[1].href} className="link">Edmunds</ExternalLink> or{" "}
+          <ExternalLink href={CHECK_YOURSELF[2].href} className="link">Kelley Blue Book</ExternalLink> and tell it to VinVerdict in the box at the top
+          (&quot;KBB private party 12,500&quot;). The price, the offer and the costs are worked out from it.
+        </p>
+      )}
     </form>
   );
 
@@ -205,6 +213,13 @@ export function PriceCheck(props: Props) {
     <section className="border-t border-border pt-8" id="price-check">
       <h2 className="section-title">{selling ? "What your car is worth" : "Is the price fair?"}</h2>
 
+      {!done && v && !selling && (
+        <div className="mb-6 space-y-4">
+          <p className="text-sm text-muted">From the price guide value you told VinVerdict (in the box above). The check below compares it with cars for sale nearby.</p>
+          {v.unpriced ? <p className="rounded-md bg-warn-soft px-4 py-3">{v.unpriced}</p> : <ValueSummary v={v} price={l.price} />}
+          <Sources v={v} />
+        </div>
+      )}
       {!done && form}
 
       {done && (
