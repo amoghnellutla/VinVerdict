@@ -110,7 +110,7 @@ const FEED_HISTORY = /^(?:live-accident|history-|fleet|accident-reported)/;
 /** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
 const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
 
-export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null }: {
+export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -123,6 +123,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   shots?: string[];
   /** Start a new check for a VIN (from "This may be the same car"). */
   onCheckVin?: ((vin: string) => void) | null;
+  /** Check a listing text again (the same ad with the VIN the person got from the seller). */
+  onRecheck?: ((text: string) => void) | null;
 }) {
   // What the person told VinVerdict (Assistant): applied to the car first, so every section below uses it.
   const toldKeyFor = toldKey(original.vinCheck?.ok ? original.listing.vin : null, original.text);
@@ -341,6 +343,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
       sellers: history ? history.stints.map((x) => x.seller).filter((n, i, all) => all.findIndex((o) => o.toLowerCase() === n.toLowerCase() || sameSeller(o, n)) === i) : [],
     },
     replyTips: replyHits.map((h) => ({ title: h.title, suggest: h.suggest })),
+    mileage: {
+      miles: m.listing.miles,
+      age: (a.decoded?.year ?? m.listing.year) ? Math.max(1, new Date().getFullYear() - (a.decoded?.year ?? m.listing.year)!) : null,
+    },
     problems: {
       complaints: a.complaints?.total ?? null,
       top: (a.complaints?.topComponents ?? []).map((t) => ({ area: t.component, count: t.count })),
@@ -524,6 +530,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           onUndo={(id) => setTold((x) => x.filter((t) => t.id !== id))}
           onClear={() => setTold([])}
           storeKey={toldKeyFor}
+          onAddVin={onRecheck ? (vin) => {
+            // What was told moves with the car: the next check is keyed by its VIN.
+            saveTold(toldKey(vin, ""), told);
+            onRecheck(`${original.text}\nVIN: ${vin}`);
+          } : null}
           onProof={(p) => setProofs((x) => [...x, p])}
           onCheckVin={onCheckVin}
           build={() => reportText(m.listing.url ?? null, true)}

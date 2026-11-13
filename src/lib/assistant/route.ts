@@ -13,16 +13,19 @@
 import { readProof, type ProofSource } from "@/lib/evidence/parse";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
+import { checkVin } from "@/lib/vin";
 import { isChat, sellerSide } from "./chat";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems";
+export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
   | { kind: "proof"; source: ProofSource }
   | { kind: "listing"; listing: ParsedListing }
   | { kind: "other-car"; vin: string }
+  /** The VIN for an ad that had none ("the VIN is …"): re-check this ad with it. `problem` when the check digit fails. */
+  | { kind: "add-vin"; vin: string; problem: string | null }
   /** Facts to apply; `question` when the message also asks something (answered after applying them). */
   | { kind: "facts"; facts: Fact[]; intent: Intent | null; question: boolean }
   | { kind: "intent"; intent: Intent }
@@ -52,11 +55,13 @@ const reportMarkers = (t: string) => REPORT_MARKERS.filter((re) => re.test(t)).l
 
 const URL_ONLY = /^\s*https?:\/\/\S+\s*$/i;
 const VIN_ONLY = /^\s*(?:vin:?\s*)?([A-HJ-NPR-Z0-9]{17})\s*$/i;
+const VIN_SAID = /\bvin\b(?: number)?(?: is|:|'s|=)?\s*([A-HJ-NPR-Z0-9]{17})\b/i;
 
 /** A pasted listing page, not a report: a price box, payments, "contact dealer", "for sale". */
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
 
 const INTENTS: [Intent, RegExp][] = [
+  ["miles", /\b(?:too (?:many|much|high)|a lot of|high|low|good|ok(?:ay)?|bad|normal|average) (?:miles|mileage)\b|\b(?:miles|mileage) (?:too (?:high|low|much)|a lot|ok(?:ay)?|bad|high|normal|fine|good)\b|\bis [\d,.]+\s?k? ?miles\b|\bhow many miles (?:is|are) (?:too many|normal|ok)\b|\bmiles (?:a|per) year\b/i],
   ["problems", /\b(?:common|known|typical|usual|frequent|biggest) (?:problems?|issues?|faults?|complaints?)\b|\b(?:problems|issues) (?:with|on|for) (?:this|the|these|that) (?:car|model|year|engine)\b|\bwhat (?:usually )?(?:goes wrong|breaks|fails)\b|\breliab(?:le|ility)\b|\bhow long (?:will|does|do|can|would) (?:it|this|they|these|the car|this car) (?:last|go)\b|\bwhat (?:to|should i) (?:watch|look) out for\b|\bcomplaints\b/i],
   ["visit", /\btest[- ]drive\b|\b(?:going|go|gonna) (?:to )?(?:see|look at|check out) (?:it|the car)\b|\bsee (?:it|the car) (?:tomorrow|today|tonight|this weekend|on \w+day)\b|\bbuying day\b|\bwhat (?:do|should) i (?:bring|take with me)\b|\bwhat (?:to|should i) (?:check|look (?:for|at)|inspect) (?:when|at|in person|on the car)\b|\bin person\b|\bpre-?purchase inspection\b|\binspection (?:list|checklist)\b/i],
   ["scam", /\bscam(?:s|med|mer)?\b|\bfraud\b|\blegit(?:imate)?\b|\bfake\b|\bsafe to (?:pay|send|wire|buy)\b|\bdeposit\b|\bgift cards?\b|\bzelle\b|\bvenmo\b|\bcash ?app\b|\bescrow\b|\bwire (?:the )?money\b|\boverseas\b|\bdeployed\b|\bship (?:it|the car)\b/i],
@@ -99,9 +104,16 @@ export function routeMessage(raw: string, carVin: string | null): Route {
     return { kind: "auction", record, facts: factsFromSentence(text).filter((f) => f.kind === "auctionSold") };
   }
 
-  // A bare VIN: this car, or another one.
-  const vinOnly = VIN_ONLY.exec(text)?.[1]?.toUpperCase();
-  if (vinOnly) return vinOnly === carVin ? { kind: "small-talk" } : { kind: "other-car", vin: vinOnly };
+  // A VIN on its own or in a short sentence ("the VIN is …"): this car's, the missing one, or another car.
+  const vinOnly = (VIN_ONLY.exec(text) ?? (text.length <= 90 ? VIN_SAID.exec(text) : null))?.[1]?.toUpperCase();
+  if (vinOnly) {
+    if (vinOnly === carVin) return { kind: "small-talk" };
+    if (!carVin) {
+      const c = checkVin(vinOnly);
+      return { kind: "add-vin", vin: vinOnly, problem: c.ok ? null : c.message };
+    }
+    return { kind: "other-car", vin: vinOnly };
+  }
   // A link on its own: VinVerdict doesn't open listing links (and a VIN in it may be another car).
   if (URL_ONLY.test(text)) {
     const inUrl = parseListing(text).vin;

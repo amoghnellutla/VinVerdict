@@ -38,6 +38,8 @@ export type PageContext = {
   seller: { name: string | null; type: "dealer" | "private" | "unknown"; place: string | null; listings: number | null; sellers: string[] };
   /** Bad news about the car's history from listing data (an accident, fleet use…), before any report. */
   feedHistory: string[];
+  /** The miles and the car's age in years (from its model year), for "is that a lot of miles?". */
+  mileage: { miles: number | null; age: number | null };
   /** Owner complaints to NHTSA for this model year, and known issues for this year and engine. */
   problems: { complaints: number | null; top: { area: string; count: number }[]; known: string[] };
   /** What the seller's replies showed (pasted or told), with a safe reply to send for each. */
@@ -72,6 +74,7 @@ const FOLLOW: Record<string, string[]> = {
   history: ["Any recalls?", "What are common problems?"],
   recalls: ["What are common problems?", "What's next?"],
   problems: ["What should I check when I see it?", "Any recalls?"],
+  miles: ["What are common problems?", "What should I offer?"],
   visit: ["What should I offer?", "How much out the door?"],
   costs: ["What should I offer?", "What's the gas mileage?"],
   fuel: ["How much out the door?", "What are common problems?"],
@@ -267,6 +270,22 @@ export function answerIntent(intent: string, c: PageContext): Reply {
         text: p.known.length || p.top.length ? `What's known about the ${c.car}:` : `Nothing specific is known about the ${c.car}${p.complaints == null ? " yet (complaints weren't checked)" : ""}.`,
         points,
         actions: [{ kind: "go", label: "See complaints and recalls", target: "#safety" }, { kind: "go", label: "See the inspection list", target: "#before-you-buy" }],
+      };
+    }
+    case "miles": {
+      const { miles, age } = c.mileage;
+      if (!miles) return { text: "The miles aren't known yet. Tell me (\"it has 126k miles\") and I'll compare them with a typical car's.", points: [], actions: [] };
+      if (!age) return { text: `${miles.toLocaleString("en-US")} miles. Without the model year, they can't be compared with a typical car's (about 13,500 a year).`, points: [], actions: [] };
+      const per = Math.round(miles / age / 100) * 100;
+      const how = per >= 20_000 ? "very high" : per >= 15_500 ? "above average" : per < 500 && age >= 4 ? "suspiciously low" : per < 8_000 ? "low" : "about average";
+      return {
+        text: `${miles.toLocaleString("en-US")} miles over about ${age} year${age === 1 ? "" : "s"} is about ${per.toLocaleString("en-US")} a year: ${how}. A typical car does about 13,500 a year (FHWA).`,
+        points: [
+          ...(how === "very high" ? ["That usually means rideshare, delivery or fleet use: expect more wear on brakes, suspension and the transmission, and price it as a high-mileage car."] : []),
+          ...(how === "suspiciously low" ? ["Under 500 a year can mean a rolled-back odometer: check the service records and the history report's odometer readings."] : []),
+          "How it was looked after matters more than the number: ask for the service records (oil changes, transmission fluid, any timing belt), and have your mechanic check it.",
+        ],
+        actions: [{ kind: "link", label: "FHWA: average miles a year", href: "https://www.fhwa.dot.gov/ohim/onh00/bar8.htm" }, { kind: "go", label: "See the inspection list", target: "#before-you-buy" }],
       };
     }
     case "visit":

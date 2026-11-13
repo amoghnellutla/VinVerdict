@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { loadThread, saveThread } from "@/lib/assistant/store";
+import { loadThread, saveThread, toldKey } from "@/lib/assistant/store";
 import { askCarAction, readHistoryAction } from "@/app/actions/ai";
 import { ExternalLink } from "@/components/ExternalLink";
 import { Turnstile } from "@/components/Turnstile";
@@ -101,8 +101,10 @@ export function Assistant(props: {
   ai: boolean;
   /** Where this car's conversation is kept on the device (null: not kept). */
   storeKey?: string | null;
+  /** The ad had no VIN and the person gave one: check the same ad again with it. */
+  onAddVin?: ((vin: string) => void) | null;
 }) {
-  const { ctx, told, onTell, onUndo, onClear, onProof, onCheckVin, build, guest, ai, storeKey } = props;
+  const { ctx, told, onTell, onUndo, onClear, onProof, onCheckVin, build, guest, ai, storeKey, onAddVin } = props;
   const id = useId();
   // The conversation is kept on this device for this car (lib/assistant/store.ts), like the facts.
   const [thread, setThread] = useState<Msg[]>(() => (storeKey ? loadThread<Msg>(storeKey) : []));
@@ -256,6 +258,14 @@ export function Assistant(props: {
         const l = route.listing;
         onTell({ id: uid(), label: "Listing you pasted", listing: l, text });
         return say({ text: "Added the listing: it fills in what the check didn't know, and its words are checked for warning signs.", points: [l.price && `Price ${$(l.price)}`, l.miles && `${l.miles.toLocaleString("en-US")} miles`, l.sellerType !== "unknown" && `Seller: ${l.sellerType}`].filter((x): x is string => !!x) }, before);
+      }
+      case "add-vin": {
+        if (route.problem) return say({ text: `${route.problem} Copy it again from the seller's message, or from a photo of the windshield plate or the driver's door sticker.` });
+        if (!onAddVin) return say({ text: `Got the VIN ${route.vin}. Check it from the home page to add the recall and title checks.` });
+        say({ text: `Checking this ad again with VIN ${route.vin}: the exact model, recalls, title checks and the price check by VIN. What you told VinVerdict comes with it.` });
+        if (storeKey) saveThread(toldKey(route.vin, ""), thread);
+        onAddVin(route.vin);
+        return;
       }
       case "other-car":
         return say({ text: `That's a different car (VIN ${route.vin}). Nothing was added to this one.`, vin: route.vin });

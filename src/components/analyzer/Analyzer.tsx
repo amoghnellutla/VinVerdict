@@ -44,7 +44,8 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
   const [shots, setShots] = useState<string[]>([]);
   const shotsRef = useRef<string[]>([]);
   const setShotUrls = (next: string[]) => {
-    shotsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    // Re-checking the same ad (with a VIN added) keeps its screenshots: only links being replaced are freed.
+    shotsRef.current.filter((u) => !next.includes(u)).forEach((u) => URL.revokeObjectURL(u));
     shotsRef.current = next;
     setShots(next);
   };
@@ -337,7 +338,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (
-          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} />
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} />
         )}
       </div>
     </>

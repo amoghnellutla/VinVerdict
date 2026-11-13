@@ -131,7 +131,9 @@ const MESSAGES: [string, string][] = [
   ["what do I bring on buying day", "intent:visit"],
   ["find me a cheaper one", "intent:price"],
   // --- To the AI, not a canned answer ---
-  ["is 126k miles too much?", "ai"],
+  ["is 126k miles too much?", "intent:miles"],
+  ["is that a lot of miles", "intent:miles"],
+  ["is the mileage ok?", "intent:miles"],
   ["should I get an extended warranty?", "ai"],
   ["the check engine light is on", "ai"],
   ["i bought it!", "small-talk"],
@@ -147,7 +149,7 @@ const MESSAGES: [string, string][] = [
   // --- Questions that look like facts: never applied as facts ---
   ["Has it been in an accident?", "intent:history"],
   ["Does it have a clean title?", "intent:history"],
-  ["is 126k miles a lot?", "ai"],
+  ["is 126k miles a lot?", "intent:miles"],
   ["Will a 2018 Camry with 126k miles be fine for 5 more years of commuting?", "ai"],
   ["Are 2 owners ok for a car this age?", "intent:history"],
 

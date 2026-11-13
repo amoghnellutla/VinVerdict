@@ -18,7 +18,7 @@ const ctx: PageContext = {
   auctionDate: "10/14/2026", otherListing: null, leverage: [], stops: [], checks: [], unknowns: [], price: 14_995,
   estimate: { low: 14_000, high: 15_700, label: "Fair", open: 13_400, walk: 15_200 }, auctionSold: 9_100, priced: true, historyRead: false,
   carfax: null, recalls: 3, recallLookup: "https://www.toyota.com/recall", sellerMessage: "Hi", dealer: true, otd: null, fuel: null,
-  trust: { stops: [], checks: [] }, seller: { name: null, type: "dealer", place: null, listings: null, sellers: [] }, feedHistory: [], replyTips: [], problems: { complaints: 412, top: [{ area: "AIR BAGS", count: 90 }, { area: "ELECTRICAL SYSTEM", count: 61 }], known: [] },
+  trust: { stops: [], checks: [] }, seller: { name: null, type: "dealer", place: null, listings: null, sellers: [] }, feedHistory: [], replyTips: [], mileage: { miles: 126_360, age: 8 }, problems: { complaints: 412, top: [{ area: "AIR BAGS", count: 90 }, { area: "ELECTRICAL SYSTEM", count: 61 }], known: [] },
 };
 
 describe("What VinVerdict knows (the checklist under the verdict)", () => {
@@ -264,5 +264,28 @@ describe("no price check left (or no VIN): a guide value is the way in", () => {
     expect(price.actions.map((a) => a.label)).toEqual(["Run the price check", "Edmunds appraisal", "Kelley Blue Book"]);
     expect(answerIntent("price", { ...c, vin: null }).actions.map((a) => a.label)).toEqual(["Edmunds appraisal", "Kelley Blue Book"]);
     expect(answerIntent("offer", c).points.join(" ")).toContain("tell me a KBB or Edmunds value");
+  });
+});
+
+describe("is that a lot of miles?", () => {
+  it("compares with a typical car's 13,500 a year (FHWA), and never as a verdict on its own", () => {
+    const r = answerIntent("miles", ctx);
+    expect(r.text).toBe("126,360 miles over about 8 years is about 15,800 a year: above average. A typical car does about 13,500 a year (FHWA).");
+    expect(r.points.join(" ")).toContain("service records");
+    expect(answerIntent("miles", { ...ctx, mileage: { miles: 190_000, age: 5 } }).text).toContain("very high");
+    expect(answerIntent("miles", { ...ctx, mileage: { miles: 1_500, age: 6 } }).points.join(" ")).toContain("rolled-back odometer");
+    expect(answerIntent("miles", { ...ctx, mileage: { miles: null, age: 8 } }).text).toMatch(/^The miles aren't known yet/);
+  });
+});
+
+describe("the VIN for an ad that had none", () => {
+  it("is added to this ad (re-checked), a typo is caught by the check digit, and another car's VIN stays another car", () => {
+    expect(routeMessage("the vin is 4T1B11HK8JU145889", null)).toEqual({ kind: "add-vin", vin: VIN, problem: null });
+    expect(routeMessage("4T1B11HK8JU145889", null)).toEqual({ kind: "add-vin", vin: VIN, problem: null });
+    const typo = routeMessage("VIN: 4T1B11HK9JU145889", null);
+    expect(typo.kind).toBe("add-vin");
+    expect(typo.kind === "add-vin" && typo.problem).toContain("check digit");
+    expect(routeMessage("here's the vin 2HGFC2F69KH512345", VIN)).toEqual({ kind: "other-car", vin: "2HGFC2F69KH512345" });
+    expect(routeMessage("the vin is 4T1B11HK8JU145889", VIN)).toEqual({ kind: "small-talk" });
   });
 });
