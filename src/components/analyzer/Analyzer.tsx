@@ -264,7 +264,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         id="check-form"
         action={formAction}
         // A new check replaces any open example.
-        onSubmit={() => setExample(null)}
+        onSubmit={() => { setExample(null); setPasteNote(null); }}
         className={`card print:hidden ${showing ? "sm:py-4" : "rise d2"} ${dragging ? "outline-2 outline-dashed outline-accent" : ""}`}
         onDragOver={onDragOver}
         onDragLeave={() => setDragging(false)}
