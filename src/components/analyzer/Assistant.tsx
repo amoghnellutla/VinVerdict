@@ -71,7 +71,12 @@ function changes(before: PageContext, after: PageContext): string[] {
   if (gone.length) out.push(`no longer flagged: ${gone.join("; ")}`);
   if (!before.historyRead && after.historyRead) out.push("history report answers filled in");
   if (after.otd && (before.otd?.total !== after.otd.total || before.otd?.state !== after.otd.state)) out.push(`out the door: about ${$(Math.round(after.otd.total))} in ${after.otd.state}`);
-  if (before.estimate?.low !== after.estimate?.low || before.estimate?.high !== after.estimate?.high) {
+  if (after.sell) {
+    // Selling: what changed is what a private buyer would pay.
+    const b = before.sell?.private;
+    const a = after.sell.private;
+    if (a && (b?.fair !== a.fair || b?.low !== a.low)) out.push(`worth to a private buyer: ${$(a.low)}–${$(a.high)}, list at about ${$(a.listAt)}`);
+  } else if (before.estimate?.low !== after.estimate?.low || before.estimate?.high !== after.estimate?.high) {
     if (after.estimate) out.push(`price estimate: ${$(after.estimate.low)}–${$(after.estimate.high)}`);
   }
   return out;
