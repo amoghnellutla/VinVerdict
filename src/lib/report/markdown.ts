@@ -554,7 +554,21 @@ function fullOnly(r: ReportInput, push: (...xs: string[]) => void) {
 }
 
 /** Recalls grouped by the part they fix: "fuel system, gasoline: delivery: fuel pump (3 recalls)", most first. */
-function recallAreas(recalls: NonNullable<Analysis["recalls"]>): string {
+/** The same, in plain words for a conversation: the main part only ("air bags (2 recalls); fuel system"). */
+export function plainRecallAreas(recalls: NonNullable<Analysis["recalls"]>): string {
+  const groups = new Map<string, { n: number; park: boolean }>();
+  for (const x of recalls) {
+    const key = x.component.toLowerCase().split(/[:,]/)[0].trim() || "other";
+    const g = groups.get(key) ?? { n: 0, park: false };
+    groups.set(key, { n: g.n + 1, park: g.park || !!x.parkIt });
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[1].n - a[1].n)
+    .map(([k, g]) => `${k}${g.n > 1 ? ` (${g.n} recalls)` : ""}${g.park ? " (don't drive it until fixed)" : ""}`)
+    .join("; ");
+}
+
+export function recallAreas(recalls: NonNullable<Analysis["recalls"]>): string {
   const groups = new Map<string, { n: number; park: boolean }>();
   for (const x of recalls) {
     const key = x.component.toLowerCase().replace(/:/g, ": ");

@@ -54,6 +54,10 @@ export type PageContext = {
   recallLookup: string | null;
   /** What the buyer said their own mechanic found. */
   inspection?: { status: "passed" | "issues"; note: string } | null;
+  /** What the model year's recalls are about, grouped by part ("fuel pump (3 recalls); brakes"), or null. */
+  recallAreas?: string | null;
+  /** Whether a recall check for this VIN has been added (so which are open is known). */
+  recallsChecked?: boolean;
   /** The free NICB VINCheck for this VIN (theft, insurance total loss), or null. */
   nicbLink?: string | null;
   sellerMessage: string;
@@ -253,7 +257,15 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
       };
     case "recalls":
       return c.recalls
-        ? { text: `${c.recalls} recall${c.recalls > 1 ? "s" : ""} on record for this model year. Not every car of the year is affected: the lookup shows which are still open on this VIN, and dealers fix them free.`, points: [], actions: [...(c.recallLookup ? [{ kind: "link" as const, label: "Open the recall lookup", href: c.recallLookup }] : []), { kind: "go", label: "See the recalls", target: "#safety" }] }
+        ? {
+            text: `${c.recalls} recall${c.recalls > 1 ? "s" : ""} on record for this model year${c.recallAreas ? `: ${c.recallAreas}` : ""}.`,
+            points: [
+              c.recallsChecked
+                ? "A recall check for this VIN is in Check it yourself: it shows which are still open."
+                : "Not every car of the year is affected: the lookup by VIN shows which are still open on this one. Paste or screenshot its result here.",
+              "Open recalls are fixed free at any dealer of the brand, even on a used car. Ask the seller to have them done before you buy, or book it yourself.",
+            ],
+            actions: [...(c.recallLookup ? [{ kind: "link" as const, label: "Open the recall lookup", href: c.recallLookup }] : []), { kind: "go", label: "See the recalls", target: "#safety" }] }
         : { text: c.recalls === 0 ? "No recalls on record for this model year." : "Recalls weren't checked (no year, make and model).", points: [], actions: [] };
     case "history":
       return c.historyRead

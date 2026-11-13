@@ -17,7 +17,7 @@ import { makerCertified } from "@/lib/protection";
 import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
 import type { CostParts } from "@/lib/report/costs";
-import { buildReport } from "@/lib/report/markdown";
+import { buildReport, plainRecallAreas } from "@/lib/report/markdown";
 import { readBuyerZip, saveBuyerZip } from "@/lib/buyer-zip";
 import { reportInput } from "./report-input";
 import { ReportDownload } from "./ReportDownload";
@@ -368,6 +368,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     recalls: a.recalls?.length ?? null,
     nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
     inspection,
+    recallAreas: a.recalls?.length ? plainRecallAreas(a.recalls) : null,
+    recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
     sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
     dealer: m.listing.sellerType === "dealer",

@@ -377,3 +377,23 @@ describe("your mechanic's inspection", () => {
     expect(r.quote).not.toMatch(/I'd like my own mechanic to inspect/);
   });
 });
+
+describe("the recall answer", () => {
+  it("says what the recalls are about, and that open ones are fixed free", () => {
+    const r = answerIntent("recalls", { ...ctx, recalls: 3, recallAreas: "fuel system, gasoline: delivery: fuel pump (3 recalls)" });
+    expect(r.text).toBe("3 recalls on record for this model year: fuel system, gasoline: delivery: fuel pump (3 recalls).");
+    expect(r.points.join(" ")).toContain("fixed free at any dealer of the brand");
+    expect(answerIntent("recalls", { ...ctx, recalls: 3, recallsChecked: true }).points[0]).toContain("A recall check for this VIN is in Check it yourself");
+  });
+});
+
+describe("recall parts in plain words", () => {
+  it("groups by the main part, with counts and the don't-drive flag", async () => {
+    const { plainRecallAreas } = await import("@/lib/report/markdown");
+    const r = [
+      { component: "AIR BAGS:SIDE/WINDOW" }, { component: "AIR BAGS:KNEE BOLSTER", parkIt: true },
+      { component: "SERVICE BRAKES, HYDRAULIC:ANTILOCK/TRACTION CONTROL" },
+    ] as unknown as Parameters<typeof plainRecallAreas>[0];
+    expect(plainRecallAreas(r)).toBe("air bags (2 recalls) (don't drive it until fixed); service brakes");
+  });
+});
