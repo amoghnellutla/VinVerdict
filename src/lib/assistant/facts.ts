@@ -60,13 +60,23 @@ export function factsFromSentence(raw: string): Fact[] {
   // an amount off, or anything under $1,000 ("take $500 off" isn't a price).
   const NOT_PRICE = String.raw`(?!\s*(?:off|less|discount|more|deposit|down\b|to hold|for (?:a |the )?deposit|doc|fee|out the door|otd))`;
   const prices = [
-    ...text.matchAll(new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for)|(?:would|will|'d|'ll|could|can) (?:take|do|accept|let it go for)|(?:came|come|coming|go|goes|went|dropped|dropping|drop) (?:it )?(?:down )?to|(?:best|final|lowest|new|cash) price(?: is| of)?|agreed (?:to|on))\s*:?\s*${AMOUNT}${NOT_PRICE}`, "gi")),
+    ...text.matchAll(new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for)|(?:would|will|'d|'ll|could|can) (?:take|do|accept|let it go for)|(?:came|come|coming|go|goes|went|dropped|dropping|drop|lowered|lowering|reduced|cut) (?:it |the price |(?:his|her|their) price )?(?:down )?to|price (?:dropped|went down|was (?:lowered|reduced|cut)|is now|now) (?:to )?|(?:best|final|lowest|new|cash) price(?: is| of)?|agreed (?:to|on))\s*:?\s*${AMOUNT}${NOT_PRICE}`, "gi")),
     ...text.matchAll(new RegExp(String.raw`\b(?:said|says|for)\s+${AMOUNT}\s+(?:cash|firm|obo|or best offer)\b`, "gi")),
   ].sort((x, y) => x.index - y.index);
   const ask = [...prices].reverse().find((m) => !(sold && m.index === sold.index) && (money(m[1]) ?? 0) >= 1_000);
   if (ask) out.push({ kind: "price", value: money(ask[1])!, quote: text.slice(ask.index, ask.index + ask[0].length) });
   // Miles.
-  const mi = /\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer(?: reads| shows| says| is| at| reading)?:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/i.exec(text);
+  const mi = [...text.matchAll(/\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer(?: reads| shows| says| is| at| reading)?:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/gi)].find((m) => {
+    if (m[2]) return true;
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
+    const before = text.slice(Math.max(0, m.index - 50), m.index);
+    // "15,000 miles a year", "300 miles away", "36k miles of warranty left"
+    if (/^\s*(?:a|per|each|every|\/)\s?(?:year|yr|month|mo|week|day)\b|^\s*(?:away|from (?:here|me|my)|round[- ]?trip|(?:of )?warranty|left on)\b/i.test(after)) return false;
+    // "I drive 15,000 miles", "every 5,000 miles", "replaced at 90,000 miles", "due at 100k miles"
+    if (/\b(?:i|we)\s+(?:drive|commute|put on|do)\b[^.;]{0,20}$|\b(?:every|after|until|within|up to)\s*$/i.test(before)) return false;
+    if (/\b(?:replaced|done|changed|serviced|rebuilt|installed|fixed|put on|swapped|due|needs?|recommended)\b[^.;,]{0,30}\bat\s*$/i.test(before)) return false;
+    return true;
+  });
   if (mi) {
     const s = (mi[1] ?? mi[2]).replace(/,/g, "").replace(/\s/g, "");
     const v = /k$/i.test(s) ? Math.round(parseFloat(s) * 1_000) : Number(s);
@@ -88,7 +98,9 @@ export function factsFromSentence(raw: string): Fact[] {
   const noAcc = /\bno accidents?\b(?: or damage)?(?: reported)?|\baccident[- ]free\b|\bnever (?:been )?in an accident\b/i.exec(text);
   const acc = /\b(?:had|has|was in|been in) an? (?:minor |small |major )?accident\b|\baccident (?:reported|on (?:the )?(?:carfax|autocheck|report))\b|\b(?:1|one|2|two|3|three) (?:minor |small |major )?accidents?\b/i.exec(text);
   if (noAcc) out.push({ kind: "accident", value: "none", quote: quote(noAcc) });
-  else if (acc) out.push({ kind: "accident", value: "reported", quote: quote(acc) });
+  else if (acc && !/\b(?:i|we|i've|we've|i have|my (?:(?:last|old|other|previous|first|current|own|friend'?s|wife'?s|husband'?s|dad'?s|mom'?s) )?(?:car|truck|suv|van|vehicle))\s*$/i.test(text.slice(Math.max(0, acc.index - 40), acc.index))) {
+    out.push({ kind: "accident", value: "reported", quote: quote(acc) });
+  }
   // Title.
   const title = /\b(clean|salvage|rebuilt|flood)(?: title)\b|\btitle is (clean|salvage|rebuilt|flood)\b/i.exec(text);
   if (title) out.push({ kind: "title", value: (title[1] ?? title[2]).toLowerCase() as "clean" | "salvage" | "rebuilt" | "flood", quote: quote(title) });

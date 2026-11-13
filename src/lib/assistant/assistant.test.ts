@@ -164,3 +164,21 @@ describe("what you told VinVerdict is kept on this device, per car, for a week",
     vi.unstubAllGlobals();
   });
 });
+
+describe("facts are about this car, not the buyer's driving or another car (sweep 2026-11-13)", () => {
+  const read = (t: string) => factsFromSentence(t).map((f) => `${f.kind}=${"value" in f ? f.value : ""}`);
+  it.each([
+    ["I drive 15,000 miles a year", []],
+    ["the timing belt was replaced at 90,000 miles", []],
+    ["it's 300 miles away", []],
+    ["my last car had an accident", []],
+    ["I offered 13,000 and he said no", []],
+    ["it has 98,000 miles, timing belt done at 90,000 miles", ["miles=98000"]],
+    ["oil changed every 5,000 miles, it has 80k miles", ["miles=80000"]],
+    ["it's at 126k miles", ["miles=126000"]],
+    ["he dropped the price to 13,900", ["price=13900"]],
+    ["she lowered it to 12,500", ["price=12500"]],
+    ["price dropped to $12,900", ["price=12900"]],
+    ["the car had an accident in 2019", ["accident=reported"]],
+  ] as [string, string[]][])("%s → %j", (t, want) => expect(read(t)).toEqual(want));
+});
