@@ -591,7 +591,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
             intro="The price is only the start: tax and fees on the day, then what it costs to own each year."
             tabs={[
               /* key: start the calculator again with the live price once it arrives */
-              { id: "otd", label: "Out the door", content: <OutTheDoor key={`${live ? "live" : "pasted"}-${zipTick}-${m.listing.price ?? ""}-${m.listing.docFee ?? ""}`} a={m} /> },
+              { id: "otd", label: "Out the door", content: <OutTheDoor key={`${live ? "live" : "pasted"}-${zipTick}-${m.listing.price ?? ""}-${m.listing.docFee ?? ""}-${m.listing.sellerType}`} a={m} /> },
               { id: "year", label: "Cost per year", content: <CostPerYear key={`${m.listing.price}-${valuation?.fair ?? 0}-${zipTick}`} a={m} valuation={valuation} comps={sources?.sold ?? sources?.active ?? null} /> },
               { id: "running", label: "Fuel and upkeep", content: <RunningCost a={m} /> },
             ]}

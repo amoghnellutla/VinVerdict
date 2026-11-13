@@ -308,6 +308,12 @@ export function Assistant(props: {
         if (trade) {
           say({ text: "A trade-in value is what a dealer would pay you, not what you'd pay, so it isn't used for the price. Tell me the private party or dealer retail value instead (\"KBB private party 12,500\")." });
         }
+        // A doc fee is a dealer's charge: on a private sale it's kept but doesn't go into out the door.
+        const sellerFact = facts.find((f) => f.kind === "seller");
+        const dealerNow = sellerFact ? sellerFact.value === "dealer" : ctx.dealer;
+        if (facts.some((f) => f.kind === "docFee") && !dealerNow) {
+          say({ text: "Noted, but a doc fee is a dealer's charge and this looks like a private sale, so out the door doesn't include it. If it is a dealer, say \"it's a dealer car\" and it's added." });
+        }
         if (route.intent) return reply(answerIntent(route.intent, ctx, text));
         if (route.question) return askAi(text);
         return;
