@@ -356,3 +356,24 @@ describe("the free NICB check", () => {
     expect(r.actions.map((a) => a.label)).toContain("Free NICB check");
   });
 });
+
+describe("your mechanic's inspection", () => {
+  it("is read from what you say: passed, or what it found (questions and the inspection list aren't)", () => {
+    expect(factsFromSentence("my mechanic said it's fine")).toMatchObject([{ kind: "inspection", value: "passed" }]);
+    expect(factsFromSentence("inspection went well, no issues")).toMatchObject([{ kind: "inspection", value: "passed" }]);
+    expect(factsFromSentence("mechanic found worn front brakes and an oil leak, about $900 to fix")).toMatchObject([{ kind: "inspection", value: "issues", quote: "worn front brakes and an oil leak, about $900 to fix" }]);
+    expect(factsFromSentence("should I get an inspection?")).toEqual([]);
+    expect(factsFromSentence("see the inspection list")).toEqual([]);
+  });
+
+  it("ticks the checklist, and its findings lead the offer in the buyer's own words", () => {
+    const k: KnowsInput = { car: null, vin: VIN, price: null, miles: null, history: null, carfax: null, estimate: null, listings: null, recallsChecked: false, recalls: null, recallLookup: null, sellerAnswers: 0, auctionSold: null };
+    expect(knowsList(k).find((x) => x.key === "inspection")?.action).toMatchObject({ kind: "tell", prefill: "My mechanic found " });
+    expect(knowsList({ ...k, inspection: { status: "passed", note: "it's fine" } }).find((x) => x.key === "inspection")).toMatchObject({ done: true, detail: "Passed (as you told VinVerdict)" });
+    const r = answerIntent("offer", { ...ctx, inspection: { status: "issues", note: "worn front brakes and an oil leak." } });
+    expect(r.points.join(" ")).toContain("Your mechanic's findings come first: worn front brakes and an oil leak.");
+    expect(r.quote).toContain("Having had it inspected: my mechanic found worn front brakes and an oil leak");
+    // Already inspected: the message doesn't ask to inspect it again.
+    expect(r.quote).not.toMatch(/I'd like my own mechanic to inspect/);
+  });
+});

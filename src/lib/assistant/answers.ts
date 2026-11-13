@@ -52,6 +52,8 @@ export type PageContext = {
   carfax: string | null;
   recalls: number | null;
   recallLookup: string | null;
+  /** What the buyer said their own mechanic found. */
+  inspection?: { status: "passed" | "issues"; note: string } | null;
   /** The free NICB VINCheck for this VIN (theft, insurance total loss), or null. */
   nicbLink?: string | null;
   sellerMessage: string;
@@ -88,7 +90,10 @@ const FOLLOW: Record<string, string[]> = {
 /** Two questions that naturally come next (never the offer on a listing with serious warnings). */
 export function followUps(intent: string, c: PageContext): string[] {
   if (c.trust.stops.length) return intent === "scam" ? ["What's next?", "Who is the seller?"] : ["Is this a scam?", "What's next?"].filter((q) => !(intent === "next" && q === "What's next?"));
-  return (FOLLOW[intent] ?? FOLLOW.next).filter((q) => !(q === "What should I offer?" && !c.price && !c.estimate && !c.auctionSold));
+  return (FOLLOW[intent] ?? FOLLOW.next)
+    .filter((q) => !(q === "What should I offer?" && !c.price && !c.estimate && !c.auctionSold))
+    // Already inspected: seeing it isn't the next step any more.
+    .filter((q) => !(q === "What should I check when I see it?" && c.inspection));
 }
 
 /** Quick-start questions that fit what this page knows (each one is answered from the page, no AI). */
@@ -152,7 +157,7 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
         car: c.car, asking: c.price, auctionSold: c.auctionSold, auctionDate: c.auctionDate,
         estimate: c.estimate ? { low: c.estimate.low, high: c.estimate.high, open: c.estimate.open, walk: c.estimate.walk, basis: c.estimate.basis } : null,
         otherListing: c.otherListing, leverage: c.leverage, dealer: c.dealer,
-        scam: c.trust.stops, concerns: c.trust.checks,
+        scam: c.trust.stops, concerns: c.trust.checks, inspection: c.inspection ?? null,
       });
       if (!d.message) return { text: d.text, points: d.points, actions: [{ kind: "go", label: "See the warnings", target: "#verdict" }] };
       const noBasis = !c.estimate && !c.auctionSold;

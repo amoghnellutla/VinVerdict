@@ -57,6 +57,12 @@ export function applyTold(a: Analysis, told: Told[]): Analysis {
   return { ...a, listing, text: extra.length ? `${a.text}\n\n${extra.join("\n\n")}` : a.text };
 }
 
+/** The latest thing the buyer said about their mechanic's inspection, or null. */
+export function toldInspection(told: Told[]): { status: "passed" | "issues"; note: string } | null {
+  const f = [...told].reverse().flatMap((t) => [...(t.facts ?? [])].reverse()).find((x) => x.kind === "inspection");
+  return f && f.kind === "inspection" ? { status: f.value, note: f.quote } : null;
+}
+
 /** The latest price guide value the person quoted (a trade-in value isn't a buying price, so it's left out). */
 export function toldGuide(told: Told[]): PriceGuide | null {
   const g = [...told].reverse().flatMap((t) => [...(t.facts ?? [])].reverse()).find((f) => f.kind === "guide" && f.guide !== "trade");

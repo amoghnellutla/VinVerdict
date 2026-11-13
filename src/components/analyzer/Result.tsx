@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { makeName } from "@/lib/format";
-import { toldGuide, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
+import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
 import { milesAgree, type Reading } from "@/lib/assistant/odometer";
@@ -147,6 +147,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   const auction = useMemo(() => toldAuction(told), [told]);
   // A price guide value the person quoted (KBB, Edmunds…): a priced estimate even with no price check.
   const guide = useMemo(() => toldGuide(told), [told]);
+  const inspection = useMemo(() => toldInspection(told), [told]);
   const [checklist, setChecklist] = useState<SellerChecklist>({});
   const [report, setReport] = useState<ReportAnswers>(EMPTY_REPORT);
   // Proof attached in "Check it yourself" (read on this device, never uploaded).
@@ -366,6 +367,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     carfax: live?.carfaxUrl ?? null,
     recalls: a.recalls?.length ?? null,
     nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
+    inspection,
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
     sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
     dealer: m.listing.sellerType === "dealer",
@@ -530,6 +532,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
               auctionSold: auction?.soldPrice ?? null,
               priced: pageCtx.priced,
               nicb: proofSum.rating.nicb,
+              inspection,
               nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
               feedHistory: pageCtx.feedHistory,
             })}

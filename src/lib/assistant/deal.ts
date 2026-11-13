@@ -28,6 +28,8 @@ export type DealInput = {
   scam?: string[];
   /** Things about the listing or the deal to check (title not in the seller's name, a loan on it…). */
   concerns?: string[];
+  /** What the buyer's own mechanic found: the strongest reason there is, in the buyer's words. */
+  inspection?: { status: "passed" | "issues"; note: string } | null;
 };
 
 export type DealAnswer = { text: string; points: string[]; message: string | null };
@@ -96,6 +98,8 @@ export function dealAnswer(input: DealInput): DealAnswer {
     if (!cheap && d.estimate.open && d.estimate.walk) points.push(`VinVerdict's suggestion: open at ${$(d.estimate.open)}, walk away above ${$(Math.min(d.estimate.walk, d.asking ?? d.estimate.walk))}.`);
   }
   if (d.otherListing && (!d.asking || d.otherListing.price < d.asking)) points.push(`${d.otherListing.seller} lists the same VIN for ${$(d.otherListing.price)}${d.asking ? `, ${$(d.asking - d.otherListing.price)} less` : ""}.`);
+  const found = d.inspection?.status === "issues" ? d.inspection.note.replace(/[.!\s]+$/, "") : null;
+  if (found) points.push(`Your mechanic's findings come first: ${found}. Ask for the repair cost off the price, or for it to be fixed before you buy (get the repair quote in writing).`);
   if (cheap && d.concerns?.length) points.push(`A price this low usually has a reason. Check first: ${d.concerns.slice(0, 3).join("; ")}.`);
   else if (cheap) points.push("A price this low usually has a reason: the history report and your mechanic's inspection are how you find it.");
   if (!cheap && d.levers.length) points.push(`Your leverage: ${d.levers.slice(0, 3).map((l) => l.title).join("; ")}.`);
@@ -103,21 +107,24 @@ export function dealAnswer(input: DealInput): DealAnswer {
   const offer = cheap ? null : d.estimate?.open ?? null;
   const said = d.levers.map((l) => SAY.find(([re]) => re.test(l.id))?.[1]).filter((x): x is string => !!x);
   const reasons = [
+    found ? `my mechanic found ${found}` : null,
     d.auctionSold ? `it sold at a dealer auction for ${$(d.auctionSold)}${d.auctionDate ? ` on ${d.auctionDate}` : ""}` : null,
     d.otherListing && (!d.asking || d.otherListing.price < d.asking) ? `${d.otherListing.seller} lists the same car for ${$(d.otherListing.price)}` : null,
     ...said.slice(0, 2),
   ].filter((x): x is string => !!x);
+  // Once the buyer's mechanic has seen it, the message is a follow-up, not a first contact.
+  const inspected = !!d.inspection;
   const message = cheap
     ? [
-        `Hi, I'm interested in the ${d.car} listed at ${$(d.asking!)}.`,
-        "Before I come to see it: why is it priced below similar cars, and is there anything I should know about its history or title?",
-        "If my mechanic's inspection checks out, I'm ready to buy. Thanks!",
+        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car} listed at ${$(d.asking!)}.`,
+        found ? `My mechanic's inspection found this: ${found}. Would you fix it first, or take the repair cost off?` : "Before I come to see it: why is it priced below similar cars, and is there anything I should know about its history or title?",
+        inspected ? "Thanks!" : "If my mechanic's inspection checks out, I'm ready to buy. Thanks!",
       ].join(" ")
     : [
-        `Hi, I'm interested in the ${d.car}${d.asking ? ` listed at ${$(d.asking)}` : ""}.`,
-        reasons.length ? `Before I come in: ${reasons.join(", and ")}.` : null,
+        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car}${d.asking ? ` listed at ${$(d.asking)}` : ""}.`,
+        reasons.length ? `${inspected ? "Having had it inspected" : "Before I come in"}: ${reasons.join(", and ")}.` : null,
         offer ? `Would you take ${$(offer)}${d.dealer ? " out the door" : ""}?` : `What's your best ${d.dealer ? "out-the-door " : ""}price, with every fee listed?`,
-        "I'd like my own mechanic to inspect it before I buy. Thanks!",
+        inspected ? "Thanks!" : "I'd like my own mechanic to inspect it before I buy. Thanks!",
       ].filter(Boolean).join(" ");
 
   const ceiling = d.estimate?.walk ?? d.estimate?.high ?? null;

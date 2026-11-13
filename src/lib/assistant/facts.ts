@@ -14,6 +14,8 @@ export type Fact =
   | { kind: "accident"; value: "none" | "reported"; quote: string }
   | { kind: "title"; value: "clean" | "salvage" | "rebuilt" | "flood"; quote: string }
   | { kind: "docFee"; value: number; quote: string }
+  /** What the buyer's own mechanic found ("my mechanic said it's fine", "inspection found worn brakes"). */
+  | { kind: "inspection"; value: "passed" | "issues"; quote: string }
   | { kind: "usage"; value: "rental" | "fleet"; quote: string }
   /** A price guide value the person looked up ("KBB says 13,200", "Edmunds private party 12,500"). Trade-in is kept only to explain why it isn't used. */
   | { kind: "guide"; value: number; name: string; guide: "retail" | "private" | "trade" | "unknown"; quote: string };
@@ -102,6 +104,19 @@ export function factsFromSentence(raw: string): Fact[] {
       out.push({ kind: "guide", value: v, name: guideName, guide: kind, quote: quote(g) });
     }
   }
+  // The buyer's own inspection: passed, or what it found (the person's words are kept for the offer).
+  if (/\b(?:mechanic|inspection|inspector|ppi|pre-?purchase)\b/i.test(text) && !/\b(?:inspection list|get an? inspection|book an? inspection|allow (?:an )?inspection)\b/i.test(text)) {
+    const GOOD = /\b(?:passed|went (?:well|fine|great)|all good|looks? (?:good|fine|great)|checked out|no (?:issues|problems)|found nothing|nothing (?:wrong|major)|(?:is|was|it'?s|its) (?:fine|ok(?:ay)?|solid|clean)|(?:good|great) (?:shape|condition))\b/i;
+    const BAD = /\b(?:found|needs?|leak(?:s|ing)?|worn|bad|broken|issues?|problems?|rust(?:y)?|replace(?:d|ment)?|cracked|failing|codes?|damage|repair)\b/i;
+    const sentence = text.split(/(?<=[.!?])\s+/).find((x) => /\b(?:mechanic|inspection|inspector|ppi|pre-?purchase)\b/i.test(x)) ?? text;
+    const good = GOOD.exec(sentence);
+    // "No issues", "nothing wrong": every reassuring phrase is taken out before looking for problems.
+    const bad = BAD.exec(sentence.replace(new RegExp(GOOD.source, "gi"), ""));
+    // "my mechanic found worn brakes" → "worn brakes": the finding itself, said once.
+    const finding = sentence.trim().replace(/^(?:my |the |our )?(?:mechanic|inspector|inspection|ppi|pre-?purchase inspection)\s+(?:found|said|says|shows|showed|turned up)\s+(?:that\s+)?(?:it\s+(?:has|needs)\s+)?/i, "").slice(0, 200);
+    if (bad) out.push({ kind: "inspection", value: "issues", quote: finding });
+    else if (good) out.push({ kind: "inspection", value: "passed", quote: sentence.trim().slice(0, 200) });
+  }
   // The dealer's doc fee ("doc fee is 499", "added a $899 doc fee").
   const doc = /\bdoc(?:ument(?:ation|ary)?)?[ -]?fees?\b(?:\s*(?:is|of|:|=))?\s*\$?\s?(\d{2,4})\b|\$\s?(\d{2,4})\s*(?:dealer\s+)?doc(?:ument(?:ation|ary)?)?[ -]?fee/i.exec(text);
   const docFee = doc ? Number(doc[1] ?? doc[2]) : 0;
@@ -126,6 +141,7 @@ export const FACT_LABEL: Record<Fact["kind"], string> = {
   docFee: "doc fee",
   usage: "past use",
   guide: "price guide",
+  inspection: "your mechanic's inspection",
 };
 
 export function factText(f: Fact): string {
@@ -140,6 +156,7 @@ export function factText(f: Fact): string {
     case "title": return `${f.value[0].toUpperCase()}${f.value.slice(1)} title`;
     case "docFee": return `Doc fee $${f.value.toLocaleString("en-US")}`;
     case "usage": return f.value === "rental" ? "Former rental car" : "Former fleet car";
+    case "inspection": return f.value === "passed" ? "Your mechanic's inspection: passed" : `Your mechanic found: "${f.quote}"`;
     case "guide": return `${f.name}${f.guide === "private" ? " private party" : f.guide === "retail" ? " retail" : f.guide === "trade" ? " trade-in" : ""} value $${f.value.toLocaleString("en-US")}`;
   }
 }

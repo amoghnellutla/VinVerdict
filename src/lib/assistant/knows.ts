@@ -35,6 +35,8 @@ export type KnowsInput = {
   auctionSold: number | null;
   /** The price check has run (a lean check finds no listing history). */
   priced?: boolean;
+  /** What the buyer said their mechanic found. */
+  inspection?: { status: "passed" | "issues"; note: string } | null;
   /** The free NICB VINCheck (theft, insurance total loss): its result when attached, and its link. */
   nicb?: "clear" | "problem" | "check" | "read" | "none";
   nicbLink?: string | null;
@@ -84,7 +86,9 @@ export function knowsList(k: KnowsInput): Known[] {
     k.sellerAnswers > 0
       ? { key: "seller", label: "Seller's answers", done: true, detail: `${k.sellerAnswers} answered`, action: null }
       : { key: "seller", label: "Seller's answers", done: false, detail: "Not asked yet", action: { kind: "go", label: "See what to ask", target: "#before-you-buy" } },
-    { key: "inspection", label: "Your mechanic's inspection", done: false, detail: "Do this before you pay", action: { kind: "go", label: "See the inspection list", target: "#before-you-buy" } },
+    k.inspection
+      ? { key: "inspection", label: "Your mechanic's inspection", done: true, detail: k.inspection.status === "passed" ? "Passed (as you told VinVerdict)" : `Found: ${k.inspection.note}`, action: null }
+      : { key: "inspection", label: "Your mechanic's inspection", done: false, detail: "Do this before you pay, then tell VinVerdict what they found", action: { kind: "tell", label: "Tell what they found", prefill: "My mechanic found " } },
   ];
   return list;
 }
