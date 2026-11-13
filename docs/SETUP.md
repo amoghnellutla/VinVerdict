@@ -115,7 +115,9 @@ Visitors can use VinVerdict without an account (nothing they paste is saved). Tw
    3. Widget name: `VinVerdict`. **Hostnames:** add `vinverdict.vercel.app` and `localhost`. **Widget mode: Managed**. Leave pre-clearance off. **Create**.
    4. Copy the **Site key** and the **Secret key** into `.env.local` as `NEXT_PUBLIC_TURNSTILE_SITE_KEY=` and `TURNSTILE_SECRET_KEY=`. Add both to Vercel (Settings → Environment Variables; mark the secret **Sensitive**) and redeploy.
 
-The limits live in that SQL file and nowhere else: 2 live lookups per visitor per day, 6 for all visitors together per day, 95 a month, and none once MarketCheck use this month passes 300 of 500 (your reserve). Free checks: 30 per visitor per day.
+3. **Usage numbers (optional, recommended).** Paste and run `supabase/migrations/20261113_guest_stats.sql` the same way, after `20261112_ai_allowance.sql`. It counts daily totals only (no IPs), so you can see how many people use VinVerdict. The weekly read is in `workflows/growth_metrics.md`.
+
+The limits live in the newest of those SQL files (`20261113_guest_stats.sql`, which redefines the limit function) and nowhere else: 2 live lookups per visitor per day, 6 for all visitors together per day, 95 a month, and none once MarketCheck use this month passes 300 of 500 (your reserve). Free checks: 30 per visitor per day.
 
 ## Done? Checklist
 

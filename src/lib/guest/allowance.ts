@@ -6,7 +6,7 @@ import { createSupabase } from "@/lib/supabase/server";
 /**
  * Demo-visitor limits (public demo, no account). Each visitor is a salted
  * one-way hash of their IP: the raw IP never leaves this server. The counter
- * and its limits live in Supabase (supabase/migrations/20261111_guest_demo.sql),
+ * and its limits live in Supabase (supabase/migrations/20261113_guest_stats.sql, the latest copy),
  * so they hold across every Vercel instance, and a caller can't change them.
  */
 
