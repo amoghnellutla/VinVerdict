@@ -198,9 +198,9 @@ export function Assistant(props: {
   async function askAi(question: string) {
     if (!ai) return reply({ ...answerIntent("overview", ctx), text: `Free AI isn't switched on here. From the page: ${answerIntent("overview", ctx).text}` });
     if (guest && !token) {
-      // Answered as soon as the box is ticked: no need to send it again.
+      // Answered as soon as Cloudflare's "I'm human" pass arrives: no need to send it again.
       waiting.current = { ask: question };
-      return say({ text: "That one needs the free AI. Tick the \"I'm human\" box below and it's answered straight away." });
+      return say({ text: "That one needs the free AI. Confirming you're not a bot (Cloudflare) first, then it's answered straight away. If a box appears below, tick it." });
     }
     setBusy("Thinking…");
     const r = await askCarAction({ report: build(), question, earlier: [], token: takeToken() }).catch(() => null);
@@ -239,7 +239,7 @@ export function Assistant(props: {
     if (!ai) return;
     if (guest && !token) {
       waiting.current = { read: { text, label, thumb } };
-      return say({ text: "Want every accident and damage date, the owners and the service work? Tick the \"I'm human\" box below and it's read straight away (or use the button):", read: { text, label, thumb } });
+      return say({ text: "Want every accident and damage date, the owners and the service work? It's read straight away once Cloudflare confirms you're not a bot (if a box appears below, tick it), or use the button:", read: { text, label, thumb } });
     }
     setBusy("Reading the report closely…");
     const before = ctx;
@@ -452,9 +452,9 @@ export function Assistant(props: {
       <h2 id={`${id}-t`} className="text-lg font-semibold">Tell VinVerdict or ask</h2>
       <p className="mt-1 max-w-2xl text-sm text-muted">
         {ctx.sell
-          ? <>Selling it: ask what it&apos;s worth or how to sell it safely, or paste a buyer&apos;s messages (or screenshots of them) to check them for scams. A KBB or Edmunds value you quote prices it. The whole</>
-          : <>Paste the seller&apos;s messages, the Carfax or an auction record (or screenshots of them), or say what you know (&quot;he&apos;d take 13,500&quot;). The whole</>}
-        result updates. Most answers come from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq) helps only with open questions and may keep what's sent" : ""}.
+          ? <>Selling it: ask what it&apos;s worth or how to sell it safely, or paste a buyer&apos;s messages (or screenshots of them) to check them for scams. A KBB or Edmunds value you quote prices it. The whole result updates.</>
+          : <>Paste the seller&apos;s messages, the Carfax or an auction record (or screenshots of them), or say what you know (&quot;he&apos;d take 13,500&quot;). The whole result updates.</>}{" "}
+        Most answers come from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq) helps only with open questions and may keep what's sent" : ""}.
       </p>
 
       {thread.length === 0 && (
@@ -551,7 +551,7 @@ export function Assistant(props: {
             void send();
           }
         }}
-        placeholder={`"He'd take 13,500", "is this a scam?", or paste their messages`}
+        placeholder={ctx.sell ? `"KBB private party 16,000", "is this buyer a scam?", or paste their messages` : `"He'd take 13,500", "is this a scam?", or paste their messages`}
         className="field mt-4 w-full"
       />
       {ai && guest && <div className="mt-2"><Turnstile key={attempt} action="ai" onToken={setToken} /></div>}

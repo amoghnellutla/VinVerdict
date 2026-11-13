@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
   remove: (id: string) => void;
+  reset: (id: string) => void;
 };
 declare global {
   interface Window {
@@ -46,6 +47,10 @@ export function Turnstile({ action, onToken, onStatus }: { action: string; onTok
   const box = useRef<HTMLDivElement>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const [failed, setFailed] = useState(false);
+  // A failed or timed-out pass is said here with a way to retry (a page that explains it itself
+  // passes onStatus and gets no second message).
+  const [problem, setProblem] = useState<"error" | "expired" | null>(null);
+  const widget = useRef<string | undefined>(undefined);
   // Keep the latest callback without re-rendering the widget.
   const cb = useRef(onToken);
   const st = useRef(onStatus);
@@ -61,20 +66,27 @@ export function Turnstile({ action, onToken, onStatus }: { action: string; onTok
     loadScript()
       .then(() => {
         if (cancelled || !box.current || !window.turnstile) return;
-        id = window.turnstile.render(box.current, {
+        id = widget.current = window.turnstile.render(box.current, {
           sitekey: siteKey,
           action,
           theme: "dark",
-          callback: (t: string) => cb.current(t),
+          callback: (t: string) => {
+            setProblem(null);
+            cb.current(t);
+          },
           "expired-callback": () => {
             cb.current(null);
             st.current?.("expired");
           },
           "error-callback": () => {
             cb.current(null);
+            setProblem("error");
             st.current?.("error");
           },
-          "timeout-callback": () => st.current?.("expired"),
+          "timeout-callback": () => {
+            setProblem("expired");
+            st.current?.("expired");
+          },
           "before-interactive-callback": () => st.current?.("interactive"),
         });
       })
@@ -90,5 +102,27 @@ export function Turnstile({ action, onToken, onStatus }: { action: string; onTok
 
   if (!siteKey) return <p className="text-sm text-muted">Live checks aren&apos;t switched on in this demo yet. The full examples on the home page show complete checks.</p>;
   if (failed) return <p className="text-sm text-bad">The &quot;I&apos;m human&quot; check didn&apos;t load. Turn off blockers for this site or try again.</p>;
-  return <div ref={box} className="min-h-[65px]" />;
+  return (
+    <div>
+      <div ref={box} className="min-h-[65px]" />
+      {problem && !onStatus && (
+        <p role="status" className="mt-2 text-sm text-warn">
+          {problem === "error"
+            ? "The \"I'm human\" check didn't work. Turn off ad or script blockers for this site, then "
+            : "The \"I'm human\" check timed out. "}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setProblem(null);
+              if (widget.current && window.turnstile) window.turnstile.reset(widget.current);
+            }}
+          >
+            try again
+          </button>
+          .
+        </p>
+      )}
+    </div>
+  );
 }

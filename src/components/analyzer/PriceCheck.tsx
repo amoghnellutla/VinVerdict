@@ -161,8 +161,10 @@ export function PriceCheck(props: Props) {
             ? "The \"I'm human\" check didn't load. Turn off ad or script blockers for this site, or press Try the check again."
             : humanStatus === "expired"
               ? "The \"I'm human\" check timed out. Press Try the check again."
-              : humanStatus === "interactive" || waited >= 6
+              : humanStatus === "interactive"
                 ? "Cloudflare wants a quick check first: tick the box below and the lookup starts by itself."
+                : waited >= 6
+                ? "Still confirming you're not a bot (Cloudflare). If a box appears below, tick it: the lookup starts by itself."
                 : "Confirming you're not a bot (Cloudflare), then the lookup starts by itself…"}
           {(humanStatus === "error" || humanStatus === "expired") && (
             <>
