@@ -304,6 +304,10 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted">Menus and ads in a copied page are ignored.</p>
+            <p className="text-sm text-muted">
+              After the check, keep going: paste the seller&apos;s messages or the Carfax (or screenshots of them), or say what you learn
+              (&quot;he&apos;d take 13,500&quot;, &quot;KBB says 13,200&quot;), and the whole result updates.
+            </p>
             <button type="submit" disabled={busy} className="btn btn-secondary">
               {pending ? "Checking…" : "Check"}
             </button>
