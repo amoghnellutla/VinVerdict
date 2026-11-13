@@ -131,7 +131,16 @@ function nextSteps(c: PageContext): { points: string[]; actions: Action[] } {
   return { points: points.slice(0, 4), actions: actions.slice(0, 4) };
 }
 
-export function answerIntent(intent: string, c: PageContext): Reply {
+/** "is 100k miles a lot?": the miles the person asked about, or null. */
+function askedMiles(q: string): number | null {
+  const m = /\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b/i.exec(q);
+  if (!m) return null;
+  const raw = m[1].replace(/,/g, "").replace(/\s/g, "");
+  const n = /k$/i.test(raw) ? Math.round(parseFloat(raw) * 1_000) : Number(raw);
+  return n >= 1_000 && n < 1_000_000 ? n : null;
+}
+
+export function answerIntent(intent: string, c: PageContext, question = ""): Reply {
   const steps = nextSteps(c);
   switch (intent) {
     case "offer": {
@@ -273,14 +282,22 @@ export function answerIntent(intent: string, c: PageContext): Reply {
       };
     }
     case "miles": {
-      const { miles, age } = c.mileage;
+      const { age } = c.mileage;
+      // A number in the question that isn't this car's: answer for that number, and say what this car has.
+      const asked = askedMiles(question);
+      const own = c.mileage.miles;
+      const other = asked && (!own || Math.abs(asked - own) > own * 0.1) ? asked : null;
+      const miles = other ?? own;
       if (!miles) return { text: "The miles aren't known yet. Tell me (\"it has 126k miles\") and I'll compare them with a typical car's.", points: [], actions: [] };
       if (!age) return { text: `${miles.toLocaleString("en-US")} miles. Without the model year, they can't be compared with a typical car's (about 13,500 a year).`, points: [], actions: [] };
       const per = Math.round(miles / age / 100) * 100;
       const how = per >= 20_000 ? "very high" : per >= 15_500 ? "above average" : per < 500 && age >= 4 ? "suspiciously low" : per < 8_000 ? "low" : "about average";
       return {
-        text: `${miles.toLocaleString("en-US")} miles over about ${age} year${age === 1 ? "" : "s"} is about ${per.toLocaleString("en-US")} a year: ${how}. A typical car does about 13,500 a year (FHWA).`,
+        text: other
+          ? `${miles.toLocaleString("en-US")} miles on a car this age (about ${age} year${age === 1 ? "" : "s"}) would be about ${per.toLocaleString("en-US")} a year: ${how}. A typical car does about 13,500 a year (FHWA).`
+          : `${miles.toLocaleString("en-US")} miles over about ${age} year${age === 1 ? "" : "s"} is about ${per.toLocaleString("en-US")} a year: ${how}. A typical car does about 13,500 a year (FHWA).`,
         points: [
+          ...(other && own ? [`This car has ${own.toLocaleString("en-US")} miles${own ? ` (about ${(Math.round(own / age / 100) * 100).toLocaleString("en-US")} a year)` : ""}.`] : []),
           ...(how === "very high" ? ["That usually means rideshare, delivery or fleet use: expect more wear on brakes, suspension and the transmission, and price it as a high-mileage car."] : []),
           ...(how === "suspiciously low" ? ["Under 500 a year can mean a rolled-back odometer: check the service records and the history report's odometer readings."] : []),
           "How it was looked after matters more than the number: ask for the service records (oil changes, transmission fluid, any timing belt), and have your mechanic check it.",

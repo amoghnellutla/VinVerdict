@@ -318,3 +318,13 @@ describe("what the seller said is checked against the ad, not against itself", (
     expect(checkReplies(toldReplies(said), adSide).map((h) => h.id)).toEqual(expect.arrayContaining(["msg-story-miles", "msg-story-title", "msg-story-accident"]));
   });
 });
+
+describe("a mileage question with its own number", () => {
+  it("answers for the number asked, and says what this car has", () => {
+    const r = answerIntent("miles", { ...ctx, mileage: { miles: 31_000, age: 7 } }, "is 100k miles a lot?");
+    expect(r.text).toBe("100,000 miles on a car this age (about 7 years) would be about 14,300 a year: about average. A typical car does about 13,500 a year (FHWA).");
+    expect(r.points[0]).toBe("This car has 31,000 miles (about 4,400 a year).");
+    // The car's own number (or close to it) is just this car's answer.
+    expect(answerIntent("miles", ctx, "is 126k miles too much?").text).toMatch(/^126,360 miles over about 8 years/);
+  });
+});

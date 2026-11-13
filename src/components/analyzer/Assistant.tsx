@@ -191,7 +191,15 @@ export function Assistant(props: {
     setBusy("Thinking…");
     const r = await askCarAction({ report: build(), question, earlier: [], token: takeToken() }).catch(() => null);
     setBusy(null);
-    if (!r || r.status === "error") return say({ text: r?.message ?? "Couldn't reach VinVerdict. Try again." });
+    if (!r || r.status === "error") {
+      // No AI right now: still answer from the page, and hand over the report for the person's own AI.
+      const page = answerIntent("overview", ctx);
+      return say({
+        text: r?.message ?? "Couldn't reach VinVerdict. Try again.",
+        points: [`Meanwhile, from this page: ${page.text}`],
+        actions: [{ kind: "copy", label: "Copy the report for your own AI", text: build() }, ...page.actions.slice(0, 2)],
+      });
+    }
     // Facts the AI found in the question (each quoted from it) update the page too.
     if (r.facts.length) {
       const facts = r.facts as Fact[];
@@ -300,7 +308,7 @@ export function Assistant(props: {
         if (trade) {
           say({ text: "A trade-in value is what a dealer would pay you, not what you'd pay, so it isn't used for the price. Tell me the private party or dealer retail value instead (\"KBB private party 12,500\")." });
         }
-        if (route.intent) return reply(answerIntent(route.intent, ctx));
+        if (route.intent) return reply(answerIntent(route.intent, ctx, text));
         if (route.question) return askAi(text);
         return;
       }
@@ -309,10 +317,10 @@ export function Assistant(props: {
         return reply({ text: t.text, points: t.points ?? [], actions: [], next: followUps("next", ctx) });
       }
       case "intent":
-        return reply({ ...answerIntent(route.intent, ctx), next: followUps(route.intent, ctx) });
+        return reply({ ...answerIntent(route.intent, ctx, text), next: followUps(route.intent, ctx) });
       case "intents": {
         // One reply per question; the follow-ups go under the last one.
-        route.intents.forEach((i, n) => reply({ ...answerIntent(i, ctx), next: n === route.intents.length - 1 ? followUps(i, ctx) : undefined }));
+        route.intents.forEach((i, n) => reply({ ...answerIntent(i, ctx, text), next: n === route.intents.length - 1 ? followUps(i, ctx) : undefined }));
         return;
       }
       case "link":
