@@ -28,6 +28,29 @@ describe.skipIf(!live)("AI mode, live", () => {
     expect(r.ok).toBe(true);
   }, 90_000);
 
+  it("open questions the page can't answer (they reach the AI) all pass the guards", async () => {
+    const { aiJson } = await import("./client");
+    const { askMessages, checkAsk } = await import("./ask");
+    const report = readFileSync("src/lib/ai/fixtures/short-report-case32.md", "utf8");
+    const qs = [
+      "The check engine light came on during the test drive. Should I still buy it?",
+      "Should I get an extended warranty on this one?",
+      "How does this compare with a Honda Accord of the same year?",
+      "Is rust a problem on this model?",
+      "Can I finance it, and is a credit union better than the dealer?",
+      "The seller says it has new tires and brakes. Does that change anything?",
+    ];
+    let ok = 0;
+    for (const q of qs) {
+      const r = await aiJson({ messages: askMessages(report, q, []), validate: (raw) => checkAsk(raw, report, q), maxTokens: 900 });
+      if (r.ok) ok++;
+      console.log(`Q: ${q}
+${r.ok ? `[${r.provider}] ${(r.data as { answer: string }).answer}` : `FAILED: ${r.reason}`}`);
+      await new Promise((res) => setTimeout(res, 2_500));
+    }
+    expect(ok).toBe(qs.length);
+  }, 600_000);
+
   it("reads a Carfax-style report: every event, with quotes found in the text", async () => {
     const { aiJson } = await import("./client");
     const { checkHistoryRead, historyMessages, aiProofRead } = await import("./history-read");

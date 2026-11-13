@@ -9,6 +9,7 @@ import type { AskAction } from "@/lib/ai/ask";
 import { answerIntent, followUps, SMALL_TALK, smallTalk, starters, type Action, type PageContext, type Reply } from "@/lib/assistant/answers";
 import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
+import { TERMS } from "@/lib/assistant/glossary";
 import { routeMessage } from "@/lib/assistant/route";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
@@ -302,6 +303,10 @@ export function Assistant(props: {
         if (route.intent) return reply(answerIntent(route.intent, ctx));
         if (route.question) return askAi(text);
         return;
+      }
+      case "term": {
+        const t = TERMS.find((x) => x.key === route.key)!;
+        return reply({ text: t.text, points: t.points ?? [], actions: [], next: followUps("next", ctx) });
       }
       case "intent":
         return reply({ ...answerIntent(route.intent, ctx), next: followUps(route.intent, ctx) });

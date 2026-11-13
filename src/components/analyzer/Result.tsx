@@ -186,7 +186,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   const [phrase] = useState(() => proofPhrase());
   // What the seller wrote (pasted below) and what the person said they said (Assistant), checked together.
   const allReplies = [replies, toldReplies(told)].filter(Boolean).join("\n");
-  const replyHits = useMemo(() => checkReplies(allReplies, a.listing), [allReplies, a.listing]);
+  // Compared with the ad (and the buyer's own facts), never with what the seller's words already changed:
+  // "he says 140k miles" mustn't overwrite the ad's 126k before the mismatch is checked.
+  const adSide = useMemo(() => applyTold(original, told.filter((t) => !t.reply)).listing, [original, told]);
+  const replyHits = useMemo(() => checkReplies(allReplies, adSide), [allReplies, adSide]);
   const knownIssues = useMemo(
     () =>
       knownIssuesFor({

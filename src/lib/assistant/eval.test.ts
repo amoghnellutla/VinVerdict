@@ -17,6 +17,7 @@ const VIN = "4T1B11HK8JU145889";
 function label(r: Route): string {
   if (r.kind === "intent") return `intent:${r.intent}`;
   if (r.kind === "facts") return `facts:${r.facts.map((f) => f.kind).join(",")}${r.question ? "+q" : ""}`;
+  if (r.kind === "term") return `term:${r.key}`;
   if (r.kind === "said") return `said${r.facts.length ? `:${r.facts.map((f) => f.kind).join(",")}` : ""}`;
   return r.kind;
 }
@@ -137,6 +138,18 @@ const MESSAGES: [string, string][] = [
   ["should I get an extended warranty?", "ai"],
   ["the check engine light is on", "ai"],
   ["i bought it!", "small-talk"],
+  // --- Words a buyer asks about: fixed definitions, no AI ---
+  ["what does CR grade mean?", "term:cr"],
+  ["what is MMR", "term:mmr"],
+  ["what's a doc fee?", "term:doc"],
+  ["what does as-is mean", "term:asis"],
+  ["what is a rebuilt title?", "term:rebuilt"],
+  ["what's CPO", "term:cpo"],
+  ["what does out the door mean", "term:otd"],
+  ["what is curbstoning", "term:curb"],
+  // Not a term: still the page's answers or the AI.
+  ["what's the gas mileage?", "intent:fuel"],
+  ["what is the timing belt interval on this engine?", "ai"],
   ["my zip is 07030", "facts:zip"],
   ["it's from a private seller", "facts:seller"],
   ["it's a dealer car", "facts:seller"],
@@ -159,7 +172,7 @@ const MESSAGES: [string, string][] = [
   ["Will this engine last another 5 years of commuting?", "ai"],
   ["is the transmission good", "ai"],
   ["timing belt or chain?", "ai"],
-  ["what does CR grade mean", "ai"],
+  ["what does CR grade mean", "term:cr"],
   ["insurance cost?", "ai"],
   ["what should i check when i see it", "intent:visit"],
   ["what to inspect on the test drive", "intent:visit"],

@@ -105,6 +105,7 @@ Three buttons on a result, using free AI services (GLM by Z.ai first, then Googl
   - **Paste or screenshot your chat with the seller** (Marketplace, texts, email). VinVerdict keeps only the seller's side (no buyer questions, app buttons, names or times) and checks it like a reply: a deposit request, a shipping story or "title's in the mail" turns the verdict at once.
   - **No price check left, or no VIN? Quote a price guide.** "KBB private party 12,500" or "Edmunds says 13,200" prices the car straight away, with no quota: the estimate, the offer and the walk-away price follow. It's always marked low confidence and "you quoted it". A private-party value is put on a dealer basis for a dealer's car, and a trade-in value is refused (it isn't a buying price).
   - **Got the VIN from the seller?** For an ad that had none, type it ("the VIN is …"): the same ad is checked again with it (exact model, recalls, title checks, the price check by VIN), keeping what you told it and the conversation. A mistyped VIN is caught by its check digit.
+  - **"What does CR grade mean?"**, "what's a doc fee?", "what does as-is mean?": fixed definitions for 15 car-buying words, no AI.
   - **Ask several things at once** ("is the price fair and is it a scam?"): each gets its own answer.
   - **"Is 126k miles a lot?"** is answered from the page: miles a year against a typical car's 13,500 (FHWA), with what that means.
   - **The conversation is kept** on your device for that car (7 days), with what you told it.

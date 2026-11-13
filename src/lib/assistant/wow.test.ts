@@ -306,3 +306,15 @@ describe("miles from a history report when the ad has none", () => {
     expect(knowsList(base).find((x) => x.key === "miles")).toMatchObject({ done: true, detail: "126,357 miles (Carfax's last reading)" });
   });
 });
+
+describe("what the seller said is checked against the ad, not against itself", () => {
+  it("a seller's different miles, a branded title or an accident still raise the mismatch", () => {
+    const ad = { text: "x", listing: parseListing("2018 Toyota Camry LE $14,995 126,000 miles clean title no accidents"), vinCheck: null, decoded: null } as unknown as Analysis;
+    const said: Told[] = ["he says it has 140k miles", "the dealer says the title is rebuilt", "they said it was in a minor accident"].map((m, i) => ({ id: String(i), label: m, reply: m, facts: factsFromSentence(m) }));
+    // The car the page shows takes the seller's words…
+    expect(applyTold(ad, said).listing).toMatchObject({ miles: 140_000, titleStatus: "rebuilt" });
+    // …but the mismatch is checked against the ad (what Result does).
+    const adSide = applyTold(ad, said.filter((t) => !t.reply)).listing;
+    expect(checkReplies(toldReplies(said), adSide).map((h) => h.id)).toEqual(expect.arrayContaining(["msg-story-miles", "msg-story-title", "msg-story-accident"]));
+  });
+});

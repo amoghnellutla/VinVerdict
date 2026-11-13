@@ -15,6 +15,7 @@ import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
 import { checkVin } from "@/lib/vin";
 import { isChat, sellerSide } from "./chat";
+import { termIn } from "./glossary";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
 export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles";
@@ -29,6 +30,8 @@ export type Route =
   /** Facts to apply; `question` when the message also asks something (answered after applying them). */
   | { kind: "facts"; facts: Fact[]; intent: Intent | null; question: boolean }
   | { kind: "intent"; intent: Intent }
+  /** "What does CR grade mean?": a fixed definition (lib/assistant/glossary.ts). */
+  | { kind: "term"; key: string }
   /** Several questions in one message ("is the price fair and is it a scam?"): each answered from the page. */
   | { kind: "intents"; intents: Intent[] }
   /** What the seller said or asked for ("he wants a deposit", "she'd take 13,500"): checked like their reply, plus any facts in it. */
@@ -167,6 +170,9 @@ export function routeMessage(raw: string, carVin: string | null): Route {
   }
   // A short report summary pasted on its own ("CARFAX: no accidents reported, 1 owner").
   if (readable && !LISTING_PAGE.test(text)) return proof();
+
+  const term = text.length <= 80 ? termIn(text) : null;
+  if (term) return { kind: "term", key: term.key };
 
   const question = isQuestion(text);
   const facts = factsFromSentence(text);

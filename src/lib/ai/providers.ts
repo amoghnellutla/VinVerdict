@@ -55,6 +55,9 @@ export const PROVIDERS: readonly Provider[] = [
     url: "https://api.groq.com/openai/v1/chat/completions",
     keyEnv: "GROQ_API_KEY",
     text: "openai/gpt-oss-120b",
+    // A reasoning model: its thinking counts toward max_tokens, and a reply cut short fails Groq's JSON
+    // check (HTTP 400). Low effort used 53 reasoning tokens instead of 433 in a live probe (2026-11-12).
+    body: { reasoning_effort: "low" },
     vision: null,
     privacy: "Groq's free plan.",
   },
