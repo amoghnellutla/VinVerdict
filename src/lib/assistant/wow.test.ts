@@ -343,3 +343,16 @@ describe("a screenshot VinVerdict can't place", () => {
     expect(fit("Me: is it available?\nSeller: yes but send a $500 deposit by zelle first\nMe: can I see it?\nSeller: no, I'm deployed overseas")).toBe("ok");
   });
 });
+
+describe("the free NICB check", () => {
+  it("is in the checklist with its link, and ticks when a result is attached", () => {
+    const base: KnowsInput = { car: null, vin: VIN, price: null, miles: null, history: null, carfax: null, estimate: null, listings: null, recallsChecked: false, recalls: null, recallLookup: null, sellerAnswers: 0, auctionSold: null, nicbLink: "https://www.nicb.org/vincheck" };
+    expect(knowsList(base).find((x) => x.key === "nicb")).toMatchObject({ done: false, action: { kind: "link", href: "https://www.nicb.org/vincheck" } });
+    expect(knowsList({ ...base, nicb: "clear" }).find((x) => x.key === "nicb")).toMatchObject({ done: true, detail: "NICB: no theft or total-loss record" });
+    expect(knowsList({ ...base, vin: null }).find((x) => x.key === "nicb")?.action).toBeNull();
+  });
+  it("the history answer points to it", () => {
+    const r = answerIntent("history", { ...ctx, nicbLink: "https://www.nicb.org/vincheck" });
+    expect(r.actions.map((a) => a.label)).toContain("Free NICB check");
+  });
+});

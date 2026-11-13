@@ -52,6 +52,8 @@ export type PageContext = {
   carfax: string | null;
   recalls: number | null;
   recallLookup: string | null;
+  /** The free NICB VINCheck for this VIN (theft, insurance total loss), or null. */
+  nicbLink?: string | null;
   sellerMessage: string;
   dealer: boolean;
   /** Out the door, as the costs section works it out now. */
@@ -259,10 +261,12 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
               ...(c.feedHistory.length ? ["Listing data can add bad news but never clears a car: no accident there doesn't mean no accident."] : []),
               ...(c.seller.listings ? [`${c.seller.listings} online listing${c.seller.listings > 1 ? "s" : ""} of this VIN on record (see where it's been listed).`] : []),
               ...steps.points.filter((x) => /Carfax|AutoCheck/.test(x)).slice(0, 1),
+              ...(c.nicbLink ? ["Free meanwhile: NICB VINCheck shows reported thefts and insurance total losses. Paste or screenshot the result here."] : []),
             ],
             actions: [
               ...(c.carfax ? [{ kind: "link" as const, label: "Open the free Carfax", href: c.carfax }] : []),
               { kind: "attach", label: "Add a history report" },
+              ...(c.nicbLink ? [{ kind: "link" as const, label: "Free NICB check", href: c.nicbLink }] : []),
               ...(c.seller.listings ? [{ kind: "go" as const, label: "See where it's been listed", target: "#listing-history" as const }] : []),
             ],
           };

@@ -365,6 +365,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     historyRead: answers.damage !== "unknown" || answers.title !== "unknown",
     carfax: live?.carfaxUrl ?? null,
     recalls: a.recalls?.length ?? null,
+    nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
     sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
     dealer: m.listing.sellerType === "dealer",
@@ -528,6 +529,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
               sellerAnswers: Object.values(checklist).filter((x) => x != null).length + told.filter((t) => t.reply).length,
               auctionSold: auction?.soldPrice ?? null,
               priced: pageCtx.priced,
+              nicb: proofSum.rating.nicb,
+              nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
               feedHistory: pageCtx.feedHistory,
             })}
           />

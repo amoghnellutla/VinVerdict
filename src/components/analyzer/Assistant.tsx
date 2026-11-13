@@ -23,6 +23,12 @@ type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; act
 
 /** Quick starts shown before the first message. */
 
+/** How a pasted check is named in the reply. */
+const PROOF_NAME: Partial<Record<string, string>> = {
+  carfax: "a Carfax report", autocheck: "an AutoCheck report", nicb: "an NICB theft and total-loss check",
+  nhtsa: "an NHTSA recall check", maker: "the maker's recall check", nmvtis: "an NMVTIS title check",
+};
+
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
 const uid = () => crypto.randomUUID();
 
@@ -248,7 +254,7 @@ export function Assistant(props: {
         const card = proofFromText(text, null, label, thumb);
         if (!card) return reply(SMALL_TALK);
         onProof(card);
-        say({ text: `Added to Check it yourself as ${route.source === "carfax" ? "a Carfax report" : route.source === "autocheck" ? "an AutoCheck report" : "proof"}:`, points: card.read.findings.map((f) => f.label), actions: [{ kind: "go", label: "See it", target: "#check-yourself" }] }, before);
+        say({ text: `Added to Check it yourself as ${PROOF_NAME[route.source] ?? "proof"}:`, points: card.read.findings.map((f) => f.label), actions: [{ kind: "go", label: "See it", target: "#check-yourself" }] }, before);
         if ((route.source === "carfax" || route.source === "autocheck") && card.text) await closeRead(card.text, label, thumb);
         return;
       }

@@ -35,6 +35,9 @@ export type KnowsInput = {
   auctionSold: number | null;
   /** The price check has run (a lean check finds no listing history). */
   priced?: boolean;
+  /** The free NICB VINCheck (theft, insurance total loss): its result when attached, and its link. */
+  nicb?: "clear" | "problem" | "check" | "read" | "none";
+  nicbLink?: string | null;
   /** Bad news about the car's history from listing data, before any report. */
   feedHistory?: string[];
 };
@@ -75,6 +78,9 @@ export function knowsList(k: KnowsInput): Known[] {
     k.recallsChecked
       ? { key: "recalls", label: "Open recalls on this car", done: true, detail: "Checked by VIN", action: null }
       : { key: "recalls", label: "Open recalls on this car", done: false, detail: k.recalls ? `${k.recalls} for the model year; which are open?` : "Not checked by VIN", action: k.recallLookup ? { kind: "link", label: "Check by VIN", href: k.recallLookup } : null },
+    k.nicb && k.nicb !== "none"
+      ? { key: "nicb", label: "Theft or total loss (free check)", done: true, detail: k.nicb === "problem" ? "NICB shows a record: see Check it yourself" : k.nicb === "clear" ? "NICB: no theft or total-loss record" : "NICB result added", action: null }
+      : { key: "nicb", label: "Theft or total loss (free check)", done: false, detail: k.vin ? "NICB VINCheck is free: check, then paste or screenshot the result" : "Needs the VIN", action: k.vin && k.nicbLink ? { kind: "link", label: "Open NICB VINCheck", href: k.nicbLink } : null },
     k.sellerAnswers > 0
       ? { key: "seller", label: "Seller's answers", done: true, detail: `${k.sellerAnswers} answered`, action: null }
       : { key: "seller", label: "Seller's answers", done: false, detail: "Not asked yet", action: { kind: "go", label: "See what to ask", target: "#before-you-buy" } },
