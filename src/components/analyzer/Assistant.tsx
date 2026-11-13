@@ -305,6 +305,11 @@ export function Assistant(props: {
       }
       case "intent":
         return reply({ ...answerIntent(route.intent, ctx), next: followUps(route.intent, ctx) });
+      case "intents": {
+        // One reply per question; the follow-ups go under the last one.
+        route.intents.forEach((i, n) => reply({ ...answerIntent(i, ctx), next: n === route.intents.length - 1 ? followUps(i, ctx) : undefined }));
+        return;
+      }
       case "link":
         return say({
           text: `VinVerdict doesn't open links (${route.host} and most sites block it, and it keeps you safe). Open the listing, press Ctrl+A then Ctrl+C (on a phone: Select all, Copy), and paste the page here.`,

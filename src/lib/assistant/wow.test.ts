@@ -289,3 +289,13 @@ describe("the VIN for an ad that had none", () => {
     expect(routeMessage("the vin is 4T1B11HK8JU145889", VIN)).toEqual({ kind: "small-talk" });
   });
 });
+
+describe("several questions in one message", () => {
+  it("each one is answered, in order, without the AI", () => {
+    expect(routeMessage("is the price fair and is it a scam?", VIN)).toEqual({ kind: "intents", intents: ["price", "scam"] });
+    expect(routeMessage("What should I offer? Any recalls?", VIN)).toEqual({ kind: "intents", intents: ["offer", "recalls"] });
+    expect(routeMessage("how much out the door and what's the gas mileage", VIN)).toEqual({ kind: "intents", intents: ["costs", "fuel"] });
+    // One question stays one answer.
+    expect(routeMessage("is the price fair?", VIN)).toEqual({ kind: "intent", intent: "price" });
+  });
+});

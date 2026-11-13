@@ -29,6 +29,8 @@ export type Route =
   /** Facts to apply; `question` when the message also asks something (answered after applying them). */
   | { kind: "facts"; facts: Fact[]; intent: Intent | null; question: boolean }
   | { kind: "intent"; intent: Intent }
+  /** Several questions in one message ("is the price fair and is it a scam?"): each answered from the page. */
+  | { kind: "intents"; intents: Intent[] }
   /** What the seller said or asked for ("he wants a deposit", "she'd take 13,500"): checked like their reply, plus any facts in it. */
   | { kind: "said"; facts: Fact[] }
   /** A pasted or screenshotted conversation with the seller: their side, checked like a reply. */
@@ -86,6 +88,17 @@ export function intentOf(text: string): Intent | null {
   // "Is 126k miles too much?" is about the miles, not the price.
   if (hit === "price" && /\bmiles?\b|\bmileage\b/i.test(text) && !/\$|\bprice\b|\bpay\b|\bworth\b|\bdeal\b/i.test(text)) return null;
   return hit;
+}
+
+/** Each question in a message, in order ("what should I offer and is it a scam?" → offer, scam). */
+export function intentsOf(text: string): Intent[] {
+  const parts = text.split(/\?\s*|;\s*|\s+(?:and|also|plus)\s+(?=(?:is|are|what|what's|how|who|should|any|can|do|does|will)\b)/i).map((x) => x.trim()).filter((x) => x.length > 2);
+  const out: Intent[] = [];
+  for (const part of parts) {
+    const i = intentOf(part);
+    if (i && !out.includes(i)) out.push(i);
+  }
+  return out.slice(0, 3);
 }
 
 /** "He said…", "the seller asked…", "seller is overseas": a report of what the seller said or did. */
@@ -160,7 +173,10 @@ export function routeMessage(raw: string, carVin: string | null): Route {
   const intent = intentOf(text);
   if (!question && text.length <= 600 && (SAID_STRONG.test(text) || (!facts.length && SAID_WEAK.test(text)))) return { kind: "said", facts };
   if (facts.length) return { kind: "facts", facts, intent: question ? intent : null, question };
-  if (intent) return { kind: "intent", intent };
+  if (intent) {
+    const all = intentsOf(text);
+    return all.length > 1 ? { kind: "intents", intents: all } : { kind: "intent", intent };
+  }
 
   const words = text.split(/\s+/).filter(Boolean).length;
   const greeting = /^(hi|hello|hey|yo|thanks|thank you|thx|ty|ok|okay|cool|nice|great|lol|test|testing|help)\b/i.test(text) || /\b(?:i |we )?(?:bought|purchased) (?:it|the car)\b/i.test(text);
