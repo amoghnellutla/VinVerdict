@@ -10,7 +10,8 @@ export type KnownAction =
   | { kind: "tell"; label: string; prefill: string }
   | { kind: "attach"; label: string }
   | { kind: "go"; label: string; target: string }
-  | { kind: "link"; label: string; href: string };
+  | { kind: "link"; label: string; href: string }
+  | { kind: "tab"; label: string; tab: string };
 
 export type Known = { key: string; label: string; done: boolean; detail: string; action: KnownAction | null };
 
@@ -35,6 +36,8 @@ export type KnowsInput = {
   auctionSold: number | null;
   /** The price check has run (a lean check finds no listing history). */
   priced?: boolean;
+  /** The VIN on the car and its title, checked in person (AtTheCar): matched, didn't, or not checked. */
+  vinAtCar?: "match" | "mismatch" | null;
   /** What the buyer said their mechanic found. */
   inspection?: { status: "passed" | "issues"; note: string } | null;
   /** The free NICB VINCheck (theft, insurance total loss): its result when attached, and its link. */
@@ -83,6 +86,11 @@ export function knowsList(k: KnowsInput): Known[] {
     k.nicb && k.nicb !== "none"
       ? { key: "nicb", label: "Theft or total loss (free check)", done: true, detail: k.nicb === "problem" ? "NICB shows a record: see Check it yourself" : k.nicb === "clear" ? "NICB: no theft or total-loss record" : "NICB result added", action: null }
       : { key: "nicb", label: "Theft or total loss (free check)", done: false, detail: k.vin ? "NICB VINCheck is free: check, then paste or screenshot the result" : "Needs the VIN", action: k.vin && k.nicbLink ? { kind: "link", label: "Open NICB VINCheck", href: k.nicbLink } : null },
+    k.vinAtCar === "match"
+      ? { key: "vinmatch", label: "VIN on the car and title", done: true, detail: "Matches (checked at the car)", action: null }
+      : k.vinAtCar === "mismatch"
+        ? { key: "vinmatch", label: "VIN on the car and title", done: true, detail: "Doesn't match: serious warning", action: { kind: "tab", label: "See it", tab: "car" } }
+        : { key: "vinmatch", label: "VIN on the car and title", done: false, detail: "Check at the car: windshield plate, door sticker, title", action: { kind: "tab", label: "Check at the car", tab: "car" } },
     k.sellerAnswers > 0
       ? { key: "seller", label: "Seller's answers", done: true, detail: `${k.sellerAnswers} answered`, action: null }
       : { key: "seller", label: "Seller's answers", done: false, detail: "Not asked yet", action: { kind: "go", label: "See what to ask", target: "#before-you-buy" } },

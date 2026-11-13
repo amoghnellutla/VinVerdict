@@ -51,6 +51,22 @@ ${r.ok ? `[${r.provider}] ${(r.data as { answer: string }).answer}` : `FAILED: $
     expect(ok).toBe(qs.length);
   }, 600_000);
 
+  it("reads a dashboard photo: odometer and lights, and no invented lights on a clean one", async () => {
+    const { aiJson } = await import("./client");
+    const { dashMessages, checkDash } = await import("./dash-read");
+    const read = async (f: string) => {
+      const url = `data:image/jpeg;base64,${readFileSync(`src/lib/ai/fixtures/${f}`).toString("base64")}`;
+      return aiJson({ messages: dashMessages(url), vision: true, validate: checkDash, maxTokens: 400 });
+    };
+    const lit = await read("dash-check-engine.jpg");
+    console.log("DASH lit", JSON.stringify(lit));
+    expect(lit.ok && lit.data).toMatchObject({ readable: true, odometer: 126_410, lights: ["check_engine"] });
+    await new Promise((res) => setTimeout(res, 5_000));
+    const clear = await read("dash-clear.jpg");
+    console.log("DASH clear", JSON.stringify(clear));
+    expect(clear.ok && clear.data).toMatchObject({ readable: true, odometer: 98_320, lights: [] });
+  }, 180_000);
+
   it("reads a Carfax-style report: every event, with quotes found in the text", async () => {
     const { aiJson } = await import("./client");
     const { checkHistoryRead, historyMessages, aiProofRead } = await import("./history-read");

@@ -4,6 +4,7 @@ import { aiJson } from "@/lib/ai/client";
 import { ASK_LIMITS, askMessages, checkAsk, type AskAnswer, type AskTurn } from "@/lib/ai/ask";
 import { checkDealerRead, dealerMessages, jsonLdListing, mergeDealer, pageHasVin, pageText, relevantText, type DealerPage } from "@/lib/ai/dealer-check";
 import { checkHistoryRead, HISTORY_IMAGE, HISTORY_LIMITS, historyMessages, type AiHistory } from "@/lib/ai/history-read";
+import { checkDash, dashMessages, type DashRead } from "@/lib/ai/dash-read";
 import { PROVIDER_NAME } from "@/lib/ai/providers";
 import { currentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/client-ip";
@@ -85,6 +86,21 @@ export async function readHistoryAction(input: { text: unknown; image: unknown; 
   });
   if (!r.ok) return { status: "error", message: r.reason === "unconfigured" ? UNSET : BUSY };
   return { status: "ok", provider: PROVIDER_NAME[r.provider], ai: r.data, sentText };
+}
+
+export type DashState = { status: "ok"; provider: string; dash: DashRead } | AiError;
+
+/** "Dashboard photo check": the odometer and the warning lights in a photo of the instrument cluster. */
+export async function readDashAction(input: { image: unknown; token: unknown }): Promise<DashState> {
+  const image = typeof input.image === "string" && input.image.length <= HISTORY_LIMITS.image && HISTORY_IMAGE.test(input.image) ? input.image : null;
+  if (!image) return { status: "error", message: "Attach a photo of the dashboard (engine running)." };
+
+  const blocked = await gate(input.token);
+  if (blocked) return blocked;
+
+  const r = await aiJson({ messages: dashMessages(image), vision: true, validate: checkDash, maxTokens: 400 });
+  if (!r.ok) return { status: "error", message: r.reason === "unconfigured" ? UNSET : BUSY };
+  return { status: "ok", provider: PROVIDER_NAME[r.provider], dash: r.data };
 }
 
 export type DealerResult = { url: string; host: string; checked: "read" | "not-this-car" | "robots" | "failed"; page: DealerPage | null; by: string | null };

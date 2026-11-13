@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import type { Known, KnownAction } from "@/lib/assistant/knows";
+import { openTab } from "./SectionTabs";
 
 /** Ask the assistant to fill its box ("They're asking $") or open its file picker. */
 export const TELL_EVENT = "vinverdict:tell";
@@ -12,6 +13,7 @@ function run(a: KnownAction) {
   if (a.kind === "tell") window.dispatchEvent(new CustomEvent(TELL_EVENT, { detail: a.prefill }));
   else if (a.kind === "attach") window.dispatchEvent(new CustomEvent(ATTACH_EVENT));
   else if (a.kind === "go") document.querySelector(a.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  else if (a.kind === "tab") openTab(a.tab);
 }
 
 /**

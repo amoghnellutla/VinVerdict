@@ -3,6 +3,8 @@
 import { startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent, type DragEvent, type ReactNode } from "react";
 import { analyzeAction, type AnalyzeState } from "@/app/actions/analyze";
 import { readListingHash } from "@/lib/bookmarklet";
+import { loadLot, rankLot, saveLot, upsertLot, type LotCar } from "@/lib/lot";
+import { VinScanner } from "./VinScanner";
 import { EXAMPLES, loadExample, type DemoData, type ExampleId } from "@/lib/demo/examples";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { MAX_SCREENSHOTS, pickImages, readScreenshots, type OcrProgress } from "@/lib/ocr";
@@ -21,6 +23,7 @@ const subscribeCoarse = (cb: () => void) => {
   m.addEventListener("change", cb);
   return () => m.removeEventListener("change", cb);
 };
+const subscribeNever = () => () => {};
 const useTouch = () => useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => false);
 
 /** The check, with a lost connection or a server cut-off turned into a message instead of a broken page. */
@@ -39,6 +42,12 @@ async function safeAnalyze(prev: AnalyzeState, form: FormData): Promise<AnalyzeS
  */
 export function Analyzer({ guest = false, intro = null, outro = null, play = null }: { guest?: boolean; intro?: ReactNode; outro?: ReactNode; play?: PlayData | null }) {
   const [state, formAction, pending] = useActionState(safeAnalyze, initial);
+  // Cars scanned with the camera (walking a lot), kept on this device and ranked. Read from the
+  // device only in the browser (the server render has none), and only once.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const [lotState, setLotState] = useState<LotCar[] | null>(null);
+  const lot = lotState ?? (inBrowser ? loadLot() : []);
+  const setLot = (f: (l: LotCar[]) => LotCar[]) => setLotState((l) => f(l ?? loadLot()));
   const elapsed = useElapsed(pending);
   // Listing screenshots the current check was read from (local previews for the result).
   const [shots, setShots] = useState<string[]>([]);
@@ -255,12 +264,28 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
             {ocr ? ocrLabel(ocr) : "Read screenshots"}
             <input type="file" accept="image/*" multiple onChange={onScreenshots} disabled={busy} className="sr-only" />
           </label>
+          <VinScanner
+            className="btn btn-secondary py-3 text-base sm:px-6"
+            label="Scan a VIN"
+            hint="At the car: point at the barcode on the driver's door sticker, or the VIN plate at the bottom of the windshield. Read on this phone."
+            onVin={(vin) => {
+              setLot((l) => { const next = upsertLot(l, { vin, at: Date.now() }); saveLot(next); return next; });
+              check(vin);
+            }}
+          />
           {showing && (
             <button type="button" className="link text-sm sm:ml-2" onClick={() => setShowBox((x) => !x)}>
               {showBox ? "Hide the box" : "Paste text or a VIN instead"}
             </button>
           )}
         </div>
+        {lot.length > 0 && (
+          <LotList
+            cars={lot}
+            onCheck={(vin) => check(vin)}
+            onRemove={(vin) => setLot((l) => { const next = l.filter((c) => c.vin !== vin); saveLot(next); return next; })}
+          />
+        )}
         {ocr?.loading && ocr.image === 1 && (
           <p className="mt-2 text-sm text-muted">The first time, the reader downloads about 7 MB. After that it&apos;s quick.</p>
         )}
@@ -342,7 +367,12 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (
-          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} />
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} onSummary={(x) => setLot((l) => {
+            if (!l.some((c) => c.vin === x.vin)) return l;
+            const next = upsertLot(l, { ...x, at: Date.now() });
+            saveLot(next);
+            return next;
+          })} />
         )}
       </div>
     </>
@@ -406,4 +436,31 @@ function Step({ n }: { n: number }) {
 
 function Kbd({ children }: { children: string }) {
   return <kbd className="kbd">{children}</kbd>;
+}
+
+/** The cars scanned on a lot, best first (lib/lot.ts), each one tap from its check. */
+function LotList({ cars, onCheck, onRemove }: { cars: LotCar[]; onCheck: (vin: string) => void; onRemove: (vin: string) => void }) {
+  const ranked = rankLot(cars);
+  return (
+    <section aria-labelledby="lot-title" className="mt-5 rounded-lg border border-border p-4">
+      <h2 id="lot-title" className="font-semibold">Cars you scanned</h2>
+      <p className="text-sm text-muted">Best first: the verdict, then fewer recalls, then the price. Kept on this phone for 3 days.</p>
+      <ol className="mt-3 space-y-2">
+        {ranked.map((c, i) => (
+          <li key={c.vin} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+            <span className="nums font-semibold">{i + 1}.</span>
+            <span className="min-w-0">
+              <span className="font-semibold">{c.car ?? c.vin}</span>
+              {c.verdict && <span className="text-muted"> · {c.verdict}</span>}
+              {c.price ? <span className="nums text-muted"> · ${c.price.toLocaleString("en-US")}</span> : null}
+              {c.recalls != null && <span className="text-muted"> · {c.recalls} recall{c.recalls === 1 ? "" : "s"}</span>}
+              <span className="nums block text-xs text-muted">{c.vin}</span>
+            </span>
+            <button type="button" className="link" onClick={() => onCheck(c.vin)}>Open</button>
+            <button type="button" className="link text-muted" onClick={() => onRemove(c.vin)} aria-label={`Remove ${c.car ?? c.vin}`}>Remove</button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
 }

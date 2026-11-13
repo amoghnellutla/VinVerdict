@@ -1,6 +1,12 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from "react";
+
+/** Open a tab by its id from anywhere on the page (the checklist, the assistant): `openTab("car")`. */
+export const TAB_EVENT = "vinverdict:tab";
+export function openTab(tab: string) {
+  window.dispatchEvent(new CustomEvent(TAB_EVENT, { detail: tab }));
+}
 
 /**
  * One result section that holds several related panels behind tabs, so a long
@@ -10,6 +16,17 @@ import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
 export function SectionTabs({ id, title, intro, tabs }: { id: string; title: string; intro?: ReactNode; tabs: { id: string; label: string; content: ReactNode }[] }) {
   const [at, setAt] = useState(0);
   const uid = useId();
+  const ids = tabs.map((t) => t.id).join(",");
+  useEffect(() => {
+    const open = (e: Event) => {
+      const i = ids.split(",").indexOf((e as CustomEvent<string>).detail);
+      if (i < 0) return;
+      setAt(i);
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener(TAB_EVENT, open);
+    return () => window.removeEventListener(TAB_EVENT, open);
+  }, [ids, id]);
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
     const next = e.key === "ArrowRight" ? (at + 1) % tabs.length : e.key === "ArrowLeft" ? (at + tabs.length - 1) % tabs.length : -1;
     if (next < 0) return;

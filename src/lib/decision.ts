@@ -65,9 +65,10 @@ const STOP = new Set([
   "pay-gift-card", "pay-wire", "pay-app-upfront", "deposit-first", "shipping-only", "seller-remote",
   "no-inspection", "title-brand", "report-title", "vin-invalid", "vin-mismatch", "too-good-plus-flags",
   "auction", "odometer-unknown", "story-title", "proof-stolen", "proof-total-loss", "proof-auction", "proof-odometer", "history-rollback", "live-cloned",
+  "proof-vin-mismatch", "proof-dash-rollback",
 ]);
 /** Facts worth knowing that say nothing bad about the seller or the car. */
-const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero", "new-account", "miles-agree"]);
+const NOTE = new Set(["manual", "far-away", "no-price", "vin-only", "high-miles", "live-ended", "accident-unknown", "miles-near-zero", "new-account", "miles-agree", "proof-vin-match", "proof-dash-clear"]);
 
 const AREA: Record<string, Area> = {
   // Can the listing be trusted?
@@ -122,6 +123,9 @@ export function severityOf(raw: string, damage: Damage = "unknown"): Severity {
 }
 
 export function areaOf(id: string): Area {
+  // At the car: the VIN check is about trusting the listing; the dashboard is the car's condition.
+  if (id.startsWith("proof-dash-")) return "car";
+  if (id.startsWith("proof-vin-")) return "listing";
   return AREA[baseId(id)] ?? "listing";
 }
 

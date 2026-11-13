@@ -113,6 +113,10 @@ Three buttons on a result, using free AI services (GLM by Z.ai first, then Googl
   - **The conversation is kept** on your device for that car (7 days), with what you told it.
   - **Follow-up questions** under each answer ("Next: What should I offer?"), never one you've already asked, and never the offer on a listing with serious warnings.
   - **No re-sending for visitors:** a question that needs the free AI (or a Carfax close read) is answered as soon as you tick "I'm human".
+- **At the car (phone):**
+  - **Scan a VIN** on the home page: point the camera at the door sticker's barcode or the windshield VIN plate (or use a photo). It's read on the phone, only a VIN whose check digit works is accepted, and the check runs. Walking a lot? Every scanned car goes in "Cars you scanned", ranked best first.
+  - **VIN match** ("At the car" tab): the windshield plate, the door sticker and the title must match each other and the ad. A mismatch, the classic sign of a cloned or stolen car or a swapped title, is a serious warning on the verdict.
+  - **Dashboard photo**: with the engine running, the free vision AI reads the odometer (a reading below the car's earlier ones is a serious warning) and the warning lights that stay on (each a "check this"). Uses one AI action; confirm everything on the car.
 - **What VinVerdict knows:** a checklist under the verdict (the exact car, price, miles, accidents/title/owners, fair price, other listings, open recalls, the free NICB theft and total-loss check, the seller's answers, your mechanic's inspection), with "X of 10 known" and a button for each missing piece.
 - **Miles agree across sources:** when the listing, an auction record and a Carfax or AutoCheck give the same odometer reading (within 3% or 1,000 miles), the result says so. That's real evidence against a rollback. The ad and its live feed count once.
   - Only open questions go to a free AI. Its answer comes from the report, each fact is tagged with its section, and an answer with a number or link that isn't in the report is thrown away.

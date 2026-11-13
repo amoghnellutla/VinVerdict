@@ -7,6 +7,9 @@ import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuc
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
 import { milesAgree, type Reading } from "@/lib/assistant/odometer";
+import { dashHits, dashMiles, type DashRead } from "@/lib/ai/dash-read";
+import { matchVins } from "@/lib/vin-read";
+import { AtTheCar } from "./AtTheCar";
 import { SOURCE_NAME } from "@/lib/evidence/parse";
 import { loadTold, saveTold, toldKey } from "@/lib/assistant/store";
 import { defaultOtdInput, runningFor } from "@/lib/report/costs";
@@ -32,7 +35,7 @@ import type { AccidentStatus, TitleStatus, Usage } from "@/lib/listing/parse";
 import { mergeLive } from "@/lib/live/merge";
 import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
 import type { SellerChecklist } from "@/lib/scam/rules";
-import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Severity } from "@/lib/decision";
+import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Level, type Severity } from "@/lib/decision";
 import { ON_PAGE, raw, RULE_SOURCE, verifyLinks } from "@/lib/sources";
 import { DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
 import { buildVerdict } from "@/lib/verdict";
@@ -110,7 +113,22 @@ const FEED_HISTORY = /^(?:live-accident|history-|fleet|accident-reported)/;
 /** AI mode is on once its free AI keys are set (NEXT_PUBLIC_AI_MODE=1; a switch, not a secret). */
 const AI_MODE = process.env.NEXT_PUBLIC_AI_MODE === "1";
 
-export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null }: {
+type Summary = { vin: string; car: string; verdict: string; level: Level; price: number | null; recalls: number | null };
+
+/** Tells the page (the lot list) the verdict as it stands; renders nothing. */
+function ReportSummary({ summary, onSummary }: { summary: Summary; onSummary: (s: Summary) => void }) {
+  const key = JSON.stringify(summary);
+  const send = useRef(onSummary);
+  useEffect(() => {
+    send.current = onSummary;
+  });
+  useEffect(() => {
+    send.current(JSON.parse(key) as Summary);
+  }, [key]);
+  return null;
+}
+
+export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null, onSummary = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -125,6 +143,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   onCheckVin?: ((vin: string) => void) | null;
   /** Check a listing text again (the same ad with the VIN the person got from the seller). */
   onRecheck?: ((text: string) => void) | null;
+  /** The verdict as it stands, for the lot list on the home page. */
+  onSummary?: ((s: Summary) => void) | null;
 }) {
   // What the person told VinVerdict (Assistant): applied to the car first, so every section below uses it.
   const toldKeyFor = toldKey(original.vinCheck?.ok ? original.listing.vin : null, original.text);
@@ -219,6 +239,22 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     return () => clearTimeout(t);
   }, [carId, proofs, goodVin]);
 
+  // At the car (AtTheCar): the VINs on the car and its title, and the dashboard photo.
+  const [atCarVins, setAtCarVins] = useState<Partial<Record<"plate" | "door" | "title", string | null>>>({});
+  const [dash, setDash] = useState<DashRead | null>(null);
+  const vinAtCarHits = useMemo(() => matchVins({ ...atCarVins, ad: goodVin }), [atCarVins, goodVin]);
+  const dashFound = useMemo(() => {
+    if (!dash) return [];
+    // The highest earlier reading: listing history, an auction record, a history report.
+    const earlier = [
+      history?.maxMiles ? { miles: history.maxMiles.miles, source: "listing history" } : null,
+      auction?.record?.odometer ? { miles: auction.record.odometer, source: "the auction record" } : null,
+      ...proofs.map((p) => (p.read.odometer ? { miles: p.read.odometer.miles, source: SOURCE_NAME[p.read.source] } : null)),
+    ].filter((x): x is { miles: number; source: string } => !!x).sort((x, y) => y.miles - x.miles)[0] ?? null;
+    return dashHits(dash, { adMiles: original.listing.miles ?? live?.miles ?? null, earlier });
+  }, [dash, history, auction, proofs, original, live]);
+  const atCarHits = useMemo(() => [...vinAtCarHits, ...dashFound], [vinAtCarHits, dashFound]);
+
   // Independent odometer readings (what the person says isn't one): do they agree?
   const milesHit = useMemo(() => {
     const readings: Reading[] = [];
@@ -227,9 +263,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     if (listed) readings.push({ source: "This listing", miles: listed });
     if (auction?.record?.odometer) readings.push({ source: "Auction record", miles: auction.record.odometer });
     for (const p of proofs) if (p.read.odometer) readings.push({ source: SOURCE_NAME[p.read.source], miles: p.read.odometer.miles });
+    const onDash = dash ? dashMiles(dash) : null;
+    if (onDash) readings.push({ source: "Dashboard photo", miles: onDash });
     const hit = milesAgree(readings);
     return hit ? [hit] : [];
-  }, [original, live, auction, proofs]);
+  }, [original, live, auction, proofs, dash]);
 
   const reportMiles = useMemo(() => {
     const p = [...proofs].reverse().find((x) => x.read.odometer?.miles);
@@ -237,7 +275,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   }, [proofs]);
 
   const { result, valuation, sellV } = useMemo(() => {
-    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit] }, checklist);
+    const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit, ...atCarHits] }, checklist);
     if (!sources && !guide) return { result: first, valuation: null, sellV: null };
     const l = m.listing;
     const year = a.decoded?.year ?? l.year ?? done?.car?.year ?? null;
@@ -262,9 +300,9 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         }
       : null;
     // A real market value lets the "far below market" scam rules run.
-    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit], valuePct: valuation.pctUnder }, checklist) : first;
+    const result = valuation?.pctUnder != null ? buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit, ...atCarHits], valuePct: valuation.pctUnder }, checklist) : first;
     return { result, valuation, sellV };
-  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction, milesHit, guide]);
+  }, [a, m, live, sources, history, checklist, phoneMatches, answers, proofSum, replyHits, milesUsed, trimUsed, done, vinOnly, auction, milesHit, guide, atCarHits]);
 
   // What the cost panels currently show, for the downloadable report (a ref: no re-renders).
   const parts = useRef<CostParts>({});
@@ -460,6 +498,12 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   return (
     <ReportPartsContext.Provider value={setPart}>
     <div className="space-y-10">
+      {onSummary && goodVin && (
+        <ReportSummary
+          summary={{ vin: goodVin, car: carName(m), verdict: decision.title, level: decision.level, price: m.listing.price ?? null, recalls: a.recalls?.length ?? null }}
+          onSummary={onSummary}
+        />
+      )}
       <header id="verdict" className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <CarLine a={m} />
@@ -535,6 +579,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
               priced: pageCtx.priced,
               nicb: proofSum.rating.nicb,
               inspection,
+              vinAtCar: vinAtCarHits.some((h) => h.id === "proof-vin-mismatch") ? "mismatch" : vinAtCarHits.some((h) => h.id === "proof-vin-match") ? "match" : null,
               nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
               feedHistory: pageCtx.feedHistory,
             })}
@@ -628,6 +673,21 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
                     <SellerReplies value={replies} onChange={setReplies} hits={replyHits} />
                     {m.listing.sellerType === "dealer" && <DealerCheck name={m.listing.dealerName ?? (live ? liveSeller(live).name : null)} />}
                   </Checklist>
+                ),
+              },
+              {
+                id: "car", label: "At the car",
+                content: (
+                  <AtTheCar
+                    vins={atCarVins}
+                    setVin={(place, vin) => setAtCarVins((v) => ({ ...v, [place]: vin }))}
+                    vinHits={vinAtCarHits}
+                    dash={dash}
+                    onDash={setDash}
+                    dashHits={dashFound}
+                    ai={AI_MODE}
+                    guest={guest}
+                  />
                 ),
               },
               { id: "inspect", label: "Inspection list", content: <InspectionList a={m} /> },
