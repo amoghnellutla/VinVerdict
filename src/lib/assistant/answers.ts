@@ -273,6 +273,8 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
         quote: c.sellerMessage,
         actions: [{ kind: "copy", label: "Copy the message", text: c.sellerMessage }, { kind: "go", label: "Edit it under Before you buy", target: "#before-you-buy" }],
       };
+    case "ad":
+      return { text: "A draft ad is for selling your own car: switch to \"It's mine: what's it worth?\" above and ask again.", points: [], actions: [] };
     case "safety": {
       const go = [{ kind: "go" as const, label: "See safety", target: "#safety" as const }];
       if (c.crash === undefined || c.crash === null) return { text: "NHTSA's crash-test stars couldn't be loaded for this check. Open the Safety section, or check again later.", points: [], actions: go };

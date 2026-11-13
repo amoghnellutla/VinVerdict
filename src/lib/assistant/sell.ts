@@ -17,6 +17,13 @@ export type SellContext = {
   recalls: number | null;
   historyRead: boolean;
   carfax: string | null;
+  /** For the draft ad: only what the page knows (anything else is a blank to fill in). */
+  miles?: number | null;
+  vin?: string | null;
+  /** What an added history report says ("No accidents or damage", "Clean title"), when one was read. */
+  history?: { damage: string; title: string } | null;
+  /** Bad news from listing data ("History shows 1 accident"): said up front in the ad. */
+  feedHistory?: string[];
 };
 
 const $ = (n: number) => `$${n.toLocaleString("en-US")}`;
@@ -84,6 +91,18 @@ export function sellAnswer(intent: string, s: SellContext): Reply {
         ],
         actions: [],
       };
+    case "ad": {
+      const ad = draftAd(s);
+      return {
+        text: "A draft ad from what VinVerdict knows. Fill in each [bracket] honestly before you post it:",
+        points: [
+          "Say known problems up front: buyers find them on the history report or at the inspection anyway, and it saves wasted visits.",
+          "Photos in daylight: all four corners, the interior, the odometer, the tires and any damage.",
+        ],
+        quote: ad,
+        actions: [{ kind: "copy", label: "Copy the draft ad", text: ad }],
+      };
+    }
     case "seller":
       return {
         text: "What buyers will ask, so you have answers ready:",
@@ -100,12 +119,33 @@ export function sellAnswer(intent: string, s: SellContext): Reply {
   }
 }
 
-export const SELL_STARTERS = ["What's it worth?", "What should I list it at?", "How do I sell it safely?", "What's next?"];
+export const SELL_STARTERS = ["What's it worth?", "Write my ad", "How do I sell it safely?", "What's next?"];
+
+/** An ad from the page's facts only. Nothing is claimed that the page doesn't know: the rest is a [blank]. */
+export function draftAd(s: SellContext): string {
+  const head = `${s.car}, ${s.miles ? `${s.miles.toLocaleString("en-US")} miles` : "[miles]"}, ${s.private ? $(s.private.listAt) : "$[price]"}`;
+  const h = s.history;
+  const title = h && h.title === "Clean title" ? "Clean title. [In your name? Any loan on it?]" : h && h.title !== "Not checked yet" ? `Title: [${h.title.toLowerCase()}: say which, and what was repaired].` : "[Title: clean and in your name? Any loan on it?]";
+  const damage = h && h.damage === "No accidents or damage" ? "No accidents or damage on the history report." : h && h.damage !== "Not checked yet" ? `History report: ${h.damage.toLowerCase()}. [What was repaired, and where.]` : s.feedHistory?.length ? `[Accidents: listing data says "${s.feedHistory.join("; ")}". Say it here, with what was repaired.]` : "[Accidents: what the history report shows.]";
+  return [
+    head,
+    "",
+    `${title} ${damage}`,
+    "[Condition: anything that doesn't work, warning lights, dents or scratches.]",
+    "[Maintenance: recent service, tires and brakes, with records if you have them.]",
+    "[Features and options.]",
+    ...(s.recalls ? [`[Recalls: ${s.recalls} on record for this model year. Say they've been done, if they have.]`] : []),
+    ...(s.vin ? [`VIN ${s.vin}: run your own Carfax or AutoCheck.`] : []),
+    "",
+    "Cash, or a cashier's check made at your bank. Test drives with a license; your mechanic is welcome to look it over.",
+  ].join("\n");
+}
 
 export function sellFollowUps(intent: string): string[] {
   const f: Record<string, string[]> = {
-    price: ["What's next?", "How do I sell it safely?"],
-    offer: ["What's next?", "How do I sell it safely?"],
+    price: ["Write my ad", "How do I sell it safely?"],
+    offer: ["Write my ad", "How do I sell it safely?"],
+    ad: ["How do I sell it safely?", "What will buyers ask?"],
     next: ["What will buyers ask?", "How do I sell it safely?"],
     overview: ["What's it worth?", "How do I sell it safely?"],
     scam: ["What's it worth?", "What's next?"],

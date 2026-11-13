@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { routeMessage } from "./route";
-import { SELL_STARTERS, buyerMessageReply, buyerScams, sellAnswer, sellFollowUps, type SellContext } from "./sell";
+import { SELL_STARTERS, buyerMessageReply, buyerScams, draftAd, sellAnswer, sellFollowUps, type SellContext } from "./sell";
 
 const VIN = "2T2BZMCA2GC041915";
 const s: SellContext = { car: "2016 Lexus RX 350", private: { low: 14_800, high: 18_000, fair: 16_400, listAt: 17_400, confidence: "medium" }, dealerAsk: 19_900, unpriced: null, recalls: 3, historyRead: false, carfax: "https://www.carfax.com/x" };
 
 describe("selling: the questions a seller asks", () => {
   it("every seller quick start and follow-up reaches a page answer, not the AI", () => {
-    const want: Record<string, string> = { "What's it worth?": "price", "What should I list it at?": "price", "How do I sell it safely?": "scam", "What's next?": "next", "What will buyers ask?": "seller" };
-    const all = new Set([...SELL_STARTERS, ...["price", "next", "scam", "seller", "visit"].flatMap(sellFollowUps)]);
+    const want: Record<string, string> = { "What's it worth?": "price", "What should I list it at?": "price", "How do I sell it safely?": "scam", "What's next?": "next", "What will buyers ask?": "seller", "Write my ad": "ad" };
+    const all = new Set([...SELL_STARTERS, ...["price", "next", "scam", "seller", "visit", "ad"].flatMap(sellFollowUps)]);
     for (const q of all) expect(routeMessage(q, VIN), q).toEqual({ kind: "intent", intent: want[q] });
   });
 
@@ -99,4 +99,31 @@ describe("selling: ordinary buyers aren't called scammers", () => {
     ["I will overpay by 1500 and you refund the rest to my agent", "overpay"],
   ];
   it.each(scams)("%s → %s", (m, id) => expect(buyerScams(m).map((x) => x.id)).toContain(id));
+});
+
+describe("selling: a draft ad from the page's facts only", () => {
+  it("nothing the page doesn't know is claimed: unknowns are [blanks]", () => {
+    const ad = draftAd({ ...s, miles: 94_767, vin: VIN });
+    expect(ad.split("\n")[0]).toBe("2016 Lexus RX 350, 94,767 miles, $17,400");
+    expect(ad).toContain("[Title: clean and in your name? Any loan on it?]");
+    expect(ad).toContain("[Accidents: what the history report shows.]");
+    expect(ad).toContain(`VIN ${VIN}`);
+    expect(ad).not.toMatch(/clean title\./i);
+    expect(ad).not.toMatch(/no accidents/i);
+  });
+  it("a read history report is said as it is; bad news from listing data is said up front", () => {
+    expect(draftAd({ ...s, history: { damage: "No accidents or damage", title: "Clean title" } })).toMatch(/Clean title\. .*No accidents or damage on the history report\./);
+    expect(draftAd({ ...s, history: { damage: "Minor damage", title: "Clean title" } })).toContain("History report: minor damage. [What was repaired, and where.]");
+    expect(draftAd({ ...s, feedHistory: ["History shows 1 accident"] })).toContain('[Accidents: listing data says "History shows 1 accident". Say it here, with what was repaired.]');
+  });
+  it("not priced and no miles: blanks, not numbers", () => {
+    expect(draftAd({ ...s, private: null, miles: null }).split("\n")[0]).toBe("2016 Lexus RX 350, [miles], $[price]");
+  });
+  it.each(["write my ad", "help me write a listing", "write a description for it", "draft an ad", "what should my ad say"])("%s → ad", (q) => {
+    expect(routeMessage(q, VIN)).toEqual({ kind: "intent", intent: "ad" });
+  });
+  it.each(["make sure the listing is real", "is the ad legit?", "write a message to the seller"])("%s → not ad", (q) => {
+    const r = routeMessage(q, VIN) as { intent?: string };
+    expect(r.intent).not.toBe("ad");
+  });
 });

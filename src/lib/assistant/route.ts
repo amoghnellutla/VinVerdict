@@ -18,7 +18,7 @@ import { isChat, sellerSide } from "./chat";
 import { termIn } from "./glossary";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles" | "safety";
+export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles" | "safety" | "ad";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
@@ -66,6 +66,7 @@ const VIN_SAID = /\bvin\b(?: number)?(?: is|:|'s|=)?\s*([A-HJ-NPR-Z0-9]{17})\b/i
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
 
 const INTENTS: [Intent, RegExp][] = [
+  ["ad", /\b(?:write|draft|create)\b(?: me)?(?: an?| my| the| our)? (?:ad|advert|listing|description|post|for sale post)\b|\bmake (?:me )?(?:an?|my) (?:ad|listing)\b|\bhelp (?:me )?(?:write|with) (?:my |the |an? )?(?:ad|listing|description)\b|\bwhat should (?:my|the) (?:ad|listing) say\b/i],
   ["safety", /\bcrash(?:[- ]test)? (?:ratings?|stars?|tests?|scores?)\b|\bsafety (?:ratings?|stars?|scores?)\b|\bhow safe is (?:it|this|the car)\b|\bis (?:it|this car|this) safe\b(?! to (?:pay|send|wire|buy|sell|meet|drive with))|\bstar rating\b|\bnhtsa (?:ratings?|stars?)\b/i],
   ["who", /\b(?:seller|dealer(?:ship)?)\b[^.?!]{0,20}\b(?:trust(?:worthy)?|honest|shady|sketchy)\b|\btrust (?:this|the) (?:seller|dealer|guy|person)\b/i],
   ["overview", /\bworth buying\b|\bshould i walk away\b|\bwhat'?s the catch\b|\btoo good to be true\b|\bis (?:it|this) a lemon\b/i],
