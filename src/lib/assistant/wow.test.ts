@@ -328,3 +328,18 @@ describe("a mileage question with its own number", () => {
     expect(answerIntent("miles", ctx, "is 126k miles too much?").text).toMatch(/^126,360 miles over about 8 years/);
   });
 });
+
+describe("a screenshot VinVerdict can't place", () => {
+  it("is never sent to the AI as if it were a typed question", async () => {
+    const { screenshotFit } = await import("./route");
+    const fit = (t: string) => screenshotFit(routeMessage(t, VIN), t);
+    // Barely any text: ask for a better screenshot.
+    expect(fit("~ ;; 12 ^^ ok")).toBe("unreadable");
+    // Readable, but only *looks* like a question or chit-chat: ask what it is.
+    expect(fit("Yes its available. Im out of the country right now, my shipping agent will deliver it to you once the deposit clears")).toBe("unclear");
+    expect(fit("What do you think about the price of this car, any problems with the engine reported")).toBe("unclear");
+    // Clear on its own: handled directly.
+    expect(fit(readFileSync("src/lib/assistant/fixtures/carfax-case34.txt", "utf8"))).toBe("ok");
+    expect(fit("Me: is it available?\nSeller: yes but send a $500 deposit by zelle first\nMe: can I see it?\nSeller: no, I'm deployed overseas")).toBe("ok");
+  });
+});

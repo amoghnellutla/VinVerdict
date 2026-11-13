@@ -10,7 +10,9 @@ import { answerIntent, followUps, SMALL_TALK, smallTalk, starters, type Action, 
 import type { Told } from "@/lib/assistant/apply";
 import { factText, type Fact } from "@/lib/assistant/facts";
 import { TERMS } from "@/lib/assistant/glossary";
-import { routeMessage } from "@/lib/assistant/route";
+import { isChat, sellerSide } from "@/lib/assistant/chat";
+import { routeMessage, screenshotFit } from "@/lib/assistant/route";
+import { parseListing } from "@/lib/listing/parse";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
 import { aiReadAttached, proofFromText, type Attached } from "./CheckYourself";
@@ -358,7 +360,31 @@ export function Assistant(props: {
     try {
       const texts = await readEachScreenshot(files, (p: OcrProgress) => setBusy(p.loading ? "Getting the reader ready…" : `Reading ${p.of > 1 ? `${p.image} of ${p.of}` : ""}… ${p.pct}%`));
       setBusy(null);
-      for (const [i, f] of files.entries()) await handle(texts[i] ?? "", f.name || "Screenshot", URL.createObjectURL(f));
+      for (const [i, f] of files.entries()) {
+        const text = texts[i] ?? "";
+        const name = f.name || "Screenshot";
+        const fit = screenshotFit(routeMessage(text, ctx.vin), text);
+        if (fit === "unreadable") {
+          say({
+            text: `Couldn't read much from ${files.length > 1 ? `screenshot ${i + 1}` : "that screenshot"}.`,
+            points: ["Zoom in so the text is large, and crop to the part that matters.", "Light mode reads better than dark mode.", "Or copy the text itself and paste it here."],
+          });
+          continue;
+        }
+        if (fit === "unclear") {
+          say({
+            text: `Read ${files.length > 1 ? `screenshot ${i + 1}` : "it"}, but couldn't tell what it is. What is it?`,
+            quote: text.length > 220 ? `${text.slice(0, 220).trim()}…` : text,
+            actions: [
+              { kind: "as", label: "The seller's messages", as: "chat", text, name },
+              { kind: "as", label: "A history report", as: "report", text, name },
+              { kind: "as", label: "The listing", as: "listing", text, name },
+            ],
+          });
+          continue;
+        }
+        await handle(text, name, URL.createObjectURL(f));
+      }
     } catch {
       setBusy(null);
       say({ text: "Couldn't read those screenshots on this device. Paste the page's text instead." });
@@ -367,6 +393,26 @@ export function Assistant(props: {
 
   function act(a: Action) {
     if (a.kind === "attach") return fileRef.current?.click();
+    if (a.kind === "as") {
+      const before = ctx;
+      // The choice is made once: the buttons go away.
+      setThread((t) => t.map((m) => (m.actions?.some((x) => x.kind === "as" && x.text === a.text) ? { ...m, actions: [] } : m)));
+      if (a.as === "chat") {
+        const seller = isChat(a.text) ? sellerSide(a.text) : a.text;
+        onTell({ id: uid(), label: "Screenshot of the seller's messages", reply: seller });
+        return say({ text: "Checked as the seller's words, for warning signs and stories that change from the ad.", actions: [{ kind: "go", label: "See the seller checks", target: "#before-you-buy" }] }, before, true);
+      }
+      if (a.as === "report") {
+        const card = proofFromText(a.text, "history", a.name, null);
+        if (!card) return say({ text: "Couldn't find report details in it. Try a clearer screenshot of the report's summary." });
+        onProof(card);
+        return say({ text: "Added to Check it yourself as a history report:", points: card.read.findings.map((f) => f.label), actions: [{ kind: "go", label: "See it", target: "#check-yourself" }] }, before);
+      }
+      const l = parseListing(a.text);
+      if (l.vin && ctx.vin && l.vin !== ctx.vin) return say({ text: `That's a different car (VIN ${l.vin}). Nothing was added to this one.`, vin: l.vin });
+      onTell({ id: uid(), label: "Listing screenshot", listing: l, text: a.text });
+      return say({ text: "Added the listing: it fills in what the check didn't know, and its words are checked for warning signs." }, before);
+    }
     if (a.kind === "copy") {
       void navigator.clipboard?.writeText(a.text).then(() => setCopied(a.text), () => setCopied(null));
       return;

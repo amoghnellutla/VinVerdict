@@ -10,7 +10,9 @@ export type Action =
   | { kind: "go"; label: string; target: "#verdict" | "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" }
   | { kind: "link"; label: string; href: string }
   | { kind: "attach"; label: string }
-  | { kind: "copy"; label: string; text: string };
+  | { kind: "copy"; label: string; text: string }
+  /** A screenshot VinVerdict couldn't place: the person says what it is. */
+  | { kind: "as"; label: string; as: "chat" | "report" | "listing"; text: string; name: string };
 
 export type Reply = { text: string; points: string[]; actions: Action[]; quote?: string; next?: string[] };
 

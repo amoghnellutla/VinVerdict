@@ -192,3 +192,14 @@ export function routeMessage(raw: string, carVin: string | null): Route {
   if (!CAR_WORDS.test(text) || words < 2) return { kind: "small-talk" };
   return { kind: "ai" };
 }
+
+/**
+ * A screenshot's text: how a route should be trusted. A typed question can go to a page answer
+ * or the AI, but OCR text that only *looks* like one shouldn't (it would answer a garbled
+ * "question" or spend an AI action). "unreadable": too little text to work with.
+ */
+export function screenshotFit(route: Route, text: string): "ok" | "unclear" | "unreadable" {
+  const words = text.match(/[a-z]{3,}/gi)?.length ?? 0;
+  if (words < 6) return "unreadable";
+  return ["ai", "small-talk", "intent", "intents", "term", "link"].includes(route.kind) ? "unclear" : "ok";
+}
