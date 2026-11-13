@@ -404,3 +404,31 @@ describe("gibberish in the conversation box", () => {
     expect(smallTalk("hello").text).toMatch(/^Tell VinVerdict anything/);
   });
 });
+
+describe("crash stars and insurance: from the page, no invented numbers", () => {
+  it("the crash stars NHTSA gave, version by version", () => {
+    const r = answerIntent("safety", { ...ctx, crash: [{ version: "4 DR FWD", overall: 5, front: 4, side: 5, rollover: 4 }] });
+    expect(r.text).toBe("NHTSA crash-test stars: 5 of 5 overall.");
+    expect(r.points[0]).toBe("4 DR FWD: overall 5, front 4, side 5, rollover 4.");
+  });
+  it("not rated, or couldn't be loaded: said plainly, no stars made up", () => {
+    expect(answerIntent("safety", { ...ctx, crash: [] }).text).toMatch(/^NHTSA hasn't crash-tested this model year/);
+    expect(answerIntent("safety", { ...ctx, crash: null }).text).toMatch(/couldn't be loaded/);
+  });
+  it("insurance: no number, how to get a real quote", () => {
+    const r = answerIntent("costs", ctx, "how much will insurance cost");
+    expect(r.text).toMatch(/^Insurance isn't in VinVerdict's numbers/);
+    expect(`${r.text} ${r.points.join(" ")}`).not.toMatch(/\$\d+ (?:a|per) (?:month|year)/);
+  });
+});
+
+describe("stolen or flooded: the free NICB check, by VIN", () => {
+  it("leads with NICB when there's a VIN", () => {
+    const r = answerIntent("history", { ...ctx, nicbLink: "https://www.nicb.org/vincheck" }, "was it ever stolen");
+    expect(r.text).toMatch(/^Reported thefts and insurance total losses/);
+    expect(r.actions[0]).toMatchObject({ kind: "link", label: "Free NICB check" });
+  });
+  it("an ordinary history question keeps the history answer", () => {
+    expect(answerIntent("history", { ...ctx, nicbLink: "https://www.nicb.org/vincheck" }, "how many owners").text).not.toMatch(/^Reported thefts/);
+  });
+});

@@ -432,6 +432,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     } : null,
     recallAreas: a.recalls?.length ? plainRecallAreas(a.recalls) : null,
     recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
+    crash: a.ratings ? a.ratings.map((r) => ({ version: r.description, overall: r.overall, front: r.front, side: r.side, rollover: r.rollover })) : null,
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,
     sellerMessage: sellerMessage({ carName: carName(m), listing: m.listing, hits, checklist, recallCount: a.recalls?.length ?? null, topComplaint: a.complaints?.topComponents[0]?.component ?? null, knownIssues, phrase }),
     dealer: m.listing.sellerType === "dealer",

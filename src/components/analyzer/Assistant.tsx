@@ -262,6 +262,8 @@ export function Assistant(props: {
       if (route.kind === "said" || route.kind === "chat") {
         return reply({ ...buyerMessageReply(route.kind === "chat" ? route.seller || text : text), next: ["How do I sell it safely?", "What's it worth?"] });
       }
+      // Plain facts about the car (crash stars, fuel) are the same for a seller: the page answer.
+      if (route.kind === "intent" && (route.intent === "safety" || route.intent === "fuel")) return reply({ ...answerIntent(route.intent, ctx, text), next: sellFollowUps(route.intent) });
       if (route.kind === "intent") return reply({ ...sellAnswer(route.intent, sell), next: sellFollowUps(route.intent) });
       if (route.kind === "intents") {
         route.intents.forEach((i, n) => reply({ ...sellAnswer(i, sell), next: n === route.intents.length - 1 ? sellFollowUps(i) : undefined }));

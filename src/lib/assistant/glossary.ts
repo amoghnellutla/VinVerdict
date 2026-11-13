@@ -16,7 +16,7 @@ export const TERMS: Term[] = [
   { key: "doc", name: "doc fee", aliases: /^(?:an? |the )?(?:doc|documentation|documentary|dealer doc) fee$/i,
     text: "A doc fee is what a dealer charges for the sale's paperwork. It's the dealer's fee, not a government one, and some states cap it.",
     points: ["Ask for it inside the out-the-door price, and negotiate the total, not just the car's price."] },
-  { key: "otd", name: "out the door", aliases: /^(?:the )?(?:out[- ]the[- ]door|otd)(?: price)?$/i,
+  { key: "otd", name: "out the door", aliases: /^(?:the )?(?:out[- ]the[- ]door|otd)$/i,
     text: "Out the door is the total you pay: the price plus sales tax, title, registration and every dealer fee.",
     points: ["Ask for it in writing, with each fee listed, before you go."] },
   { key: "clean", name: "clean title", aliases: /^(?:an? |the )?clean title$/i,

@@ -18,7 +18,7 @@ import { isChat, sellerSide } from "./chat";
 import { termIn } from "./glossary";
 import { factsFromSentence, isQuestion, type Fact } from "./facts";
 
-export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles";
+export type Intent = "overview" | "offer" | "price" | "seller" | "recalls" | "history" | "next" | "auction" | "costs" | "fuel" | "scam" | "who" | "visit" | "problems" | "miles" | "safety";
 
 export type Route =
   | { kind: "auction"; record: AuctionRecord; facts: Fact[] }
@@ -66,19 +66,23 @@ const VIN_SAID = /\bvin\b(?: number)?(?: is|:|'s|=)?\s*([A-HJ-NPR-Z0-9]{17})\b/i
 const LISTING_PAGE = /\blisting price\b|\bcontact (?:the )?dealer\b|\bfor sale\b|\/mo\b|\best\. (?:finance|payment)|\bbuild your offer\b|\bmake offer\b|\bprice alerts?\b/i;
 
 const INTENTS: [Intent, RegExp][] = [
+  ["safety", /\bcrash(?:[- ]test)? (?:ratings?|stars?|tests?|scores?)\b|\bsafety (?:ratings?|stars?|scores?)\b|\bhow safe is (?:it|this|the car)\b|\bis (?:it|this car|this) safe\b(?! to (?:pay|send|wire|buy|sell|meet|drive with))|\bstar rating\b|\bnhtsa (?:ratings?|stars?)\b/i],
+  ["who", /\b(?:seller|dealer(?:ship)?)\b[^.?!]{0,20}\b(?:trust(?:worthy)?|honest|shady|sketchy)\b|\btrust (?:this|the) (?:seller|dealer|guy|person)\b/i],
+  ["overview", /\bworth buying\b|\bshould i walk away\b|\bwhat'?s the catch\b|\btoo good to be true\b|\bis (?:it|this) a lemon\b/i],
+  ["offer", /\bnegotia|\btake less\b|\baccept less\b|\bbest offer\b|\btalk (?:them|him|her|it|the price) down\b|\bhow (?:far|much) (?:down|lower)\b/i],
   ["miles", /\b(?:too (?:many|much|high)|a lot of|high|low|good|ok(?:ay)?|bad|normal|average) (?:miles|mileage)\b|\b(?:miles|mileage) (?:too (?:high|low|much)|a lot|ok(?:ay)?|bad|high|normal|fine|good)\b|\bis [\d,.]+\s?k? ?miles\b|\bhow many miles (?:is|are) (?:too many|normal|ok)\b|\bmiles (?:a|per) year\b/i],
   ["problems", /\b(?:common|known|typical|usual|frequent|biggest) (?:problems?|issues?|faults?|complaints?)\b|\b(?:problems|issues) (?:with|on|for) (?:this|the|these|that) (?:car|model|year|engine)\b|\bwhat (?:usually )?(?:goes wrong|breaks|fails)\b|\breliab(?:le|ility)\b|\bhow long (?:will|does|do|can|would) (?:it|this|they|these|the car|this car) (?:last|go)\b|\bwhat (?:to|should i) (?:watch|look) out for\b|\bcomplaints\b/i],
-  ["visit", /\btest[- ]drive\b|\bshow(?:ing)? (?:the|my) car\b|\bmeet(?:ing)? (?:a |the )?buyers?\b|\b(?:going|go|gonna) (?:to )?(?:see|look at|check out) (?:it|the car)\b|\bsee (?:it|the car) (?:tomorrow|today|tonight|this weekend|on \w+day)\b|\bbuying day\b|\bwhat (?:do|should) i (?:bring|take with me)\b|\bwhat (?:to|should i) (?:check|look (?:for|at)|inspect) (?:when|at|in person|on the car)\b|\bin person\b|\bpre-?purchase inspection\b|\binspection (?:list|checklist)\b/i],
+  ["visit", /\btest[- ]drive\b|\bshow(?:ing)? (?:the|my) car\b|\bmeet(?:ing)? (?:a |the )?buyers?\b|\b(?:going|go|gonna) (?:to )?(?:see|look at|check out) (?:it|the car)\b|\bsee (?:it|the car) (?:tomorrow|today|tonight|this weekend|on \w+day)\b|\bbuying day\b|\bwhat (?:do|should) i (?:bring|take with me)\b|\bwhat (?:to|should i|do i) (?:check|look (?:for|at)|inspect)\b(?! (?:the )?(?:price|history|title|carfax|recalls?|fees?|seller|dealer))|\bin person\b|\bpre-?purchase inspection\b|\binspection (?:list|checklist)\b/i],
   ["scam", /\bscam(?:s|med|mer)?\b|\bfraud\b|\blegit(?:imate)?\b|\bfake\b|\bsafe to (?:pay|send|wire|buy)\b|\bdeposit\b|\bgift cards?\b|\bzelle\b|\bvenmo\b|\bcash ?app\b|\bescrow\b|\bwire (?:the )?money\b|\bsell (?:it |my car )?safely\b|\bsafe(?:ly)? to sell\b|\bget paid safely\b|\boverseas\b|\bdeployed\b|\bship (?:it|the car)\b/i],
   ["who", /\bwho(?:'?s| is)? (?:the |this )?(?:seller|dealer|selling)\b|\b(?:tell me )?about the (?:seller|dealer)\b|\bwho (?:sells|owns) (?:it|this)\b|\b(?:the |this )?(?:seller|dealer) (?:reputable|any good|reliable|trustworthy)\b|\bis (?:it|this) a (?:dealer|private)\b|\bdealer or private\b/i],
   ["auction", /\bauction\b.*(?:\?|\b(?:bad|safe|ok|okay|good|risky|normal)\b)|\bbid(?:ding)?\b|\bhow much (?:should|to) bid\b/i],
-  ["costs", /\bout[- ]the[- ]door\b|\bwhat will it cost\b|\btotal cost\b|\b(?:sales )?tax(?:es)?\b|\bregistration\b|\bfees?\b|\bcost (?:me|per|a) (?:year|month)\b|\bcost to own\b/i],
-  ["fuel", /\bmpg\b|\bgas mileage\b|\bfuel (?:economy|cost)\b|\bmiles per gallon\b/i],
-  ["offer", /\bwhat (?:should|do|can|would) i offer\b|\bhow much (?:should|to|can|do) i offer\b|\bmake (?:an |a |my )?offer\b|\bnegotiat|\bopening offer\b|\bhow (?:low|much lower) can i go\b|\blowball\b|\bwhat (?:price )?should i pay\b|\bcounter ?offer\b/i],
-  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b|\bcheaper\b|\bbetter deals?\b|\blist (?:it|my car) (?:at|for)\b|\bsell (?:it|my car) for\b|\bwhat should i ask for (?:it|my car)\b/i],
-  ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i (?:ask|say|tell|write)\b|\bmessage\b|\bquestions? (?:for|to ask)\b|\bwhat will (?:buyers|they|people) ask\b/i],
+  ["costs", /\binsur(?:ance|e)\b|\bout[- ]the[- ]door\b|\bwhat will it cost\b|\btotal cost\b|\b(?:sales )?tax(?:es)?\b|\bregistration\b|\bfees?\b|\bcost (?:me|per|a) (?:year|month)\b|\bcost to own\b/i],
+  ["fuel", /\bgas (?:per|a|each|every) (?:month|year|week)\b|\b(?:spend|cost) (?:on|in|for) gas\b|\bgas (?:cost|bill|money)\b|\bmpg\b|\bgas mileage\b|\bfuel (?:economy|cost)\b|\bmiles per gallon\b/i],
+  ["offer", /\bwhat (?:should|do|can|would) i offer\b|\bhow much (?:should|to|can|do) i offer\b|\bmake (?:an |a |my )?offer\b|\bnegotiat|\bopening offer\b|\bhow (?:low|much lower) can i go\b|\blowball\b|\bwhat (?:price )?should i pay\b|\bcounter ?offer\b|\b(?:fair|good|reasonable|right|starting|first|low) offer\b|\bcome down\b|\bhaggl|\bbargain|\bknock (?:it |some(?:thing)? )?(?:off|down)\b|\b(?:get|bring|talk) (?:the price|it|them|him|her) (?:down|lower)\b|\blower (?:the|their|his|her) price\b/i],
+  ["price", /\bprice\b|\bfair\b|\bworth\b|\boffer\b|\bnegotiat|\bovercharg|\boverpriced\b|\btoo (?:much|expensive|high)\b|\bexpensive\b|\bgood deal\b|\bhow much\b|\bpay\b|\bcheap(?:er)?\b|\bbetter deals?\b|\blist (?:it|my car) (?:at|for)\b|\bsell (?:it|my car) for\b|\bwhat should i ask for (?:it|my car)\b/i],
+  ["seller", /\bask (?:the )?(?:seller|dealer)\b|\bwhat (?:should|do|can) i (?:ask|say|tell|write)\b|\bmessage\b|\bquestions? (?:for|to ask)\b|\bwhat will (?:buyers|they|people) ask\b|\bwhat questions\b|\bwrite (?:a |an |the )?(?:text|message|email|reply|note)\b|\b(?:text|email|reply|note) (?:to|for) (?:the )?(?:seller|dealer)\b/i],
   ["recalls", /\brecalls?\b/i],
-  ["history", /\bcarfax\b|\bautocheck\b|\baccidents?\b|\bhistory\b|\bowners?\b|\btitle\b/i],
+  ["history", /\bstolen\b|\btheft\b|\bflood(?:ed)?\b|\btotal(?:led| loss)\b|\blemon\b|\bcarfax\b|\bautocheck\b|\baccidents?\b|\bhistory\b|\bowners?\b|\btitle\b/i],
   ["next", /\bwhat(?:'?s| is)? (?:now|next)\b|\bnext steps?\b|\bwhat (?:should|do) i do\b|\bwhere (?:do i |should i )?start\b|\bwhat else\b/i],
   ["overview", /\b(?:thinking|think) (?:of|about) buying\b|\bshould i (?:buy|get) (?:it|this|that|the car|this car)\b|\bshould i buy\s*\??$|\bwould you buy\b|\bis (?:it|this) (?:a )?(?:good|safe|ok|worth)\b|\bbuy (?:it|this)\b|\binterested in\b|\bwhat do you think\b|\bverdict\b|\bany (?:red flags|problems|issues)\b/i],
 ];

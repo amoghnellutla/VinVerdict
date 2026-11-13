@@ -61,6 +61,8 @@ export type PageContext = {
   recallAreas?: string | null;
   /** Whether a recall check for this VIN has been added (so which are open is known). */
   recallsChecked?: boolean;
+  /** NHTSA crash-test stars for the model year: null when they couldn't be loaded, [] when NHTSA didn't rate it. */
+  crash?: { version: string; overall: number | null; front: number | null; side: number | null; rollover: number | null }[] | null;
   /** The free NICB VINCheck for this VIN (theft, insurance total loss), or null. */
   nicbLink?: string | null;
   sellerMessage: string;
@@ -92,6 +94,7 @@ const FOLLOW: Record<string, string[]> = {
   costs: ["What should I offer?", "What's the gas mileage?"],
   fuel: ["How much out the door?", "What are common problems?"],
   auction: ["What should I offer?", "What's next?"],
+  safety: ["Any recalls?", "What are common problems?"],
 };
 
 /** Two questions that naturally come next (never the offer on a listing with serious warnings). */
@@ -226,6 +229,18 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
           };
     }
     case "costs":
+      // Insurance depends on the driver, not the car alone: no number is given, only how to get one.
+      if (/\binsur(?:ance|e)\b/i.test(question)) {
+        return {
+          text: "Insurance isn't in VinVerdict's numbers: it depends on you (age, driving record, ZIP and the coverage you pick), not just the car.",
+          points: [
+            `Get two or three quotes before you buy: insurers quote from the VIN${c.vin ? ` (${c.vin})` : ""} in a few minutes.`,
+            "Ask each for the same coverage so the quotes compare, and have it insured before you drive it home.",
+            ...(c.otd ? [`Out the door in ${c.otd.state} (without insurance): about ${$(Math.round(c.otd.total))}.`] : []),
+          ],
+          actions: c.otd ? [{ kind: "go", label: "See the costs", target: "#costs" }] : [],
+        };
+      }
       return c.otd
         ? {
             text: `Out the door in ${c.otd.state}: about ${$(Math.round(c.otd.total))}.`,
@@ -258,6 +273,21 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
         quote: c.sellerMessage,
         actions: [{ kind: "copy", label: "Copy the message", text: c.sellerMessage }, { kind: "go", label: "Edit it under Before you buy", target: "#before-you-buy" }],
       };
+    case "safety": {
+      const go = [{ kind: "go" as const, label: "See safety", target: "#safety" as const }];
+      if (c.crash === undefined || c.crash === null) return { text: "NHTSA's crash-test stars couldn't be loaded for this check. Open the Safety section, or check again later.", points: [], actions: go };
+      if (!c.crash.length) return { text: "NHTSA hasn't crash-tested this model year, so there are no stars for it (not a bad sign on its own: not every model is tested every year).", points: [], actions: go };
+      const top = c.crash.find((x) => x.overall != null)?.overall ?? null;
+      const n = (v: number | null) => (v == null ? "not rated" : `${v}`);
+      return {
+        text: top != null ? `NHTSA crash-test stars: ${top} of 5 overall.` : "NHTSA tested this model year but gave it no overall rating.",
+        points: [
+          ...c.crash.slice(0, 3).map((x) => `${x.version}: overall ${n(x.overall)}, front ${n(x.front)}, side ${n(x.side)}, rollover ${n(x.rollover)}.`),
+          ...(c.recalls ? [`Also ${c.recalls} recall${c.recalls > 1 ? "s" : ""} on record for this model year ("any recalls?").`] : []),
+        ],
+        actions: go,
+      };
+    }
     case "recalls":
       return c.recalls
         ? {
@@ -271,6 +301,17 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
             actions: [...(c.recallLookup ? [{ kind: "link" as const, label: "Open the recall lookup", href: c.recallLookup }] : []), { kind: "go", label: "See the recalls", target: "#safety" }] }
         : { text: c.recalls === 0 ? "No recalls on record for this model year." : "Recalls weren't checked (no year, make and model).", points: [], actions: [] };
     case "history":
+      // Stolen, flooded, totalled: the free NICB check answers exactly that, by VIN.
+      if (c.nicbLink && /\b(?:stolen|theft|total(?:led| loss)|flood(?:ed)?)\b/i.test(question)) {
+        return {
+          text: "Reported thefts and insurance total losses (floods included) show on the free NICB VINCheck: open it for this VIN, then paste or screenshot the result here.",
+          points: [
+            "It lists only what insurers reported. A history report shows the rest: accidents, owners and title brands.",
+            ...(c.historyRead ? ["The history report you added is under the history report section."] : []),
+          ],
+          actions: [{ kind: "link", label: "Free NICB check", href: c.nicbLink }, { kind: "attach", label: "Add the result" }],
+        };
+      }
       return c.historyRead
         ? { text: "The history report is in: see what it says under the history report section.", points: [], actions: [{ kind: "go", label: "Go to the history report", target: "#history-report" }] }
         : {
