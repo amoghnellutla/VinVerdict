@@ -153,7 +153,7 @@ function rotated(src: HTMLCanvasElement, deg: number): HTMLCanvasElement {
  * when the straight read finds none it tries again at small angles (one reader, so the extra
  * time is only spent when needed). Only check-digit-valid VINs are returned (lib/vin-read).
  */
-export async function readVinPhoto(file: File, onProgress: (p: VinReadProgress) => void, find: (text: string) => string[]): Promise<string[]> {
+export async function readVinPhoto(file: File, onProgress: (p: VinReadProgress) => void, find: (text: string) => { strong: string[]; weak: string[] }): Promise<string[]> {
   const { createWorker } = await import("tesseract.js");
   let stage: VinReadProgress["stage"] = "reading";
   const worker = await createWorker("eng", 1, {
@@ -165,7 +165,14 @@ export async function readVinPhoto(file: File, onProgress: (p: VinReadProgress) 
   });
   try {
     const base = await prepare(file);
-    const read = async (c: HTMLCanvasElement) => find((await worker.recognize(c)).data.text);
+    // A clean read (the VIN as a word) wins at once; a guess (one stray character dropped) is kept
+    // while the other angles are tried, and only used if none of them reads it cleanly.
+    const weak: string[] = [];
+    const read = async (c: HTMLCanvasElement) => {
+      const r = find((await worker.recognize(c)).data.text);
+      for (const v of r.weak) if (!weak.includes(v)) weak.push(v);
+      return r.strong;
+    };
     const straight = await read(base);
     if (straight.length) return straight;
     stage = "angle";
@@ -173,7 +180,7 @@ export async function readVinPhoto(file: File, onProgress: (p: VinReadProgress) 
       const found = await read(rotated(base, deg));
       if (found.length) return found;
     }
-    return [];
+    return weak.slice(0, 3);
   } finally {
     await worker.terminate();
   }

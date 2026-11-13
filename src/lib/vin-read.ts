@@ -38,7 +38,18 @@ export function barcodeVin(raw: string): string | null {
  * `plausibleVin`. In the order found.
  */
 export function vinsInText(text: string): string[] {
+  const { strong, weak } = vinCandidates(text);
+  return [...strong, ...weak.filter((v) => !strong.includes(v))];
+}
+
+/**
+ * The same, split by how sure the read is. Strong: the VIN as a word or groups of words. Weak: a
+ * word with one stray character, where dropping it gives a plausible VIN (a guess NHTSA must back).
+ * A photo reader keeps trying (other angles) for a strong read before it settles for weak ones.
+ */
+export function vinCandidates(text: string): { strong: string[]; weak: string[] } {
   const out: string[] = [];
+  const weak: string[] = [];
   const fix = (s: string) => s.replace(/[OQ]/g, "0").replace(/I/g, "1");
   const add = (raw: string) => {
     const v = fix(raw);
@@ -50,16 +61,23 @@ export function vinsInText(text: string): string[] {
       const w = words[i];
       if (w.length === 17) add(w);
       else if (w.length === 20 && w.startsWith("VIN")) add(w.slice(3));
-      // Groups: consecutive short words that add up to exactly 17 (at most 6 groups).
+      // One stray character read into a letter-spaced VIN ("1THGCR2F16HA198010"): each way of dropping
+      // it that gives a plausible VIN is a candidate (at most 3); NHTSA decides which is real (resolveVins).
+      else if (w.length === 18 || (w.length === 21 && w.startsWith("VIN"))) {
+        const x = w.length === 21 ? w.slice(3) : w;
+        const ok = [...new Set([...x].map((_, k) => fix(x.slice(0, k) + x.slice(k + 1))))].filter(plausibleVin);
+        if (ok.length <= 3) for (const v of ok) if (!weak.includes(v)) weak.push(v);
+      }
+      // Groups: whole consecutive words that add up to exactly 17 ("4T1B 11HK 8JU1 45889", or a VIN
+      // the reader split with a space: "1 HGCR2F16HA198010"); at most 6 words.
       let joined = "";
       for (let j = i; j < Math.min(words.length, i + 6) && joined.length < 17; j++) {
-        if (words[j].length > 8) break;
         joined += words[j];
         if (joined.length === 17 && j > i) add(joined);
       }
     }
   }
-  return out;
+  return { strong: out, weak: weak.filter((v) => !out.includes(v)) };
 }
 
 export type VinPlace = "plate" | "door" | "title" | "ad";

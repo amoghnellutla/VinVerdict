@@ -34,3 +34,15 @@ describe("confirmVin: only a VIN NHTSA really knows is used", async () => {
     expect((await confirmVin("4T1B11HK8JU145889")).status).toBe("unreachable");
   });
 });
+
+describe("resolveVins: NHTSA picks among candidates", async () => {
+  const { resolveVins } = await import("./confirm-vin");
+  it("keeps only the ones NHTSA knows", async () => {
+    decode.mockReset().mockImplementation(async (v: string) => (v === "1HGCR2F16HA198010" ? car({ make: "Honda", model: "Accord", year: 2017 }) : car({ make: null, year: null, model: null, clean: false })));
+    expect(await resolveVins(["1HGCR2F16HA198010", "1THGC2F16HA198010"])).toEqual({ real: [{ vin: "1HGCR2F16HA198010", name: "2017 Honda Accord" }], unsure: false, busy: null });
+  });
+  it("busy stops early with the message", async () => {
+    decode.mockReset().mockResolvedValue({ ok: false, message: "Too many lookups for now." });
+    expect((await resolveVins(["A", "B"])).busy).toMatch(/Too many/);
+  });
+});

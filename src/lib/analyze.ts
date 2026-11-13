@@ -62,9 +62,13 @@ export async function analyzeListing(text: string): Promise<Analysis> {
     }
   }
 
-  const year = decoded?.year ?? listing.year;
-  const make = decoded?.make ? makeName(decoded.make) : listing.make;
-  const model = decoded?.model ?? listing.model;
+  // Only a VIN that passes its check digit names the car over the ad. A bad one (a typo or a fake)
+  // decodes to some other car: the ad's car comes first, so its recalls and complaints aren't
+  // another car's; the decode only fills in what the ad doesn't say.
+  const trusted = vinCheck?.ok ? decoded : null;
+  const year = trusted?.year ?? listing.year ?? decoded?.year ?? null;
+  const make = trusted?.make ? makeName(trusted.make) : listing.make ?? (decoded?.make ? makeName(decoded.make) : null);
+  const model = trusted?.model ?? listing.model ?? decoded?.model ?? null;
   const vehicle: VehicleKey | null = year && make && model ? { year, make, model } : null;
 
   let recalls: Recall[] | null = null;

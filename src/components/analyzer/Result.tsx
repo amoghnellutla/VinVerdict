@@ -811,8 +811,10 @@ function PrintButton() {
 
 function carName(a: Analysis): string {
   const l = a.listing;
-  const d = a.decoded;
-  return [d?.year ?? l.year, d?.make ? makeName(d.make) : l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || "car";
+  // A VIN that fails its check digit decodes to some other car: the ad names it then (see analyze.ts).
+  const d = a.vinCheck?.ok ? a.decoded : null;
+  const any = a.decoded;
+  return [d?.year ?? l.year ?? any?.year, d?.make ? makeName(d.make) : l.make ?? (any?.make ? makeName(any.make) : null), d?.model ?? l.model ?? any?.model, d?.trim].filter(Boolean).join(" ") || "car";
 }
 
 /** What the result is about: the car's name as the title, then its asking price and miles. */

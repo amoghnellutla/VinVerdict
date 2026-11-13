@@ -131,3 +131,13 @@ describe("a dashboard photo that didn't really read", () => {
     expect(dashHits({ readable: true, odometer: null, unit: null, lights: [] }, { adMiles: 100_000, earlier: null })).toEqual([]);
   });
 });
+
+describe("misreads of letter-spaced VINs", () => {
+  it("a space read into the VIN, or one stray character, still gives the VIN", () => {
+    expect(vinsInText("VIN: 1 HGCR2F16HA198010")).toEqual(["1HGCR2F16HA198010"]);
+    // One stray character: every plausible way of dropping it is a candidate; NHTSA picks the real car.
+    expect(vinsInText("VIN: 1THGCR2F16HA198010")).toContain("1HGCR2F16HA198010");
+    expect(vinsInText("VIN1THGCR2F16HA198010")).toContain("1HGCR2F16HA198010");
+    expect(vinsInText("VIN: 1THGCR2F16HA198010").length).toBeLessThanOrEqual(3);
+  });
+});

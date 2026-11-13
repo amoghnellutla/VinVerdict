@@ -2,8 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { pickImages, readVinPhoto, type VinReadProgress } from "@/lib/ocr";
-import { confirmVin } from "@/lib/confirm-vin";
-import { barcodeVin, vinsInText } from "@/lib/vin-read";
+import { confirmVin, resolveVins } from "@/lib/confirm-vin";
+import { barcodeVin, vinCandidates } from "@/lib/vin-read";
 
 /**
  * "Scan the VIN": the phone's rear camera reads the VIN off the car, on the device.
@@ -177,11 +177,19 @@ export function VinScanner({ onVin, label = "Scan the VIN", hint = "Point at the
   async function readText(file: File) {
     setStatus("Reading the VIN on this device…");
     try {
-      const vins = await readVinPhoto(file, (p) => setStatus(vinProgress(p)), vinsInText);
+      const vins = await readVinPhoto(file, (p) => setStatus(vinProgress(p)), vinCandidates);
       if (vins.length === 1) return void accept(vins[0]);
       if (vins.length > 1) {
-        setFound(vins);
-        return setStatus("Found more than one VIN. Which is on this car?");
+        // Several read (or a misread with more than one reading): NHTSA says which are real cars.
+        setStatus("Read more than one possible VIN. Checking them with NHTSA…");
+        const r = await resolveVins(vins);
+        if (r.busy) return setStatus(r.busy);
+        if (r.real.length === 1) return done(r.real[0].vin, r.real[0].name);
+        if (r.real.length > 1 || r.unsure) {
+          setFound(r.real.length > 1 ? r.real.map((x) => x.vin) : vins);
+          return setStatus(r.real.length > 1 ? "Found more than one real VIN. Which is on this car?" : "Couldn't confirm them with NHTSA right now. Which one is on the car?");
+        }
+        return setStatus("None of what was read is a real VIN, so it was misread. Try again: closer, straight on, no glare. Or type it.");
       }
       setStatus("No VIN found in that picture. Try again: the VIN should fill most of the frame, straight on, without glare. Or type it.");
     } catch {

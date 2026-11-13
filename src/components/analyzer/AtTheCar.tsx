@@ -5,9 +5,9 @@ import { readDashAction } from "@/app/actions/ai";
 import { Turnstile } from "@/components/Turnstile";
 import { LIGHTS, dashMiles, type DashRead } from "@/lib/ai/dash-read";
 import type { RuleHit } from "@/lib/scam/rules";
-import { VIN_PLACE, vinsInText, type VinPlace } from "@/lib/vin-read";
+import { VIN_PLACE, vinCandidates, vinsInText, type VinPlace } from "@/lib/vin-read";
 import { normalizeVin } from "@/lib/vin";
-import { confirmVin } from "@/lib/confirm-vin";
+import { confirmVin, resolveVins } from "@/lib/confirm-vin";
 import { pickImages, readVinPhoto } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
 import { VinScanner, vinProgress } from "./VinScanner";
@@ -75,10 +75,23 @@ export function AtTheCar(props: {
     if (!f) return;
     setReading(place);
     try {
-      const found = await readVinPhoto(f, (pr) => setNote((n) => ({ ...n, [place]: vinProgress(pr) })), vinsInText);
-      setChoices((c) => ({ ...c, [place]: found.length > 1 ? found : [] }));
+      const found = await readVinPhoto(f, (pr) => setNote((n) => ({ ...n, [place]: vinProgress(pr) })), vinCandidates);
+      setChoices((c) => ({ ...c, [place]: [] }));
       if (found.length === 1) await confirmAndSet(place, found[0]);
-      else if (found.length > 1) say(place, `Read ${found.length} VINs in that photo. Which one is on the ${VIN_PLACE[place]}?`);
+      else if (found.length > 1) {
+        say(place, "Read more than one possible VIN. Checking them with NHTSA…");
+        const r = await resolveVins(found);
+        if (r.busy) say(place, r.busy);
+        else if (r.real.length === 1) {
+          const { vin, name } = r.real[0];
+          setNames((x) => ({ ...x, [vin]: name }));
+          setVin(place, vin);
+          say(place, "");
+        } else if (r.real.length > 1 || r.unsure) {
+          setChoices((c) => ({ ...c, [place]: r.real.length > 1 ? r.real.map((x) => x.vin) : found }));
+          say(place, `Read ${r.real.length > 1 ? r.real.length : found.length} possible VINs in that photo. Which one is on the ${VIN_PLACE[place]}?`);
+        } else say(place, "None of what was read is a real VIN, so it was misread. Try again: closer, straight on, no glare. Or type it.");
+      }
       else say(place, "No VIN found in that picture. Try again: the VIN should fill most of the frame, straight on, without glare. Or type it.");
     } catch {
       setNote((n) => ({ ...n, [place]: "Couldn't read it on this device: type it instead." }));
