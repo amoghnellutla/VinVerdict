@@ -35,46 +35,28 @@
 
 ## Why VinVerdict
 
-<table>
-<tr>
-<td width="33%" valign="top">
+**Facts about this exact car.** The VIN is decoded by NHTSA and compared with the ad. Every past listing of the VIN shows who sold it, when, for how much and at what miles. Recalls and owner complaints come for its model year.
 
-**Facts about this exact car**
+**Rules you can check, not a guess.** The same listing always gets the same answer, from more than 50 checks tied to FBI, FTC and NICB guidance. In the [test set](#accuracy-measured-not-claimed) it caught 50 of 50 scam ads with 0 false alarms on 71 honest ones.
 
-The VIN is decoded by NHTSA and compared with the ad. Every past listing of the VIN shows who sold it, when, for how much and at what miles. Recalls and owner complaints come for its model year.
-
-</td>
-<td width="33%" valign="top">
-
-**Rules you can check, not a guess**
-
-The same listing always gets the same answer, from more than 50 checks tied to FBI, FTC and NICB guidance. In the [test set](#accuracy-measured-not-claimed) it caught 50 of 50 scam ads with 0 false alarms on 71 honest ones.
-
-</td>
-<td width="33%" valign="top">
-
-**Free and private**
-
-No sign-up. Screenshots are read on your phone, nothing you paste is saved, and the code refuses anything that would cost money. It never says a car is "safe"; it says what's still unknown.
-
-</td>
-</tr>
-</table>
+**Free and private.** No sign-up. Screenshots are read on your phone, nothing you paste is saved, and the code refuses anything that would cost money. It never says a car is "safe"; it says what's still unknown.
 
 ## What it checks
 
-| Question | What you see | Proof |
-| --- | --- | --- |
-| **Is this ad a scam?** | Deposits before viewing, gift cards, wire transfers, "the car is with a shipping company", a seller who's away, title washing, a price too good to be true. Context-aware: "send $200 by Zelle to hold it" is a warning, "I don't take Zelle, cash in person" isn't. | FBI, FTC and NICB guidance ([each sign](https://vinverdict.vercel.app/scam-signs)) · [`rules.ts`](src/lib/scam/rules.ts), [tests](src/lib/scam/rules.test.ts) |
-| **Is the VIN real, and is it this car?** | The check digit, then year, make, model and engine compared with the ad. A typo like the letter O for zero is caught and corrected. | NHTSA vPIC · [`vin.ts`](src/lib/vin.ts), [tests](src/lib/vin.test.ts) |
-| **What is it worth?** | A fair-price range for your ZIP, adjusted for miles, seller type and damage, with an opening offer and a walk-away price. Always labelled an estimate. | Similar cars listed near you (MarketCheck) · [`value/`](src/lib/value/) |
-| **Where has it been before?** | Every listing of the VIN since 2015 with dealer, dates, prices and miles. Flags odometer drops, price cuts, quick resales and two sellers at once. | MarketCheck, Auto.dev · [`history/`](src/lib/history/) |
-| **Recalls and safety** | Model-year recalls ("don't drive" and "park outside" marked), crash-test stars, owner complaints, and a link to check this VIN's open recalls. | NHTSA · [`nhtsa/`](src/lib/nhtsa/) |
-| **Known problems** | A short, hand-checked list for popular Honda and Toyota years, each citing the maker's own service bulletin. | Bulletins on nhtsa.gov · [`inspection.ts`](src/lib/inspection.ts) |
-| **The real total** | Out-the-door price with your state's tax and fees, plus fuel and upkeep per year. | State tax tables, EPA · [`costs/`](src/lib/costs/) |
-| **Is the seller's story changing?** | Paste their replies or chat screenshots: deposit requests, shipping stories, refused inspections and changed miles, title or accident claims, each with a safe reply to copy. | Read on your device · [`seller-replies.ts`](src/lib/seller-replies.ts), [tests](src/lib/seller-replies.test.ts) |
-| **Are the photos really this car?** | One-tap reverse image search to find them in an older or faraway ad. | Google Lens, Bing · [`PhotoCheck.tsx`](src/components/analyzer/PhotoCheck.tsx) |
-| **Stolen or a total loss?** | The free NICB VINCheck, one click away. Its result counts as proof once you paste it. | NICB · [`evidence/`](src/lib/evidence/) |
+Each answer names its source and links the code or test behind it.
+
+| Question | What you see |
+| --- | --- |
+| **Is this ad a scam?** | Deposits before viewing, gift cards, wire transfers, "the car is with a shipping company", a seller who's away, title washing, a price too good to be true. Context-aware: "send $200 by Zelle to hold it" is a warning, "I don't take Zelle, cash in person" isn't.<br><sub>FBI, FTC and NICB guidance ([each sign](https://vinverdict.vercel.app/scam-signs)) · [`rules.ts`](src/lib/scam/rules.ts), [tests](src/lib/scam/rules.test.ts)</sub> |
+| **Is the VIN real, and is it this car?** | The check digit, then year, make, model and engine compared with the ad. A typo like the letter O for zero is caught and corrected.<br><sub>NHTSA vPIC · [`vin.ts`](src/lib/vin.ts), [tests](src/lib/vin.test.ts)</sub> |
+| **What is it worth?** | A fair-price range for your ZIP, adjusted for miles, seller type and damage, with an opening offer and a walk-away price. Always labelled an estimate.<br><sub>Similar cars listed near you (MarketCheck) · [`value/`](src/lib/value/)</sub> |
+| **Where has it been before?** | Every listing of the VIN since 2015 with dealer, dates, prices and miles. Flags odometer drops, price cuts, quick resales and two sellers at once.<br><sub>MarketCheck, Auto.dev · [`history/`](src/lib/history/)</sub> |
+| **Recalls and safety** | Model-year recalls ("don't drive" and "park outside" marked), crash-test stars, owner complaints, and a link to check this VIN's open recalls.<br><sub>NHTSA · [`nhtsa/`](src/lib/nhtsa/)</sub> |
+| **Known problems** | A short, hand-checked list for popular Honda and Toyota years, each citing the maker's own service bulletin.<br><sub>Bulletins on nhtsa.gov · [`inspection.ts`](src/lib/inspection.ts)</sub> |
+| **The real total** | Out-the-door price with your state's tax and fees, plus fuel and upkeep per year.<br><sub>State tax tables, EPA · [`costs/`](src/lib/costs/)</sub> |
+| **Is the seller's story changing?** | Paste their replies or chat screenshots: deposit requests, shipping stories, refused inspections and changed miles, title or accident claims, each with a safe reply to copy.<br><sub>Read on your device · [`seller-replies.ts`](src/lib/seller-replies.ts), [tests](src/lib/seller-replies.test.ts)</sub> |
+| **Are the photos really this car?** | One-tap reverse image search to find them in an older or faraway ad.<br><sub>Google Lens, Bing · [`PhotoCheck.tsx`](src/components/analyzer/PhotoCheck.tsx)</sub> |
+| **Stolen or a total loss?** | The free NICB VINCheck, one click away. Its result counts as proof once you paste it.<br><sub>NICB · [`evidence/`](src/lib/evidence/)</sub> |
 
 ## A closer look
 
