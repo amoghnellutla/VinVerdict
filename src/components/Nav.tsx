@@ -6,7 +6,7 @@ import { SignOutButton } from "./SignOutButton";
 
 export function Nav() {
   return (
-    <header className="border-b border-border bg-background">
+    <header className="site-header border-b border-border bg-background">
       <Suspense fallback={<Bar links={<NavLinksStatic />} account={null} />}>
         <ForViewer />
       </Suspense>

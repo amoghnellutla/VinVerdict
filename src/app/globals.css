@@ -449,12 +449,12 @@ html {
   .fx-car {
     display: none !important;
   }
-  /* Tabbed sections print every panel. */
-  .tab-panel[hidden] {
-    display: block !important;
+  /* Tabbed sections print every panel (SectionTabs: closed panels are "hidden print:block"). */
+  .tab-panel {
     padding-top: 1.5rem;
   }
-  header,
+  /* Only the site's own bar and footer: the result's verdict card is a <header> too and must print. */
+  .site-header,
   footer,
   form,
   button,

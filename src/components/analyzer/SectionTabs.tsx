@@ -58,7 +58,9 @@ export function SectionTabs({ id, title, intro, tabs }: { id: string; title: str
         ))}
       </div>
       {tabs.map((t, i) => (
-        <div key={t.id} id={`${uid}-panel-${i}`} role="tabpanel" aria-labelledby={`${uid}-tab-${i}`} hidden={at !== i} className="tab-panel pt-6">
+        // Closed panels are display:none on screen (also out of the accessibility tree) but print: the
+        // "hidden" attribute can't be overridden for print (Tailwind's base layer forces it with !important).
+        <div key={t.id} id={`${uid}-panel-${i}`} role="tabpanel" aria-labelledby={`${uid}-tab-${i}`} className={`tab-panel pt-6 ${at === i ? "" : "hidden print:block"}`}>
           {t.content}
         </div>
       ))}
