@@ -354,8 +354,8 @@ export function Assistant(props: {
     <section className="rounded-lg border border-accent/40 px-4 py-4 print:hidden" aria-labelledby={`${id}-t`}>
       <h2 id={`${id}-t`} className="text-lg font-semibold">Tell VinVerdict or ask</h2>
       <p className="mt-1 max-w-2xl text-sm text-muted">
-        Paste the listing, the auction record or the Carfax, attach screenshots, or just say what you know (&quot;it sold at auction for 9,100&quot;). The
-        whole result updates. Questions are answered from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq when busy) helps only with open questions and reading a report closely, and may keep what's sent" : ""}.
+        Paste the seller&apos;s messages, the Carfax or an auction record (or screenshots of them), or say what you know (&quot;he&apos;d take 13,500&quot;). The whole
+        result updates. Most answers come from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq) helps only with open questions and may keep what's sent" : ""}.
       </p>
 
       {thread.length === 0 && (
@@ -452,7 +452,7 @@ export function Assistant(props: {
             void send();
           }
         }}
-        placeholder={'"It sold at auction for 9,100", "is the price fair?", or paste a page'}
+        placeholder={`"He'd take 13,500", "is this a scam?", or paste their messages`}
         className="field mt-4 w-full"
       />
       {ai && guest && <div className="mt-2"><Turnstile key={attempt} action="ai" onToken={setToken} /></div>}
