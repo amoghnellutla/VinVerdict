@@ -24,13 +24,13 @@ const WORD_NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, fi
 
 /** "9,100", "$9100", "9.1k", "12k" → dollars; null when it isn't a plausible car price. */
 export function money(s: string): number | null {
-  const m = /^\$?\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k)?$/i.exec(s.trim());
+  const m = /^\$?\s?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s?(k|grand)?$/i.exec(s.trim());
   if (!m) return null;
   const n = Number(m[1].replace(/,/g, "")) * (m[2] ? 1_000 : 1);
   return n >= 300 && n < 1_000_000 ? Math.round(n) : null;
 }
 
-const AMOUNT = String.raw`(\$?\s?\d{1,3}(?:,\d{3})+|\$?\s?\d{3,7}(?:\.\d+)?\s?k?|\$?\s?\d{1,3}(?:\.\d)?\s?k)\b`;
+const AMOUNT = String.raw`(\$?\s?\d{1,3}(?:,\d{3})+|\$?\s?\d{3,7}(?:\.\d+)?\s?k?|\$?\s?\d{1,3}(?:\.\d)?\s?(?:k|grand))\b`;
 
 /** A question, not a statement: "has it been in an accident?" must never be read as "it has". */
 export const isQuestion = (text: string) => /\?\s*$|^(?:is|are|was|were|has|have|had|did|does|do|can|could|should|would|will|how|what|what's|whats|why|which|who|where|when|any)\b/i.test(text.trim());
@@ -60,10 +60,14 @@ export function factsFromSentence(raw: string): Fact[] {
   // an amount off, or anything under $1,000 ("take $500 off" isn't a price).
   const NOT_PRICE = String.raw`(?!\s*(?:off|less|discount|more|deposit|down\b|to hold|for (?:a |the )?deposit|doc|fee|out the door|otd))`;
   const prices = [
-    ...text.matchAll(new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for)|(?:would|will|'d|'ll|could|can) (?:take|do|accept|let it go for)|(?:came|come|coming|go|goes|went|dropped|dropping|drop|lowered|lowering|reduced|cut) (?:it |the price |(?:his|her|their) price )?(?:down )?to|price (?:dropped|went down|was (?:lowered|reduced|cut)|is now|now) (?:to )?|(?:best|final|lowest|new|cash) price(?: is| of)?|agreed (?:to|on))\s*:?\s*${AMOUNT}${NOT_PRICE}`, "gi")),
-    ...text.matchAll(new RegExp(String.raw`\b(?:said|says|for)\s+${AMOUNT}\s+(?:cash|firm|obo|or best offer)\b`, "gi")),
+    ...text.matchAll(new RegExp(String.raw`\b(?:asking(?: price)?(?: is)?|price is|priced (?:at|for)|listed (?:at|for)|they want|wants|selling (?:it )?for|offered (?:at|for)|(?:would|will|'d|'ll|could|can) (?:take|do|accept|let it go for)|(?:came|come|coming|go|goes|went|dropped|dropping|drop|lowered|lowering|reduced|cut|knocked|knock|brought|bring) (?:it |the price |(?:his|her|their) price )?(?:down )?to|(?:won'?t|will not|can'?t|cannot|wouldn'?t) (?:go |come |take )?(?:any )?(?:below|under|lower than|less than)|(?:lowest|bottom line|bottom dollar|least|final offer|best offer)(?: price)?(?: (?:he|she|they)(?:'ll| will| would| can| could)?(?: go| take| do| accept)?)? is|counter(?:ed|s)?(?: (?:my|our) \S+)? (?:at|with)|came back (?:at|with)|accepted (?:my |our )?offer (?:of|at)|price (?:dropped|went down|was (?:lowered|reduced|cut)|is now|now) (?:to )?|(?:best|final|lowest|new|cash) price(?: is| of)?|agreed (?:to|on))\s*:?\s*${AMOUNT}${NOT_PRICE}`, "gi")),
+    ...text.matchAll(new RegExp(String.raw`\b(?:said|says|for)\s+${AMOUNT}\s+(?:cash|firm|obo|or best offer|plus (?:tax|fees|tax and fees|doc)|before (?:tax|fees))\b`, "gi")),
+    // "13k is his lowest", "12,500 is the lowest she'll go", "14,000 is my final price" (said by the seller)
+    ...text.matchAll(new RegExp(String.raw`(?<![\w$,.])${AMOUNT}\s+is\s+(?:his|her|their|the|my)\s+(?:lowest|bottom(?: line)?|final|best|last)\b`, "gi")),
   ].sort((x, y) => x.index - y.index);
-  const ask = [...prices].reverse().find((m) => !(sold && m.index === sold.index) && (money(m[1]) ?? 0) >= 1_000);
+  // "My final offer is 12,000", "I countered at 12,500": the buyer's own number, not the seller's price.
+  const buyers = (m: RegExpExecArray) => /offer|counter|came back/i.test(m[0]) && /\b(?:i|we|my|our)\s+$/i.test(text.slice(Math.max(0, m.index - 15), m.index));
+  const ask = [...prices].reverse().find((m) => !(sold && m.index === sold.index) && (money(m[1]) ?? 0) >= 1_000 && !buyers(m));
   if (ask) out.push({ kind: "price", value: money(ask[1])!, quote: text.slice(ask.index, ask.index + ask[0].length) });
   // Miles.
   const mi = [...text.matchAll(/\b(\d{1,3}(?:,\d{3})+|\d{4,6}|\d{1,3}(?:\.\d)?\s?k)\s*(?:miles|mi)\b|\bodometer(?: reads| shows| says| is| at| reading)?:?\s*(\d{1,3}(?:,\d{3})+|\d{4,6})/gi)].find((m) => {

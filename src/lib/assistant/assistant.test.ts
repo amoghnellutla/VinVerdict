@@ -182,3 +182,26 @@ describe("facts are about this car, not the buyer's driving or another car (swee
     ["the car had an accident in 2019", ["accident=reported"]],
   ] as [string, string[]][])("%s → %j", (t, want) => expect(read(t)).toEqual(want));
 });
+
+describe("the seller's price, said the ways buyers relay it; the buyer's own offer never is (sweep 2026-11-13)", () => {
+  const price = (t: string) => factsFromSentence(t).find((f) => f.kind === "price")?.value ?? null;
+  it.each([
+    ["he said 13k is his lowest", 13_000],
+    ["she said 12,500 is the lowest she'll go", 12_500],
+    ["lowest he'll go is 12,800", 12_800],
+    ["he won't go below 13,000", 13_000],
+    ["he can't go under 12k", 12_000],
+    ["his bottom line is 12,900", 12_900],
+    ["the dealer said 15,999 plus fees", 15_999],
+    ["they knocked it down to 14,200", 14_200],
+    ["he accepted my offer of 12,000", 12_000],
+    ["he countered at 13,400", 13_400],
+    ["he countered my 12k at 13,400", 13_400],
+    ["dealer came back with 14,800", 14_800],
+    ["he'd take 13 grand", 13_000],
+  ])("%s → %d", (t, want) => expect(price(t)).toBe(want));
+  it.each([
+    "my final offer is 12,000", "my best offer is 12k", "I countered at 12,500", "I came back with 12,200", "we countered at 12,000",
+    "the lowest I can pay is 11,000", "I won't go above 12k", "my budget is 13 grand", "they knocked 500 off", "out the door 16,200",
+  ])("%s → no price", (t) => expect(price(t)).toBeNull());
+});
