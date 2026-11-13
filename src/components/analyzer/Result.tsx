@@ -21,6 +21,7 @@ import { adOffersHistoryReport } from "@/lib/report/checks";
 import { carFactRows } from "@/lib/report/content";
 import type { CostParts } from "@/lib/report/costs";
 import { buildReport, plainRecallAreas } from "@/lib/report/markdown";
+import { sellReport } from "@/lib/report/sell-report";
 import { readBuyerZip, saveBuyerZip } from "@/lib/buyer-zip";
 import { reportInput } from "./report-input";
 import { ReportDownload } from "./ReportDownload";
@@ -339,7 +340,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   /** The full report as Markdown, built from what's on the page right now (only when asked for). */
   const reportText = (listingUrl: string | null, short: boolean): string => {
     const zip = readBuyerZip();
-    return buildReport(
+    const full = buildReport(
       reportInput({
         generated: localDate(),
         listingUrl,
@@ -355,6 +356,14 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
       }),
       { short },
     );
+    if (!selling) return full;
+    // Selling: the seller's report, built around the same facts (lib/report/sell-report.ts).
+    const pv = sellV?.privateV ?? null;
+    return sellReport(full, {
+      name: carName(m), generated: localDate(), site: window.location.host, vin: goodVin, miles: m.listing.miles, recalls: a.recalls?.length ?? null,
+      historyKnown: answers.damage !== "unknown" || answers.title !== "unknown" ? [answers.damage !== "unknown" ? DAMAGE_LABEL[answers.damage] : null, answers.title !== "unknown" ? TITLE_LABEL[answers.title] : null].filter(Boolean).join(", ") : null,
+      sell: pv ? { private: pv, dealer: sellV?.dealerV ?? null, listAt: Math.round(pv.fair / (1 - ASKING_GAP) / 100) * 100, zip: sources?.zip ?? null } : null,
+    });
   };
   const pageCtx: PageContext = {
     car: carName(m),
