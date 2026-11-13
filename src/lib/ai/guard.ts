@@ -38,5 +38,6 @@ export function foreignLinks(answer: string, source: string): string[] {
 /** Plain text for the page: no markup, no control characters, bounded. */
 export function plain(s: unknown, max: number): string {
   if (typeof s !== "string") return "";
-  return s.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").replace(/<[^>]*>/g, "").trim().slice(0, max);
+  // Tags out, then any "<" or ">" left over ("<scr<script>ipt>"), so no tag can be rebuilt.
+  return s.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "").replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }

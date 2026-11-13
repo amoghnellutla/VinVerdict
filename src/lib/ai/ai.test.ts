@@ -72,6 +72,7 @@ describe("guards: nothing the source can't back", () => {
 
   it("plain text only, bounded", () => {
     expect(plain("<script>alert(1)</script>Hi\u0007", 50)).toBe("alert(1)Hi");
+    expect(plain("<<script>script>alert(1)<</script>/script>", 80)).not.toMatch(/[<>]/);
     expect(plain(5, 10)).toBe("");
     expect(plain("x".repeat(20), 5)).toBe("xxxxx");
   });
