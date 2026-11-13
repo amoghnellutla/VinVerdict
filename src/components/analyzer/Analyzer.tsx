@@ -182,6 +182,13 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
   // A new result scrolls into view.
   const doneId = state.status === "done" ? state.id : null;
 
+  // A check that's refused (not a car, limit reached) says so under the Check button: bring it into view
+  // (on a phone, "Paste & check" is far above it).
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (state.status === "error") errorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [state]);
+
   // Back goes to the home page instead of leaving the site; Forward brings the result back.
   // A result adds one "#result" history entry; leaving it hides the result.
   const lastExample = useRef<typeof example>(null);
@@ -376,6 +383,12 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
             </button>
           </div>
         </div>
+        {/* Right under the button: on the home page the result area is far below (playground, examples). */}
+        {!example && !pending && state.status === "error" && (
+          <p ref={errorRef} role="alert" className="mt-4 scroll-mb-6 rounded-md border border-bad/30 bg-bad-soft px-4 py-3 text-bad">
+            {state.message}
+          </p>
+        )}
       </form>
 
       {!showing && (
@@ -397,11 +410,6 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
             recorded={{ price: example.data.price, recordedAt: example.data.recordedAt }}
             saveNote={`Example: a real check recorded on ${example.data.recordedAt}. Paste your own listing above to check any car.`}
           />
-        )}
-        {!example && state.status === "error" && (
-          <p role="alert" className="rounded-md border border-bad/30 bg-bad-soft px-4 py-3 text-bad">
-            {state.message}
-          </p>
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (

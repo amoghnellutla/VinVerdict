@@ -51,6 +51,7 @@ export async function analyzeListing(text: string): Promise<Analysis> {
   const notices: string[] = [];
 
   const vinCheck = listing.vin ? checkVin(listing.vin) : null;
+  if (listing.vinTyped && listing.vin) notices.push(`Read the VIN as ${listing.vin}: a VIN never uses the letters O, I or Q, so they were read as 0 and 1.`);
   let decoded: DecodedVin | null = null;
   // A VIN with a bad check digit is still decoded: NHTSA's answer helps show
   // whether it's a typo (decodes to the listed car) or junk.

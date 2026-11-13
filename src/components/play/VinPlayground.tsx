@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { decodeVinAction } from "@/app/actions/decode";
 import type { DecodedVin } from "@/lib/nhtsa/parse";
-import { checkVin } from "@/lib/vin";
+import { checkVin, vinDigitsForLetters } from "@/lib/vin";
 
 const PARTS = [
   { from: 0, to: 3, name: "Maker", explain: "Country and maker. 1, 4 or 5 is the USA, 2 Canada, 3 Mexico, J Japan, K Korea, W Germany." },
@@ -14,7 +14,8 @@ const PARTS = [
   { from: 11, to: 17, name: "Serial", explain: "This one car's production number." },
 ];
 
-const clean = (s: string) => s.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "").slice(0, 17);
+// A VIN never uses O, I or Q: typed, they're the 0 and 1 they look like.
+const clean = (s: string) => vinDigitsForLetters(s).replace(/[^A-HJ-NPR-Z0-9]/g, "").slice(0, 17);
 const cap = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
 /** Type or paste any VIN: the plate fills in as you type, checks itself, and NHTSA decodes it. Click a part to flip it. */

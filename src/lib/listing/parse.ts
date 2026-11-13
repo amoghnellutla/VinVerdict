@@ -8,7 +8,7 @@
  */
 
 import { classifyTransmission, type TransmissionKind } from "@/lib/nhtsa/parse";
-import { checkVin, normalizeVin } from "@/lib/vin";
+import { checkVin, normalizeVin, vinFromTypo } from "@/lib/vin";
 import { hasUnnegated, normalizeText } from "./text";
 
 export const MAX_LISTING_CHARS = 20_000;
@@ -25,6 +25,8 @@ export type ParsedListing = {
   url: string | null;
   sourceHost: string | null;
   vin: string | null;
+  /** The VIN as typed, when it was read with O/I/Q as 0/1 ("4T1B11HK8JU14588O"). */
+  vinTyped?: string;
   year: number | null;
   make: string | null;
   model: string | null;
@@ -121,14 +123,26 @@ function findUrl(raw: string): { url: string | null; host: string | null } {
   return { url: null, host: null };
 }
 
-function findVin(raw: string): string | null {
+function findVin(raw: string): { vin: string | null; typed: string | null } {
   // Candidates: 17-char runs of VIN characters that contain at least one digit and one letter.
   const candidates = (raw.toUpperCase().match(/\b[A-HJ-NPR-Z0-9]{17}\b/g) ?? []).filter(
     (c) => /\d/.test(c) && /[A-Z]/.test(c),
   );
-  if (candidates.length === 0) return null;
-  // Prefer one that passes the check digit; otherwise keep the first so the scam rules can flag it.
-  return candidates.find((c) => checkVin(c).ok) ?? normalizeVin(candidates[0]);
+  const good = candidates.find((c) => checkVin(c).ok);
+  if (good) return { vin: good, typed: null };
+  // A VIN typed by hand: with spaces or dashes, or O/I/Q for 0/1 ("4T1B 11HK 8JU1 4588O"). Only the
+  // whole paste or the characters right after "VIN", and only when the check digit then passes.
+  const whole = raw.toUpperCase().replace(/\bVIN(?:\s*(?:NUMBER|NO\.?|#))?\b|[\s#:.\-()]/g, "");
+  const after = /\bVIN(?:\s*(?:number|no\.?|#))?\s*[:#]?\s*((?:[A-Z0-9]+[\s-]?){1,6})/i.exec(raw)?.[1] ?? "";
+  const words = after.trim().split(/[\s-]+/);
+  const joined = words.map((_, i) => words.slice(0, i + 1).join("")).find((j) => j.length === 17) ?? "";
+  for (const typed of [whole, joined]) {
+    if (typed.length !== 17) continue;
+    const vin = vinFromTypo(typed);
+    if (vin) return { vin, typed: typed.toUpperCase() };
+  }
+  // Otherwise keep the first so the scam rules can flag it.
+  return { vin: candidates.length ? normalizeVin(candidates[0]) : null, typed: null };
 }
 
 /**
@@ -492,14 +506,14 @@ function isOnlyVin(raw: string, vin: string): boolean {
 export function parseListing(input: string): ParsedListing {
   const raw = input.slice(0, MAX_LISTING_CHARS);
   const { url, host } = findUrl(raw);
-  const vin = findVin(raw);
+  const { vin, typed: vinTyped } = findVin(raw);
   // Facts come from the text without its links: a search link's
   // "makeCode=TOYOTA&startYear=2018" are filters, not this car.
   const text = normalizeText(raw.replace(URL_RE, " "));
 
   const onlyUrl = url !== null && raw.trim().split(/\s+/).length === 1;
   // A dealer link with the VIN in it ("…-1hgcv1f35la054321.htm") is a VIN lookup.
-  const kind = vin && (isOnlyVin(raw, vin) || onlyUrl) ? "vin" : onlyUrl ? "url" : "text";
+  const kind = vin && (isOnlyVin(raw, vinTyped ?? vin) || onlyUrl) ? "vin" : onlyUrl ? "url" : "text";
 
   const { make, model, at } = findMakeModel(text);
   return {
@@ -507,6 +521,8 @@ export function parseListing(input: string): ParsedListing {
     url,
     sourceHost: host,
     vin,
+    // Typed with O/I/Q or spaces: what was typed (shown as "read as"). Only when it differs.
+    ...(vinTyped && vinTyped !== vin ? { vinTyped } : {}),
     year: findYear(text, at),
     make,
     model,

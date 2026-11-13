@@ -6,7 +6,7 @@ import { Turnstile } from "@/components/Turnstile";
 import { LIGHTS, dashMiles, type DashRead } from "@/lib/ai/dash-read";
 import type { RuleHit } from "@/lib/scam/rules";
 import { VIN_PLACE, vinCandidates, vinsInText, type VinPlace } from "@/lib/vin-read";
-import { normalizeVin } from "@/lib/vin";
+import { normalizeVin, vinFromTypo } from "@/lib/vin";
 import { confirmVin, resolveVins } from "@/lib/confirm-vin";
 import { pickImages, readVinPhoto } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
@@ -104,7 +104,7 @@ export function AtTheCar(props: {
     const raw = (typed[place] ?? "").trim();
     if (!raw) return say(place, "Type the 17 characters of the VIN first.");
     const v = normalizeVin(raw);
-    const ok = vinsInText(v)[0];
+    const ok = vinsInText(v)[0] ?? vinFromTypo(v);
     if (ok) return void confirmAndSet(place, ok);
     const compact = v.replace(/[^A-Z0-9]/g, "");
     say(place, compact.length !== 17

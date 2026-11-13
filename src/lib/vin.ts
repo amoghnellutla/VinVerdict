@@ -24,6 +24,18 @@ export function normalizeVin(raw: string): string {
   return raw.replace(/[\s-]/g, "").toUpperCase();
 }
 
+/** The letters a VIN never uses, as the digits they were meant to be (O and Q → 0, I → 1). */
+export const vinDigitsForLetters = (s: string) => s.toUpperCase().replace(/[OQ]/g, "0").replace(/I/g, "1");
+
+/**
+ * A VIN typed with look-alike letters or spaces ("4T1B 11HK 8JU1 4588O"): the VIN it must be, only
+ * when the result is 17 characters and passes the check digit. Null otherwise (no guessing).
+ */
+export function vinFromTypo(raw: string): string | null {
+  const v = vinDigitsForLetters(normalizeVin(raw));
+  return isVinFormat(v) && vinCheckDigit(v) === v[8] ? v : null;
+}
+
 export function isVinFormat(vin: string): boolean {
   return VIN_RE.test(vin);
 }

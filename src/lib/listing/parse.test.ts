@@ -301,3 +301,23 @@ describe("Land Rover and other two-word makes (real case 31)", () => {
     expect(parseListing("Used 2025 Land Rover Range Rover SE (308 mi away) 1 mi").miles).toBe(1);
   });
 });
+
+describe("a VIN typed by hand (O/I/Q for 0/1, spaces): read only when the check digit then passes", () => {
+  const R = "4T1B11HK8JU145889";
+  it.each([
+    ["4TIB11HK8JU145889", R, "4TIB11HK8JU145889"],
+    ["4T1B11HK8JUI45889", R, "4T1B11HK8JUI45889"],
+    ["4t1b 11hk 8ju1 45889", R, undefined],
+    ["4T1B-11HK8-JU145889", R, undefined],
+    ["2018 Camry LE 126k miles $14,500 VIN 4TIB11HK8JU145889 clean title", R, "4TIB11HK8JU145889"],
+  ])("%s → %s", (text, vin, typed) => {
+    const l = parseListing(text);
+    expect(l.vin).toBe(vin);
+    expect(l.vinTyped).toBe(typed);
+  });
+  it("a VIN that fails its check digit is kept as typed (the scam check flags it); random text has none", () => {
+    expect(parseListing("VIN: 4T1B11HK8JU1458B9").vin).toBe("4T1B11HK8JU1458B9");
+    expect(parseListing("random words here OOOO 12345").vin).toBeNull();
+    expect(parseListing("4TIB11HK8JU145880").vin).toBeNull();
+  });
+});
