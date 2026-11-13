@@ -158,11 +158,14 @@ export function VinScanner({ onVin, label = "Scan the VIN", hint = "Point at the
       if (!live.current || checking.current || !video.current || video.current.readyState < 2) return;
       try {
         const codes = await detector.detect(video.current);
+        let seenRejected = false;
         for (const b of codes) {
           const vin = barcodeVin(b.rawValue);
           if (vin && !rejected.current.has(vin)) return void accept(vin);
+          if (vin) seenRejected = true;
         }
-        if (codes.length) setStatus("That barcode isn't a VIN. Point at the VIN barcode on the driver's door sticker.");
+        // The same made-up VIN still in view keeps its "isn't a real VIN" message on screen.
+        if (codes.length && !seenRejected) setStatus("That barcode isn't a VIN. Point at the VIN barcode on the driver's door sticker.");
       } catch {
         // A frame that can't be read: try the next one.
       }
