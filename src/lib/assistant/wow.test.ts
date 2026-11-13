@@ -432,3 +432,11 @@ describe("stolen or flooded: the free NICB check, by VIN", () => {
     expect(answerIntent("history", { ...ctx, nicbLink: "https://www.nicb.org/vincheck" }, "how many owners").text).not.toMatch(/^Reported thefts/);
   });
 });
+
+describe("stolen? with no VIN in the ad", () => {
+  it("asks for the VIN instead of a generic history answer", () => {
+    const r = answerIntent("history", { ...ctx, vin: null, nicbLink: null }, "was it ever stolen");
+    expect(r.text).toMatch(/checked by VIN, and this ad doesn't have one/);
+    expect(r.actions[0]).toMatchObject({ kind: "copy" });
+  });
+});

@@ -302,6 +302,13 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
         : { text: c.recalls === 0 ? "No recalls on record for this model year." : "Recalls weren't checked (no year, make and model).", points: [], actions: [] };
     case "history":
       // Stolen, flooded, totalled: the free NICB check answers exactly that, by VIN.
+      if (!c.vin && /\b(?:stolen|theft|total(?:led| loss)|flood(?:ed)?)\b/i.test(question)) {
+        return {
+          text: "Thefts and insurance total losses are checked by VIN, and this ad doesn't have one. Ask the seller for it: a seller who won't give the VIN is a warning sign.",
+          points: ["With the VIN, the free NICB VINCheck shows reported thefts and total losses (floods included). Paste the VIN here and it's added."],
+          actions: [{ kind: "copy", label: "Copy a message asking for the VIN", text: "Hi, could you send me the car's VIN so I can run the history checks?" }],
+        };
+      }
       if (c.nicbLink && /\b(?:stolen|theft|total(?:led| loss)|flood(?:ed)?)\b/i.test(question)) {
         return {
           text: "Reported thefts and insurance total losses (floods included) show on the free NICB VINCheck: open it for this VIN, then paste or screenshot the result here.",
