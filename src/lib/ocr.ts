@@ -100,3 +100,81 @@ export async function readEachScreenshot(files: File[], onProgress: (p: OcrProgr
 export async function readScreenshots(files: File[], onProgress: (p: OcrProgress) => void): Promise<string> {
   return cleanOcrText((await readEachScreenshot(files, onProgress)).join("\n\n"));
 }
+
+/** The average colour along the image's edges (its background, near enough). */
+function edgeColour(src: HTMLCanvasElement): string {
+  const ctx = src.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return "#fff";
+  const w = src.width;
+  const h = src.height;
+  let sum = 0;
+  let n = 0;
+  for (const [x, y, rw, rh] of [[0, 0, w, 1], [0, h - 1, w, 1], [0, 0, 1, h], [w - 1, 0, 1, h]] as const) {
+    const d = ctx.getImageData(x, y, rw, rh).data;
+    for (let i = 0; i < d.length; i += 4) {
+      sum += d[i];
+      n++;
+    }
+  }
+  const g = n ? Math.round(sum / n) : 255;
+  return `rgb(${g},${g},${g})`;
+}
+
+/** What a VIN photo read is doing, for its status line. */
+export type VinReadProgress = { stage: "loading" | "reading" | "angle"; pct: number };
+
+/**
+ * A copy of the prepared image turned by `deg` degrees. The new corners are filled with the
+ * photo's own background (its edge colour): white corners around a grey photo make a big slanted
+ * shape that the reader takes for a picture and skips the text inside (seen in testing).
+ */
+function rotated(src: HTMLCanvasElement, deg: number): HTMLCanvasElement {
+  const r = (deg * Math.PI) / 180;
+  const w = src.width;
+  const h = src.height;
+  const W = Math.ceil(Math.abs(w * Math.cos(r)) + Math.abs(h * Math.sin(r)));
+  const H = Math.ceil(Math.abs(w * Math.sin(r)) + Math.abs(h * Math.cos(r)));
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d");
+  if (!ctx) return src;
+  ctx.fillStyle = edgeColour(src);
+  ctx.fillRect(0, 0, W, H);
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(r);
+  ctx.drawImage(src, -w / 2, -h / 2);
+  return c;
+}
+
+/**
+ * The VIN(s) in a photo of the car (windshield plate, door sticker, title), read on the device.
+ * A hand-held photo is rarely straight, and a few degrees of tilt is enough to lose the VIN, so
+ * when the straight read finds none it tries again at small angles (one reader, so the extra
+ * time is only spent when needed). Only check-digit-valid VINs are returned (lib/vin-read).
+ */
+export async function readVinPhoto(file: File, onProgress: (p: VinReadProgress) => void, find: (text: string) => string[]): Promise<string[]> {
+  const { createWorker } = await import("tesseract.js");
+  let stage: VinReadProgress["stage"] = "reading";
+  const worker = await createWorker("eng", 1, {
+    workerPath: "/ocr/worker.min.js",
+    corePath: "/ocr/core",
+    langPath: `${window.location.origin}/ocr/lang`,
+    workerBlobURL: false,
+    logger: (m) => onProgress({ stage: m.status !== "recognizing text" ? "loading" : stage, pct: Math.round((m.progress ?? 0) * 100) }),
+  });
+  try {
+    const base = await prepare(file);
+    const read = async (c: HTMLCanvasElement) => find((await worker.recognize(c)).data.text);
+    const straight = await read(base);
+    if (straight.length) return straight;
+    stage = "angle";
+    for (const deg of [-4, 4, -8, 8, -12, 12]) {
+      const found = await read(rotated(base, deg));
+      if (found.length) return found;
+    }
+    return [];
+  } finally {
+    await worker.terminate();
+  }
+}

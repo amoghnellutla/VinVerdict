@@ -397,3 +397,10 @@ describe("recall parts in plain words", () => {
     expect(plainRecallAreas(r)).toBe("air bags (2 recalls) (don't drive it until fixed); service brakes");
   });
 });
+
+describe("gibberish in the conversation box", () => {
+  it("says it didn't understand (a greeting still gets the help)", () => {
+    expect(smallTalk("asdf qwe zzz").text).toMatch(/^Didn't understand that/);
+    expect(smallTalk("hello").text).toMatch(/^Tell VinVerdict anything/);
+  });
+});

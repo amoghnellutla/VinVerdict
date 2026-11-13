@@ -11,7 +11,7 @@ import { dashHits, dashMiles, type DashRead } from "@/lib/ai/dash-read";
 import { matchVins } from "@/lib/vin-read";
 import { AtTheCar } from "./AtTheCar";
 import { SOURCE_NAME } from "@/lib/evidence/parse";
-import { loadTold, saveTold, toldKey } from "@/lib/assistant/store";
+import { loadAtCar, loadTold, saveAtCar, saveTold, toldKey } from "@/lib/assistant/store";
 import { defaultOtdInput, runningFor } from "@/lib/report/costs";
 import { outTheDoor } from "@/lib/costs/outTheDoor";
 import { DEFAULT_MILES_PER_YEAR } from "@/lib/costs/running";
@@ -240,8 +240,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   }, [carId, proofs, goodVin]);
 
   // At the car (AtTheCar): the VINs on the car and its title, and the dashboard photo.
-  const [atCarVins, setAtCarVins] = useState<Partial<Record<"plate" | "door" | "title", string | null>>>({});
-  const [dash, setDash] = useState<DashRead | null>(null);
+  // Kept on the device per car (a phone can unload the page while the camera is open).
+  const [atCarVins, setAtCarVins] = useState<Partial<Record<"plate" | "door" | "title", string | null>>>(() => loadAtCar(toldKeyFor).vins);
+  const [dash, setDash] = useState<DashRead | null>(() => loadAtCar(toldKeyFor).dash);
+  useEffect(() => saveAtCar(toldKeyFor, { vins: atCarVins, dash }), [toldKeyFor, atCarVins, dash]);
   const vinAtCarHits = useMemo(() => matchVins({ ...atCarVins, ad: goodVin }), [atCarVins, goodVin]);
   const dashFound = useMemo(() => {
     if (!dash) return [];
@@ -597,6 +599,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           onAddVin={onRecheck ? (vin) => {
             // What was told moves with the car: the next check is keyed by its VIN.
             saveTold(toldKey(vin, ""), told);
+      saveAtCar(toldKey(vin, ""), { vins: atCarVins, dash });
             onRecheck(`${original.text}\nVIN: ${vin}`);
           } : null}
           onProof={(p) => setProofs((x) => [...x, p])}
@@ -687,6 +690,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
                     dashHits={dashFound}
                     ai={AI_MODE}
                     guest={guest}
+                    onCheckWith={!goodVin && onRecheck ? (vin) => {
+                      saveTold(toldKey(vin, ""), told);
+      saveAtCar(toldKey(vin, ""), { vins: atCarVins, dash });
+                      onRecheck(`${original.text}\nVIN: ${vin}`);
+                    } : null}
                   />
                 ),
               },

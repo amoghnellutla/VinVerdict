@@ -70,11 +70,13 @@ export function dashMiles(d: DashRead): number | null {
  */
 export function dashHits(d: DashRead, known: { adMiles: number | null; earlier: { miles: number; source: string } | null }): RuleHit[] {
   if (!d.readable) return [];
+  // A lit warning light is the reliable part; which symbol it is can be misread (in a live test one
+  // model read a check-engine symbol as the battery light), so the wording says "looks like".
   const hits: RuleHit[] = d.lights.map((k) => ({
     id: `proof-dash-${k}`,
     action: "flag" as const,
-    title: `Dashboard photo: ${LIGHTS[k].name.toLowerCase()} on`,
-    reason: `${LIGHTS[k].why} Confirm it on the car with the engine running: a photo can catch a reflection.`,
+    title: `Dashboard photo: a warning light is on (looks like the ${LIGHTS[k].name.toLowerCase()})`,
+    reason: `If it is: ${LIGHTS[k].why} Any warning light that stays on with the engine running needs a diagnosis before you buy. Check which symbol it is on the car (the owner's manual shows each one): a photo can confuse similar symbols or catch a reflection.`,
   }));
   const miles = dashMiles(d);
   if (miles !== null) {
@@ -95,7 +97,8 @@ export function dashHits(d: DashRead, known: { adMiles: number | null; earlier: 
       });
     }
   }
-  if (!d.lights.length) {
+  // "No lights" only counts when the photo was actually read (the odometer came through).
+  if (!d.lights.length && miles !== null) {
     hits.push({ id: "proof-dash-clear", action: "info", title: "Dashboard photo: no warning lights seen", reason: "Confirm on the car: start it cold and watch the lights go off after a few seconds (a light that never comes on at all can be a disabled bulb)." });
   }
   return hits;

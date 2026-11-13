@@ -7,9 +7,10 @@ import { LIGHTS, dashMiles, type DashRead } from "@/lib/ai/dash-read";
 import type { RuleHit } from "@/lib/scam/rules";
 import { VIN_PLACE, vinsInText, type VinPlace } from "@/lib/vin-read";
 import { normalizeVin } from "@/lib/vin";
-import { pickImages, readEachScreenshot } from "@/lib/ocr";
+import { confirmVin } from "@/lib/confirm-vin";
+import { pickImages, readVinPhoto } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
-import { VinScanner } from "./VinScanner";
+import { VinScanner, vinProgress } from "./VinScanner";
 
 type Place = Exclude<VinPlace, "ad">;
 const PLACES: { place: Place; how: string }[] = [
@@ -35,23 +36,50 @@ export function AtTheCar(props: {
   dashHits: RuleHit[];
   ai: boolean;
   guest: boolean;
+  /** The ad had no VIN: check this car with the one read off it. */
+  onCheckWith?: ((vin: string) => void) | null;
 }) {
-  const { vins, setVin, vinHits, dash, onDash, dashHits, ai, guest } = props;
+  const { vins, setVin, vinHits, dash, onDash, dashHits, ai, guest, onCheckWith } = props;
+  const [choices, setChoices] = useState<Partial<Record<Place, string[]>>>({});
+  const read = [...new Set(Object.values(vins).filter((v): v is string => !!v))];
   const [typed, setTyped] = useState<Partial<Record<Place, string>>>({});
   const [reading, setReading] = useState<Place | null>(null);
   const [note, setNote] = useState<Partial<Record<Place, string>>>({});
+  // What NHTSA says each VIN is ("2018 Toyota Camry"), so the person can see it's the right car.
+  const [names, setNames] = useState<Record<string, string>>({});
+  // A VIN NHTSA couldn't be asked about (no answer): the person decides.
+  const [unsure, setUnsure] = useState<Partial<Record<Place, string>>>({});
+  const say = (place: Place, text: string) => setNote((n) => ({ ...n, [place]: text }));
+
+  /** Use a VIN only once NHTSA knows it; a misread or made-up one is refused with a reason. */
+  async function confirmAndSet(place: Place, vin: string) {
+    say(place, `Checking ${vin} with NHTSA…`);
+    setUnsure((u) => ({ ...u, [place]: undefined }));
+    const c = await confirmVin(vin);
+    if (c.status === "ok") {
+      const name = c.name;
+      setNames((x) => ({ ...x, [vin]: name }));
+      setVin(place, vin);
+      return say(place, "");
+    }
+    if (c.status === "busy") return say(place, c.message);
+    if (c.status === "unreachable") {
+      setUnsure((u) => ({ ...u, [place]: vin }));
+      return say(place, `${c.message} Read ${vin}: use it only if it matches the car character by character.`);
+    }
+    say(place, `${vin} isn't a real VIN (NHTSA doesn't recognise it), so it was misread or mistyped. Try again, or check each character.`);
+  }
 
   async function fromPhoto(place: Place, list: FileList | null) {
     const f = pickImages(list).files[0];
     if (!f) return;
     setReading(place);
     try {
-      const [text] = await readEachScreenshot([f], () => {});
-      const found = vinsInText(text ?? "");
-      if (found.length) {
-        setVin(place, found[0]);
-        setNote((n) => ({ ...n, [place]: found.length > 1 ? `Read ${found.length} VINs; using the first. Type it if that's wrong.` : "" }));
-      } else setNote((n) => ({ ...n, [place]: "Couldn't read a VIN in that photo: move closer, avoid glare, or type it." }));
+      const found = await readVinPhoto(f, (pr) => setNote((n) => ({ ...n, [place]: vinProgress(pr) })), vinsInText);
+      setChoices((c) => ({ ...c, [place]: found.length > 1 ? found : [] }));
+      if (found.length === 1) await confirmAndSet(place, found[0]);
+      else if (found.length > 1) say(place, `Read ${found.length} VINs in that photo. Which one is on the ${VIN_PLACE[place]}?`);
+      else say(place, "No VIN found in that picture. Try again: the VIN should fill most of the frame, straight on, without glare. Or type it.");
     } catch {
       setNote((n) => ({ ...n, [place]: "Couldn't read it on this device: type it instead." }));
     } finally {
@@ -60,12 +88,15 @@ export function AtTheCar(props: {
   }
 
   function applyTyped(place: Place) {
-    const v = normalizeVin(typed[place] ?? "");
+    const raw = (typed[place] ?? "").trim();
+    if (!raw) return say(place, "Type the 17 characters of the VIN first.");
+    const v = normalizeVin(raw);
     const ok = vinsInText(v)[0];
-    if (ok) {
-      setVin(place, ok);
-      setNote((n) => ({ ...n, [place]: "" }));
-    } else setNote((n) => ({ ...n, [place]: "That isn't a valid VIN (17 characters, and its check digit must work). Check each character." }));
+    if (ok) return void confirmAndSet(place, ok);
+    const compact = v.replace(/[^A-Z0-9]/g, "");
+    say(place, compact.length !== 17
+      ? `That's ${compact.length} characters; a VIN has exactly 17. Check for a missing or extra character.`
+      : "That isn't a valid VIN: its check digit (9th character) doesn't match the rest, so a character is wrong. Check each one (0 and O, 1 and I look alike: VINs never use O, I or Q).");
   }
 
   return (
@@ -82,14 +113,26 @@ export function AtTheCar(props: {
               <p className="font-semibold">{VIN_PLACE[place][0].toUpperCase() + VIN_PLACE[place].slice(1)}</p>
               <p className="text-sm text-muted">{how}</p>
               <p className="nums mt-1 text-sm" aria-live="polite">
-                {vins[place] ? <>Read: <strong>{vins[place]}</strong> <button type="button" className="link ml-2 text-xs" onClick={() => setVin(place, null)}>Clear</button></> : "Not checked yet"}
+                {vins[place] ? <>Read: <strong>{vins[place]}</strong>{names[vins[place]!] ? <span className="text-muted"> ({names[vins[place]!]})</span> : null} <button type="button" className="link ml-2 text-xs" onClick={() => setVin(place, null)}>Clear</button></> : "Not checked yet"}
               </p>
-              {note[place] && <p className="text-sm text-warn">{note[place]}</p>}
+              {note[place] && <p className="text-sm text-warn" role="status">{note[place]}</p>}
+              {(choices[place]?.length ?? 0) > 1 && (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {choices[place]!.map((v) => (
+                    <button key={v} type="button" className="btn btn-secondary nums text-sm" onClick={() => { setChoices((c) => ({ ...c, [place]: [] })); void confirmAndSet(place, v); }}>{v}</button>
+                  ))}
+                </div>
+              )}
+              {unsure[place] && (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button type="button" className="btn btn-secondary nums text-sm" onClick={() => { setVin(place, unsure[place]!); setUnsure((u) => ({ ...u, [place]: undefined })); say(place, ""); }}>Use {unsure[place]}</button>
+                </div>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <VinScanner className="btn btn-secondary text-sm" label="Scan" hint={how} onVin={(v) => setVin(place, v)} />
+                <VinScanner className="btn btn-secondary text-sm" label="Scan" hint={how} onVin={(v, name) => { if (name) setNames((x) => ({ ...x, [v]: name })); setVin(place, v); say(place, ""); }} />
                 <label className={`btn btn-secondary cursor-pointer text-sm ${reading ? "pointer-events-none opacity-60" : ""}`}>
                   {reading === place ? "Reading…" : "Photo"}
-                  <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => void fromPhoto(place, e.target.files)} />
+                  <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { void fromPhoto(place, e.target.files); e.target.value = ""; }} />
                 </label>
                 <span className="flex items-center gap-1">
                   <label className="sr-only" htmlFor={`vin-${place}`}>Type the VIN from the {VIN_PLACE[place]}</label>
@@ -100,9 +143,16 @@ export function AtTheCar(props: {
             </li>
           ))}
         </ul>
+        {onCheckWith && read.length === 1 && (
+          <div className="mt-3 rounded-md border border-border px-3 py-2">
+            <p className="text-sm">This ad had no VIN. Check this car with the one you read: the exact model, recalls, title checks and the price check.</p>
+            <button type="button" className="btn btn-primary mt-2 text-sm" onClick={() => onCheckWith(read[0])}>Check with VIN {read[0]}</button>
+          </div>
+        )}
         {vinHits.map((h) => (
           <p key={h.id} role={h.id === "proof-vin-mismatch" ? "alert" : "status"} className={`mt-3 rounded-md px-3 py-2 ${h.id === "proof-vin-mismatch" ? "bg-bad-soft text-bad" : "bg-good-soft text-good"}`}>
             <strong>{h.title}.</strong> {h.reason}
+            {h.id === "proof-vin-mismatch" && <span className="mt-1 block text-sm">First rule out a misread: compare each VIN with the car character by character, and if one was read or typed wrong, Clear it and enter it again.</span>}
           </p>
         ))}
       </div>
@@ -133,7 +183,9 @@ function DashCheck({ dash, onDash, hits, ai, guest }: { dash: DashRead | null; o
     setBusy(false);
     if (!r) return setMsg(image ? "Couldn't reach VinVerdict. Try again." : "That photo couldn't be prepared: try another.");
     if (r.status === "error") return setMsg(r.message);
-    if (!r.dash.readable) return setMsg("The photo was too dark or blurry to read: take it again with the engine running, straight on, without glare.");
+    if (!r.dash.readable) return setMsg("That doesn't look like a dashboard photo, or it's too dark or blurry to read. Try again: engine running, the whole instrument cluster in the frame, straight on, without glare.");
+    // Nothing read at all (no odometer, no lights) isn't "all clear": ask for another photo.
+    if (r.dash.odometer === null && !r.dash.lights.length) return setMsg("Couldn't read the odometer or any lights in that photo. Try again closer, with the engine running so the display is lit.");
     setBy(r.provider);
     onDash(r.dash);
   }

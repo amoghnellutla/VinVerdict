@@ -77,3 +77,57 @@ describe("walking a lot: the scanned cars, ranked", async () => {
     expect(next[0]).toMatchObject({ vin: "D".repeat(17), at: 4, level: "verify", car: "2019 Honda Civic" });
   });
 });
+
+describe("at-the-car results kept on the device", () => {
+  it("come back after a reload; anything tampered with or expired is dropped", async () => {
+    const mem = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
+    const { loadAtCar, saveAtCar } = await import("@/lib/assistant/store");
+    saveAtCar("vv-told:X", { vins: { plate: VIN, door: VIN }, dash: { readable: true, odometer: 126_410, unit: "mi", lights: ["check_engine"] } }, 1_000);
+    expect(loadAtCar("vv-told:X", 2_000)).toEqual({ vins: { plate: VIN, door: VIN }, dash: { readable: true, odometer: 126_410, unit: "mi", lights: ["check_engine"] } });
+    // Tampered: a VIN that fails its check digit and a made-up light are dropped.
+    mem.set("vv-told:X:atcar", JSON.stringify({ at: 1_000, vins: { plate: "4T1B11HK9JU145889", title: VIN }, dash: { readable: true, odometer: 5, lights: ["self_destruct"] } }));
+    expect(loadAtCar("vv-told:X", 2_000)).toEqual({ vins: { title: VIN }, dash: { readable: true, odometer: 5, unit: "mi", lights: [] } });
+    expect(loadAtCar("vv-told:X", 1_000 + 8 * 86_400_000)).toEqual({ vins: {}, dash: null });
+    saveAtCar("vv-told:X", { vins: {}, dash: null });
+    expect(mem.has("vv-told:X:atcar")).toBe(false);
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe("no VIN out of thin air (a photo of anything that isn't a VIN)", () => {
+  it("garbled text from random objects never yields a VIN", () => {
+    // A seeded generator: the same 20,000 random 'OCR reads' every run.
+    let seed = 42;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    const CH = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ||-.:,";
+    let found = 0;
+    for (let n = 0; n < 20_000; n++) {
+      const len = 20 + Math.floor(rnd() * 120);
+      let line = "";
+      for (let i = 0; i < len; i++) line += CH[Math.floor(rnd() * CH.length)];
+      found += vinsInText(line).length;
+    }
+    expect(found).toBe(0);
+  });
+
+  it("a real VIN is still found in the usual layouts", () => {
+    expect(vinsInText(`VIN:${VIN}`)).toEqual([VIN]);
+    expect(vinsInText(`VIN${VIN}`)).toEqual([VIN]);
+    expect(vinsInText("4T1B 11HK 8JU1 45889")).toEqual([VIN]);
+    expect(vinsInText("4T1B11HK8JU145889 TYPE PASS CAR GVWR 4510")).toEqual([VIN]);
+    expect(vinsInText("4T1B11HK8JU1458890000")).toEqual([]); // inside longer text: not a VIN
+  });
+
+  it("the extra VIN rules: year code, serial digits", async () => {
+    const { plausibleVin } = await import("@/lib/vin-read");
+    expect(plausibleVin(VIN)).toBe(true);
+    expect(plausibleVin(OTHER)).toBe(true);
+  });
+});
+
+describe("a dashboard photo that didn't really read", () => {
+  it("no odometer and no lights is never 'no warning lights seen'", () => {
+    expect(dashHits({ readable: true, odometer: null, unit: null, lights: [] }, { adMiles: 100_000, earlier: null })).toEqual([]);
+  });
+});

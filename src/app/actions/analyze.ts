@@ -1,5 +1,7 @@
 "use server";
 
+import { looksLikeCar, NOT_A_CAR } from "@/lib/listing/looks-like-car";
+
 import { makeName } from "@/lib/format";
 import { analyzeListing, type Analysis } from "@/lib/analyze";
 import { currentUser } from "@/lib/auth/session";
@@ -49,6 +51,8 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   if (text.length > MAX_LISTING_CHARS) {
     return { status: "error", message: `That's too long. Paste up to ${MAX_LISTING_CHARS.toLocaleString("en-US")} characters.` };
   }
+  // Not a car at all (random text, a photo of something else): said so, before a check is spent.
+  if (!looksLikeCar(text)) return { status: "error", message: NOT_A_CAR };
 
   const ip = await clientIp();
   if (!rateLimit(`analyze:${ip}`, owner ? LIMIT_PER_MINUTE : GUEST_PER_MINUTE, 60_000)) {

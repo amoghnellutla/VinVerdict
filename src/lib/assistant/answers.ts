@@ -402,7 +402,9 @@ export function smallTalk(text: string): Reply {
   if (/^\s*(?:thanks?|thank you|thx|ty|ok(?:ay)?|cool|great|got it|perfect|nice|awesome|sounds good)\b/i.test(text)) {
     return { text: "You're welcome. When you hear back from the seller or get the Carfax, paste it here and the page updates.", points: [], actions: [] };
   }
-  return SMALL_TALK;
+  // A greeting or "help" gets the help text; anything else that wasn't understood says so first.
+  if (/^\s*(?:hi|hello|hey|yo|help|test|testing)\b/i.test(text) || !text.trim()) return SMALL_TALK;
+  return { ...SMALL_TALK, text: "Didn't understand that. Tell VinVerdict about this car, or ask about it, for example:" };
 }
 
 export const SMALL_TALK: Reply = {

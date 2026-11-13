@@ -5,6 +5,8 @@
  * error (private mode, full, blocked) just means nothing is kept.
  */
 
+import { checkDash, type DashRead } from "@/lib/ai/dash-read";
+import { checkVin } from "@/lib/vin";
 import type { Told } from "./apply";
 
 const PREFIX = "vv-told:";
@@ -81,5 +83,39 @@ export function saveThread(key: string, thread: StoredMsg[], now = Date.now()): 
     else globalThis.localStorage?.removeItem(`${key}:thread`);
   } catch {
     // Storage blocked or full: the conversation just isn't kept.
+  }
+}
+
+/**
+ * What was checked at the car (the VINs read and the dashboard reading), per car, 7 days. On a
+ * phone, opening the camera can unload the page; this brings the results back. Every value is
+ * re-checked on load (a VIN must pass its check digit, the reading the dashboard check).
+ */
+export type AtCarSaved = { vins: Partial<Record<"plate" | "door" | "title", string | null>>; dash: DashRead | null };
+
+export function loadAtCar(key: string, now = Date.now()): AtCarSaved {
+  try {
+    const raw = globalThis.localStorage?.getItem(`${key}:atcar`);
+    if (!raw) return { vins: {}, dash: null };
+    const v = JSON.parse(raw) as { at?: number; vins?: Record<string, unknown>; dash?: unknown };
+    if (typeof v.at !== "number" || now - v.at > KEEP_MS) return { vins: {}, dash: null };
+    const vins: AtCarSaved["vins"] = {};
+    for (const place of ["plate", "door", "title"] as const) {
+      const x = v.vins?.[place];
+      if (typeof x === "string" && checkVin(x).ok) vins[place] = x;
+    }
+    return { vins, dash: v.dash ? checkDash(v.dash) : null };
+  } catch {
+    return { vins: {}, dash: null };
+  }
+}
+
+export function saveAtCar(key: string, saved: AtCarSaved, now = Date.now()): void {
+  try {
+    const empty = !Object.values(saved.vins).some(Boolean) && !saved.dash;
+    if (empty) globalThis.localStorage?.removeItem(`${key}:atcar`);
+    else globalThis.localStorage?.setItem(`${key}:atcar`, JSON.stringify({ at: now, ...saved }));
+  } catch {
+    // Storage blocked: the results just aren't kept.
   }
 }
