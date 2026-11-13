@@ -73,3 +73,30 @@ describe("selling: more phrasings", () => {
     expect(sellAnswer("visit", s).text).toBe("Showing the car and the test drive:");
   });
 });
+
+describe("selling: ordinary buyers aren't called scammers", () => {
+  const ordinary = [
+    "Hi, is this still available?",
+    "My zip code is 08540, can you send more photos of the interior?",
+    "Can you send me the code for the radio? It says code on the screen",
+    "Can you text me the VIN so I can run a Carfax?",
+    "I can pay cash, can we meet at my bank Saturday?",
+    "Would you take 12k? I can come today",
+    "I'll bring cash, $500 more than your last offer is the max I can do",
+    "What's the lowest you'll go? I've seen others listed for 1,000 more",
+    "I paid 2k over for my last car, not doing that again lol",
+    "Can my mechanic take a look? He's at the shop on Main St",
+    "Will you hold it until Friday if I put a deposit down?",
+    "Text me at this number, I'll send you my address",
+    "Can you send a video of it starting cold?",
+  ];
+  it.each(ordinary)("%s → nothing", (m) => expect(buyerScams(m)).toEqual([]));
+
+  const scams: [string, string][] = [
+    ["Google will send you a code, just read it back to me so I know you're not a bot", "code"],
+    ["what's the verification code you got?", "code"],
+    ["send me the code that went to your phone", "code"],
+    ["I will overpay by 1500 and you refund the rest to my agent", "overpay"],
+  ];
+  it.each(scams)("%s → %s", (m, id) => expect(buyerScams(m).map((x) => x.id)).toContain(id));
+});

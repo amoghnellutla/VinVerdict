@@ -118,13 +118,13 @@ export function sellFollowUps(intent: string): string[] {
 export type BuyerScam = { id: string; title: string; why: string; reply: string; serious: boolean };
 
 const SCAMS: { id: string; re: RegExp; title: string; why: string; reply: string; serious: boolean }[] = [
-  { id: "overpay", serious: true, re: /\b(?:more than|extra|over ?pay|overpaid|above)\b[^.?!]{0,60}\b(?:refund|send (?:it |me )?back|return|the (?:rest|difference|balance)|shipper|agent)\b|\b(?:send|refund|wire) (?:back )?the (?:difference|balance|rest|extra)\b|\$?\d[\d,]*\s?k? (?:more|extra|over)\b(?! miles)/i,
+  { id: "overpay", serious: true, re: /\b(?:more than|extra|over ?pay|overpaid|above)\b[^.?!]{0,60}\b(?:refund|send (?:it |me )?back|return|the (?:rest|difference|balance)|shipper|agent)\b|\b(?:send|refund|wire) (?:back )?the (?:difference|balance|rest|extra)\b|\$?\d[\d,]*\s?k? (?:more|extra|over)\b(?! miles)[^.?!]{0,60}\b(?:refund|send (?:it |me )?back|return|the (?:rest|difference|balance)|shipper|agent)\b/i,
     title: "Overpayment: they'll pay more and want the difference back", why: "The check or transfer is fake and bounces days later, after you've sent the \"difference\" from your own money.",
     reply: "I can only accept the exact price, paid at your bank in person. Let me know a time." },
   { id: "shipper", serious: true, re: /\b(?:shipper|shipping (?:agent|company)|transport(?:er| company)|car hauler|my (?:agent|mover|driver)|pick(?:-| )?up agent)\b[^.?!]{0,60}\b(?:pick|collect|come (?:get|for)|take)\b|\b(?:can'?t|cannot|won'?t be able to) (?:come|see|meet)\b[^.?!]{0,40}\b(?:ship|send|pick)/i,
     title: "A buyer who won't come: \"my shipper will pick it up\"", why: "A buyer who never sees the car but sends a shipper is almost always setting up an overpayment or fake-payment scam.",
     reply: "I only sell in person: you're welcome to come see it and pay at your bank." },
-  { id: "code", serious: true, re: /\b(?:verification |security |6[- ]digit |the )?code\b[^.?!]{0,50}\b(?:send|text|tell|give|read|share)\b|\b(?:send|text|tell|give|read|share)\b[^.?!]{0,30}\bcode\b|\bgoogle voice\b/i,
+  { id: "code", serious: true, re: /\b(?:verification|security|confirmation|one[- ]time|\d[- ]?digit|google|otp)\s+code\b|\bcode\b[^.?!]{0,40}\b(?:i|we|they|google) (?:just )?(?:sent|texted)\b|\bcode\b[^.?!]{0,30}\b(?:sent|texted|went) to (?:your|ur) (?:phone|number)\b|\b(?:send|text|tell|give|read|share)\b[^.?!]{0,30}\bcode\b[^.?!]{0,30}\b(?:you (?:just )?(?:got|get|received)|on your phone|i (?:just )?sent)\b|\b(?:send|text)(?:s|ing)? you (?:a|the) code\b|\bgoogle voice\b/i,
     title: "They ask for a code sent to your phone", why: "That code lets them take over your number or an account (often to set up a Google Voice number in your name). No real buyer needs it.",
     reply: "I don't share codes. Happy to answer questions about the car, or meet so you can see it." },
   { id: "pending", serious: true, re: /\b(?:zelle|paypal|venmo|cash ?app|bank)\b[^.?!]{0,80}\b(?:pending|upgrade|business account|limit|on hold|released (?:once|when|after)|email (?:from|confirm))\b|\b(?:payment|funds|money) (?:is |are )?(?:pending|on hold)\b/i,
