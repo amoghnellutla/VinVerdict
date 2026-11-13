@@ -286,10 +286,12 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
   // Problems the seller admits. Honest of them, but it changes the price: diagnose and quote it first.
   // "Sold as is" isn't one: it's the normal wording for every private sale.
   const PROBLEMS: [RegExp, string][] = [
-    [/\b(?:check engine|engine|cel|service engine)(?: soon)? light (?:is |stays |comes |keeps coming )?on\b|\b(?:check engine|cel) light\b(?!:? (?:off|out|free|works))/, "check engine light on"],
+    [/\b(?:check engine|engine|cel|service engine)(?: soon)? light (?:is |stays |comes |keeps coming )?on\b|\b(?:check engine|cel) light\b(?!:? (?:(?:is|was|stays|now|has been|is now) )?(?:off|out|free|works|clear(?:ed)?|not on)\b|:? (?:went|turned|goes) (?:off|out)\b|:? (?:never|doesn'?t|does not|has never) (?:came |comes |come |been )?on\b)/, "check engine light on"],
     [/\bneeds? (?:a )?(?:new |rebuilt )?(?:transmission|trans)\b|\btransmission (?:slips|slipping|issues?|problems?|needs)\b|\bslipping transmission\b/, "transmission problem"],
     [/\bneeds? (?:a )?(?:new |rebuilt )?(?:engine|motor)\b|\bengine (?:knock|knocking|issues?|problems?|needs)\b|\b(?:rod|engine) knock\b|\bknocking\b/, "engine problem"],
     [/\bblown head gasket\b|\bhead gasket (?:leak|is (?:bad|blown|leaking|going)|needs|issues?|problems?)\b|\bneeds? (?:a )?(?:new )?head gasket\b/, "head gasket"],
+    // Codes cleared just before a sale can hide a fault until the light comes back.
+    [/\b(?:check engine|cel|engine) (?:light|codes?)\b[^.!?]{0,25}\b(?:cleared|reset)\b|\b(?:cleared|reset) (?:the )?(?:codes?|check engine light|cel)\b/, "check engine codes recently cleared (the fault can come back)"],
     [/\boverheat(?:s|ing|ed)?\b/, "overheating"],
     [/\bburns? oil\b|\bleaks? oil\b|\boil leak\b/, "oil leak or burning"],
     [/\bmisfir(?:e|es|ing)\b/, "misfire"],

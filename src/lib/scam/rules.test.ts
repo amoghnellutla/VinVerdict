@@ -194,3 +194,18 @@ describe("almost no miles (real case 31)", () => {
     expect(ids(run(`${GOOD_TEXT}`, { decoded: DECODED }))).not.toContain("miles-near-zero");
   });
 });
+
+describe("check engine light: off isn't on; cleared codes are worth a look (sweep 2026-11-13)", () => {
+  const AD = "2018 Toyota Camry LE 4T1B11HK8JU145889 $16,995 62,000 miles clean title. Private seller in Edison NJ. ";
+  const problem = (ph: string) => run(AD + ph).hits.find((h) => h.id === "seller-problem")?.title ?? null;
+  it.each(["Check engine light is off, passed NJ inspection.", "Check engine light went off after new gas cap.", "Check engine light never comes on.", "CEL light: off", "No check engine light."])("%s → no problem", (ph) => {
+    expect(problem(ph)).toBeNull();
+  });
+  it.each(["Check engine light is on.", "Check engine light on, needs O2 sensor.", "The check engine light keeps coming on."])("%s → light on", (ph) => {
+    expect(problem(ph)).toMatch(/check engine light on/);
+  });
+  it("codes cleared just before the sale", () => {
+    expect(problem("check engine light was cleared yesterday")).toMatch(/codes recently cleared/);
+    expect(problem("I reset the codes and it's fine now")).toMatch(/codes recently cleared/);
+  });
+});
