@@ -72,10 +72,15 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
 
   async function openExample(id: ExampleId) {
     setExampleLoading(id);
+    setPasteNote(null);
     try {
       setExample({ id, data: await loadExample(id) });
       // Bring the result into view on phones.
       requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    } catch {
+      // Offline or a dropped connection: say so (the example's data loads only when it's opened).
+      setPasteNote("Couldn't open the example: check your connection and try again.");
+      requestAnimationFrame(() => document.querySelector("[role=status].bg-warn-soft")?.scrollIntoView({ behavior: "smooth", block: "center" }));
     } finally {
       setExampleLoading(null);
     }
@@ -176,6 +181,37 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
 
   // A new result scrolls into view.
   const doneId = state.status === "done" ? state.id : null;
+
+  // Back goes to the home page instead of leaving the site; Forward brings the result back.
+  // A result adds one "#result" history entry; leaving it hides the result.
+  const lastExample = useRef<typeof example>(null);
+  const lastDoneId = useRef<number | null>(null);
+  useEffect(() => {
+    if (example) lastExample.current = example;
+    if (doneId && !example) lastExample.current = null;
+    lastDoneId.current = doneId;
+  }, [example, doneId]);
+  useEffect(() => {
+    if (showing && window.location.hash !== "#result") window.history.pushState(null, "", "#result");
+  }, [showing, doneId, example?.id]);
+  useEffect(() => {
+    // A reload on "#result" has nothing to show: drop the leftover hash.
+    if (window.location.hash === "#result") window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    const pop = () => {
+      if (window.location.hash === "#result") {
+        if (lastExample.current) setExample(lastExample.current);
+        else setHiddenId(null);
+        requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ block: "start" }));
+        return;
+      }
+      setExample(null);
+      if (lastDoneId.current) setHiddenId(lastDoneId.current);
+      // After the browser's own scroll restore (which would leave the page mid-way down).
+      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: 0 })));
+    };
+    window.addEventListener("popstate", pop);
+    return () => window.removeEventListener("popstate", pop);
+  }, []);
   useEffect(() => {
     if (doneId) requestAnimationFrame(() => document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [doneId]);
@@ -188,6 +224,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
   }
 
   function startOver() {
+    if (window.location.hash === "#result") window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setExample(null);
     if (state.status === "done") setHiddenId(state.id);
     setShotUrls([]);
@@ -256,7 +293,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
             <span>Press <strong>Read screenshots</strong> and pick them. They&apos;re read on your phone, not uploaded.</span>
           </li>
         </ol>
-        <div className={`${showing ? "" : "mt-5"} flex flex-col gap-3 sm:flex-row sm:items-center`}>
+        <div className={`${showing ? "" : "mt-5"} flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center`}>
           <button type="button" onClick={pasteAndCheck} disabled={busy} className={`btn ${touch ? "btn-secondary order-2" : "btn-primary"} py-3 text-base sm:px-8`}>
             {pending ? "Checking…" : "Paste & check"}
           </button>
@@ -265,7 +302,8 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
             <input type="file" accept="image/*" multiple onChange={onScreenshots} disabled={busy} className="sr-only" />
           </label>
           <VinScanner
-            className="btn btn-secondary py-3 text-base sm:px-6"
+            className="btn btn-secondary w-full py-3 text-base sm:w-auto sm:px-6"
+            wrapperClassName="order-3"
             label="Scan a VIN"
             hint="At the car: point at the barcode on the driver's door sticker, or the VIN plate at the bottom of the windshield. Read on this phone."
             onVin={(vin) => {

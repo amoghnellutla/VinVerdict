@@ -30,12 +30,14 @@ const WANT = ["code_39", "code_128", "data_matrix", "qr_code", "pdf417"];
 /** Only one camera at a time: a phone can't run two, so opening a scanner closes any other. */
 const OPEN_EVENT = "vinverdict:scanner-open";
 
-export function VinScanner({ onVin, label = "Scan the VIN", hint = "Point at the barcode on the driver's door sticker, or the VIN plate at the bottom of the windshield.", className = "btn btn-secondary" }: {
+export function VinScanner({ onVin, label = "Scan the VIN", hint = "Point at the barcode on the driver's door sticker, or the VIN plate at the bottom of the windshield.", className = "btn btn-secondary", wrapperClassName = "" }: {
   /** A VIN NHTSA knows (with its year, make and model), or one the person chose to use when NHTSA couldn't be reached. */
   onVin: (vin: string, name: string | null) => void;
   label?: string;
   hint?: string;
   className?: string;
+  /** Classes for the outer box; when open it takes a whole row (inside a wrapping flex row). */
+  wrapperClassName?: string;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -206,7 +208,7 @@ export function VinScanner({ onVin, label = "Scan the VIN", hint = "Point at the
   }
 
   return (
-    <div>
+    <div className={`${wrapperClassName} ${open ? "w-full basis-full" : ""}`}>
       {!open ? (
         <button type="button" className={className} onClick={start}>{label}</button>
       ) : (
