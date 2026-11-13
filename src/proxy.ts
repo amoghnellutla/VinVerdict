@@ -112,7 +112,8 @@ function withCookies(target: NextResponse, from: NextResponse): NextResponse {
 export const config = {
   // Every route except Next.js build files, images, the app manifest and the
   // link-preview image, so CSS/JS load on the login page, a phone can install
-  // the app before login, and shared links show a preview. None of these
-  // contain user data.
-  matcher: ["/((?!_next/static|_next/image|ocr/|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // the app before login, and shared links show a preview, plus Google Search
+  // Console's ownership file (public/google<hex>.html). None of these contain
+  // user data.
+  matcher: ["/((?!_next/static|_next/image|ocr/|favicon.ico|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image|google[0-9a-f]+\\.html$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
