@@ -12,6 +12,7 @@ import { factText, type Fact } from "@/lib/assistant/facts";
 import { TERMS } from "@/lib/assistant/glossary";
 import { isChat, sellerSide } from "@/lib/assistant/chat";
 import { routeMessage, screenshotFit } from "@/lib/assistant/route";
+import { buyerMessageReply, SELL_STARTERS, sellAnswer, sellFollowUps } from "@/lib/assistant/sell";
 import { parseListing } from "@/lib/listing/parse";
 import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
@@ -249,6 +250,19 @@ export function Assistant(props: {
   async function handle(text: string, label: string, thumb: string | null) {
     const route = routeMessage(text, ctx.vin);
     const before = ctx;
+    // Selling: questions get the seller's answers, and a buyer's message or chat is checked for the
+    // scams that target sellers (it says nothing about the car, so the result doesn't change).
+    if (ctx.sell) {
+      const sell = ctx.sell;
+      if (route.kind === "said" || route.kind === "chat") {
+        return reply({ ...buyerMessageReply(route.kind === "chat" ? route.seller || text : text), next: ["How do I sell it safely?", "What's it worth?"] });
+      }
+      if (route.kind === "intent") return reply({ ...sellAnswer(route.intent, sell), next: sellFollowUps(route.intent) });
+      if (route.kind === "intents") {
+        route.intents.forEach((i, n) => reply({ ...sellAnswer(i, sell), next: n === route.intents.length - 1 ? sellFollowUps(i) : undefined }));
+        return;
+      }
+    }
     switch (route.kind) {
       case "proof": {
         const card = proofFromText(text, null, label, thumb);
@@ -430,13 +444,15 @@ export function Assistant(props: {
     <section className="rounded-lg border border-accent/40 px-4 py-4 print:hidden" aria-labelledby={`${id}-t`}>
       <h2 id={`${id}-t`} className="text-lg font-semibold">Tell VinVerdict or ask</h2>
       <p className="mt-1 max-w-2xl text-sm text-muted">
-        Paste the seller&apos;s messages, the Carfax or an auction record (or screenshots of them), or say what you know (&quot;he&apos;d take 13,500&quot;). The whole
+        {ctx.sell
+          ? <>Selling it: ask what it&apos;s worth or how to sell it safely, or paste a buyer&apos;s messages (or screenshots of them) to check them for scams. A KBB or Edmunds value you quote prices it. The whole</>
+          : <>Paste the seller&apos;s messages, the Carfax or an auction record (or screenshots of them), or say what you know (&quot;he&apos;d take 13,500&quot;). The whole</>}
         result updates. Most answers come from this page{ai ? "; a free AI (GLM by Z.ai, or Gemini or Groq) helps only with open questions and may keep what's sent" : ""}.
       </p>
 
       {thread.length === 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {starters(ctx).map((s) => (
+          {(ctx.sell ? SELL_STARTERS : starters(ctx)).map((s) => (
             <button key={s} type="button" className="btn btn-secondary text-sm" disabled={!!busy} onClick={() => { setThread((t) => [...t, { id: uid(), who: "you", text: s }]); void handle(s, "Question", null); }}>
               {s}
             </button>

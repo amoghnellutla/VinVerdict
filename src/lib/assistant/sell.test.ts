@@ -1,0 +1,75 @@
+import { describe, expect, it } from "vitest";
+import { routeMessage } from "./route";
+import { SELL_STARTERS, buyerMessageReply, buyerScams, sellAnswer, sellFollowUps, type SellContext } from "./sell";
+
+const VIN = "2T2BZMCA2GC041915";
+const s: SellContext = { car: "2016 Lexus RX 350", private: { low: 14_800, high: 18_000, fair: 16_400, listAt: 17_400, confidence: "medium" }, dealerAsk: 19_900, unpriced: null, recalls: 3, historyRead: false, carfax: "https://www.carfax.com/x" };
+
+describe("selling: the questions a seller asks", () => {
+  it("every seller quick start and follow-up reaches a page answer, not the AI", () => {
+    const want: Record<string, string> = { "What's it worth?": "price", "What should I list it at?": "price", "How do I sell it safely?": "scam", "What's next?": "next", "What will buyers ask?": "seller" };
+    const all = new Set([...SELL_STARTERS, ...["price", "next", "scam", "seller", "visit"].flatMap(sellFollowUps)]);
+    for (const q of all) expect(routeMessage(q, VIN), q).toEqual({ kind: "intent", intent: want[q] });
+  });
+
+  it("what it's worth: the page's private value, where to list, and the dealer comparison (no invented numbers)", () => {
+    const r = sellAnswer("price", s);
+    expect(r.text).toBe("Worth about $14,800–$18,000 to a private buyer, most likely $16,400. List it at about $17,400.");
+    expect(r.points.join(" ")).toContain("A dealer would ask about $19,900");
+    for (const n of `${r.text} ${r.points.join(" ")}`.match(/\$[\d,]+/g) ?? []) expect(["$14,800", "$18,000", "$16,400", "$17,400", "$19,900"]).toContain(n);
+  });
+
+  it("not priced yet: the price check or a quoted KBB value", () => {
+    expect(sellAnswer("price", { ...s, private: null }).points.join(" ")).toContain("KBB private party");
+  });
+
+  it("what's next: price, the report, free recall fixes, paperwork, safe selling", () => {
+    const r = sellAnswer("next", s).points.join(" ");
+    expect(r).toContain("list at about $17,400");
+    expect(r).toContain("open recalls fixed first");
+    expect(r).toContain("title (in your name");
+  });
+});
+
+describe("selling: a buyer's message checked for the scams that target sellers", () => {
+  const cases: [string, string][] = [
+    ["I'll send a cashier's check for $2,000 more than the price, just send the difference back to my shipper", "overpay"],
+    ["I'm out of the country but my shipping agent will pick up the car once paid", "shipper"],
+    ["Before we meet I need to verify you're real, please text me the 6 digit code I just sent", "code"],
+    ["I sent the money on Zelle, it's pending until you upgrade to a business account", "pending"],
+    ["Let's use escrow, here's the site link", "escrow"],
+    ["I'll pay with a cashier's check", "check"],
+    ["No need to see it, I'll take it sight unseen", "unseen"],
+    ["I'm deployed overseas right now", "remote"],
+  ];
+  it.each(cases)("%s → %s", (msg, id) => {
+    expect(buyerScams(msg).map((x) => x.id)).toContain(id);
+  });
+
+  it("the serious ones come first and the reply is ready to copy", () => {
+    const r = buyerMessageReply("I'll pay with a cashier's check for more and my shipper will pick it up, send back the rest");
+    expect(r.text).toMatch(/^This buyer is showing scam signs/);
+    expect(r.actions[0]).toMatchObject({ kind: "copy" });
+    expect(r.points[0]).toMatch(/^Overpayment|^A buyer who won't come/);
+  });
+
+  it("an ordinary buyer's message raises nothing, but still gets the safe way to be paid", () => {
+    const r = buyerMessageReply("Hi, is it still available? Could I see it Saturday morning and bring my mechanic?");
+    expect(r.text).toMatch(/^No common buyer-scam signs/);
+  });
+
+  it("a buyer's message is recognised as one (the buyer said…)", () => {
+    expect(routeMessage("the buyer wants to pay with a cashier's check for more and have his shipper pick it up", VIN).kind).toBe("said");
+  });
+});
+
+describe("selling: more phrasings", () => {
+  it("'for $2,000 more' is the overpayment scam; '2,000 more miles' isn't", () => {
+    expect(buyerScams("I'll pay with a cashier's check for $2,000 more and have my shipper pick it up").map((x) => x.id)).toContain("overpay");
+    expect(buyerScams("it only has 2,000 more miles than the ad said").map((x) => x.id)).not.toContain("overpay");
+  });
+  it("showing the car to a buyer gets the showing-safely answer, not the AI", () => {
+    expect(routeMessage("how do I show the car to a buyer?", VIN)).toEqual({ kind: "intent", intent: "visit" });
+    expect(sellAnswer("visit", s).text).toBe("Showing the car and the test drive:");
+  });
+});

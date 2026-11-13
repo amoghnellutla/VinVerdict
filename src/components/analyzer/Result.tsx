@@ -37,7 +37,7 @@ import { liveSeller, type LiveListing as Live } from "@/lib/live/parse";
 import type { SellerChecklist } from "@/lib/scam/rules";
 import { decide, EVIDENCE_LABEL, SEVERITY_LABEL, type Finding, type Level, type Severity } from "@/lib/decision";
 import { ON_PAGE, raw, RULE_SOURCE, verifyLinks } from "@/lib/sources";
-import { DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
+import { ASKING_GAP, DEAL_TEXT, fmt, revalue, valueCar, type ValueInput, type Valuation } from "@/lib/value/estimate";
 import { buildVerdict } from "@/lib/verdict";
 import { Bookmarklet } from "./Bookmarklet";
 import { BuyerProtection } from "./BuyerProtection";
@@ -408,6 +408,19 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     recalls: a.recalls?.length ?? null,
     nicbLink: goodVin ? verifyLinks(goodVin, make).find((l) => l.kind === "nicb")?.href ?? null : null,
     inspection,
+    // Selling their own car: the selling values on the page.
+    sell: selling ? {
+      car: carName(m),
+      private: sellV?.privateV && !sellV.privateV.unpriced ? {
+        low: sellV.privateV.low, high: sellV.privateV.high, fair: sellV.privateV.fair,
+        listAt: Math.round(sellV.privateV.fair / (1 - ASKING_GAP) / 100) * 100, confidence: sellV.privateV.confidence,
+      } : null,
+      dealerAsk: sellV?.dealerV && !sellV.dealerV.unpriced ? sellV.dealerV.fair : null,
+      unpriced: sellV?.privateV?.unpriced ?? null,
+      recalls: a.recalls?.length ?? null,
+      historyRead: answers.damage !== "unknown" || answers.title !== "unknown",
+      carfax: live?.carfaxUrl ?? null,
+    } : null,
     recallAreas: a.recalls?.length ? plainRecallAreas(a.recalls) : null,
     recallsChecked: proofSum.rating.nhtsa !== "none" || proofSum.rating.maker !== "none",
     recallLookup: goodVin ? (verifyLinks(goodVin, make).find((l) => l.kind === "maker")?.href ?? verifyLinks(goodVin, make)[0]?.href ?? null) : null,

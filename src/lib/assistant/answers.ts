@@ -5,6 +5,7 @@
  */
 
 import { dealAnswer, type Lever } from "./deal";
+import type { SellContext } from "./sell";
 
 export type Action =
   | { kind: "go"; label: string; target: "#verdict" | "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" }
@@ -52,6 +53,8 @@ export type PageContext = {
   carfax: string | null;
   recalls: number | null;
   recallLookup: string | null;
+  /** Selling their own car ("It's mine: what's it worth?"): the seller's view, or null when buying. */
+  sell?: SellContext | null;
   /** What the buyer said their own mechanic found. */
   inspection?: { status: "passed" | "issues"; note: string } | null;
   /** What the model year's recalls are about, grouped by part ("fuel pump (3 recalls); brakes"), or null. */

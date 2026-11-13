@@ -90,6 +90,7 @@ These pieces turn a pasted listing into a verdict. Most are *pure functions*: th
   - The checklist has a "VIN on the car and title" row; `openTab()` (SectionTabs) opens the tab from it.
   - The VIN-match and dashboard results are kept per car on the device (`loadAtCar`/`saveAtCar` in store.ts, re-checked on load), and move with the car when a no-VIN ad is re-checked with its VIN.
   - `lib/listing/looks-like-car.ts`: `analyzeAction` refuses text that names no car, VIN or link before a visitor's check is spent.
+- **`sell.ts`**: when selling (`PageContext.sell`, built from `sellV` in Result), intents go to `sellAnswer` (page values only), quick starts and follow-ups are the seller's, and a buyer's message or chat goes to `buyerMessageReply` (`buyerScams`: overpayment, shipper, code, pending payment, escrow, check, sight unseen, far away) instead of the seller-reply checks, without changing the result.
 - **`store.ts`** also keeps the conversation (`loadThread`/`saveThread`, last 40 messages, no screenshot links).
 - **A told ZIP** is the buyer's, never the car's: `Result` saves it with `saveBuyerZip` and remounts out-the-door, cost per year, buying day and the price check. Changed sections get the `vv-flash` class.
 - **The assistant** also adds pasted or OCR'd reports as proof cards and asks the AI for a close read (when a Turnstile token is there).

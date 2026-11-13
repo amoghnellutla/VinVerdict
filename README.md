@@ -108,6 +108,7 @@ Three buttons on a result, using free AI services (GLM by Z.ai first, then Googl
   - **Tell it what your mechanic found** ("mechanic found worn brakes and an oil leak, about $900 to fix"): the checklist ticks, and the offer leads with the finding in your words, as a follow-up message to the seller.
   - **A screenshot it can't place** never goes to the AI: if it's hard to read you get tips for a better one, and if it's unclear it shows what it read and asks "What is it?" (the seller's messages, a history report or the listing).
   - **"What does CR grade mean?"**, "what's a doc fee?", "what does as-is mean?": fixed definitions for 15 car-buying words, no AI.
+  - **Selling your own car** ("It's mine: what's it worth?"): the assistant switches sides. It answers what it's worth and what to list it at, what's next, what buyers will ask and how to show the car and get paid safely, and it checks a buyer's messages for the scams that target sellers (overpayment, "my shipper will pick it up", "text me the code", fake "payment pending" emails, fake escrow), with a reply to copy.
   - **Ask several things at once** ("is the price fair and is it a scam?"): each gets its own answer.
   - **"Is 126k miles a lot?"** is answered from the page: miles a year against a typical car's 13,500 (FHWA), with what that means.
   - **The conversation is kept** on your device for that car (7 days), with what you told it.
