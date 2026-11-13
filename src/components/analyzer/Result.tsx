@@ -227,6 +227,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     return hit ? [hit] : [];
   }, [original, live, auction, proofs]);
 
+  const reportMiles = useMemo(() => {
+    const p = [...proofs].reverse().find((x) => x.read.odometer?.miles);
+    return p ? { miles: p.read.odometer!.miles, source: SOURCE_NAME[p.read.source] } : null;
+  }, [proofs]);
+
   const { result, valuation, sellV } = useMemo(() => {
     const first = buildVerdict({ ...a, live, phoneMatches, history, report: answers, proofHits: [...proofSum.hits, ...replyHits, ...auctionHits(auction, m.listing.miles), ...milesHit] }, checklist);
     if (!sources && !guide) return { result: first, valuation: null, sellV: null };
@@ -344,7 +349,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     },
     replyTips: replyHits.map((h) => ({ title: h.title, suggest: h.suggest })),
     mileage: {
-      miles: m.listing.miles,
+      miles: m.listing.miles ?? reportMiles?.miles ?? null,
       age: (a.decoded?.year ?? m.listing.year) ? Math.max(1, new Date().getFullYear() - (a.decoded?.year ?? m.listing.year)!) : null,
     },
     problems: {
@@ -504,7 +509,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           <VerdictCard d={decision} />
           <KnowsPanel
             items={knowsList({
-              car: carName(m), vin: goodVin, price: m.listing.price, miles: m.listing.miles,
+              car: carName(m), vin: goodVin, price: m.listing.price,
+              // The ad's miles, or the latest history report's last reading when the ad has none.
+              miles: m.listing.miles ?? reportMiles?.miles ?? null,
+              milesFrom: m.listing.miles ? null : reportMiles ? `${reportMiles.source}'s last reading` : null,
               history: answers.damage !== "unknown" || answers.title !== "unknown"
                 ? { damage: answers.damage === "unknown" ? "accidents not read" : DAMAGE_LABEL[answers.damage], title: answers.title === "unknown" ? "" : TITLE_LABEL[answers.title], owners: [...proofs].reverse().find((p) => p.read.owners)?.read.owners ?? m.listing.ownerCount }
                 : null,

@@ -19,6 +19,8 @@ export type KnowsInput = {
   vin: string | null;
   price: number | null;
   miles: number | null;
+  /** Where the miles come from when it isn't the ad ("Carfax's last reading"). */
+  milesFrom?: string | null;
   /** History report answers (from a report the person read or attached). */
   history: { damage: string; title: string; owners: number | null } | null;
   carfax: string | null;
@@ -46,7 +48,7 @@ export function knowsList(k: KnowsInput): Known[] {
       ? { key: "price", label: "Asking price", done: true, detail: $(k.price), action: null }
       : { key: "price", label: "Asking price", done: false, detail: "Not known", action: { kind: "tell", label: "Tell the price", prefill: "They're asking $" } },
     k.miles
-      ? { key: "miles", label: "Miles", done: true, detail: `${k.miles.toLocaleString("en-US")} miles`, action: null }
+      ? { key: "miles", label: "Miles", done: true, detail: `${k.miles.toLocaleString("en-US")} miles${k.milesFrom ? ` (${k.milesFrom})` : ""}`, action: null }
       : { key: "miles", label: "Miles", done: false, detail: "Not known", action: { kind: "tell", label: "Tell the miles", prefill: "It has  miles" } },
     k.history
       ? {

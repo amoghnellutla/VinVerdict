@@ -299,3 +299,10 @@ describe("several questions in one message", () => {
     expect(routeMessage("is the price fair?", VIN)).toEqual({ kind: "intent", intent: "price" });
   });
 });
+
+describe("miles from a history report when the ad has none", () => {
+  it("are known, and say where they came from", () => {
+    const base: KnowsInput = { car: null, vin: VIN, price: null, miles: 126_357, milesFrom: "Carfax's last reading", history: null, carfax: null, estimate: null, listings: null, recallsChecked: false, recalls: null, recallLookup: null, sellerAnswers: 0, auctionSold: null };
+    expect(knowsList(base).find((x) => x.key === "miles")).toMatchObject({ done: true, detail: "126,357 miles (Carfax's last reading)" });
+  });
+});
