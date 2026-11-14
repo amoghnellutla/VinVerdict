@@ -1,0 +1,56 @@
+{
+  "note": "Hand-laid in a real-world format (synthetic numbers): run before any tuning.",
+  "state": "CA",
+  "ad": {
+    "price": 21995,
+    "docFee": 85,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Cash Price of Vehicle",
+        "kind": "price",
+        "amount": 21995.0
+      },
+      {
+        "label": "Document Processing",
+        "kind": "docFee",
+        "amount": 85.0
+      },
+      {
+        "label": "Theft Deterrent",
+        "kind": "addOn",
+        "amount": 595.0
+      },
+      {
+        "label": "Surface Protection",
+        "kind": "addOn",
+        "amount": 795.0
+      },
+      {
+        "label": "GAP",
+        "kind": "loanProduct",
+        "amount": 895.0
+      },
+      {
+        "label": "Service Contract",
+        "kind": "loanProduct",
+        "amount": 2595.0
+      }
+    ],
+    "confirmed": true,
+    "loan": "right",
+    "verdicts": {
+      "Theft Deterrent": "remove",
+      "Surface Protection": "remove",
+      "GAP": "remove",
+      "Service Contract": "remove",
+      "Cash Price of Vehicle": "right"
+    },
+    "hiddenTotal": 4880.0
+  }
+}

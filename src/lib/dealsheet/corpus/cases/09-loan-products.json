@@ -1,0 +1,64 @@
+{
+  "note": "Written for the tests (synthetic). Service contract and GAP sold with the loan, plus a market adjustment.",
+  "state": "TX",
+  "ad": {
+    "price": 31995,
+    "docFee": 150,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Selling Price",
+        "kind": "price",
+        "amount": 31995
+      },
+      {
+        "label": "Market Adjustment",
+        "kind": "addOn",
+        "amount": 2000
+      },
+      {
+        "label": "Documentary Fee",
+        "kind": "docFee",
+        "amount": 150
+      },
+      {
+        "label": "Vehicle Service Contract",
+        "kind": "loanProduct",
+        "amount": 2895
+      },
+      {
+        "label": "GAP Protection",
+        "kind": "loanProduct",
+        "amount": 895
+      },
+      {
+        "label": "Title Application",
+        "kind": "stateFee",
+        "amount": 33
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 2009.06
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 39977.06
+      }
+    ],
+    "confirmed": true,
+    "loan": "right",
+    "verdicts": {
+      "Market Adjustment": "remove",
+      "Vehicle Service Contract": "remove",
+      "GAP Protection": "remove"
+    },
+    "hiddenTotal": 5790
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "note": "Written for the tests (synthetic). Dealer discount and a maker rebate taken off the price.",
+  "state": "NJ",
+  "ad": {
+    "price": 28995,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "MSRP / Price",
+        "kind": "price",
+        "amount": 28995
+      },
+      {
+        "label": "Dealer Discount",
+        "kind": "discount",
+        "amount": 1000
+      },
+      {
+        "label": "Customer Cash Rebate",
+        "kind": "rebate",
+        "amount": 750
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 799
+      },
+      {
+        "label": "MVC Fees",
+        "kind": "stateFee",
+        "amount": 210
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1857.92
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 30111.92
+      },
+      {
+        "label": "Cash Down",
+        "kind": "downPayment",
+        "amount": 4000
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 26111.92
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "note": "Written for the tests (synthetic). Clean Texas deal with a trade-in: TX taxes the price less the trade.",
+  "state": "TX",
+  "ad": {
+    "price": 18750,
+    "docFee": 150,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Sales Price",
+        "kind": "price",
+        "amount": 18750
+      },
+      {
+        "label": "Documentary Fee",
+        "kind": "docFee",
+        "amount": 150
+      },
+      {
+        "label": "Title Application Fee",
+        "kind": "stateFee",
+        "amount": 33
+      },
+      {
+        "label": "Registration",
+        "kind": "stateFee",
+        "amount": 51.75
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 806.25
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 19791.0
+      },
+      {
+        "label": "Trade-In Allowance",
+        "kind": "tradeIn",
+        "amount": 6000
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 13791.0
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

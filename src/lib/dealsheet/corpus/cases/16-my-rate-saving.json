@@ -1,0 +1,53 @@
+{
+  "note": "Written for the tests (synthetic). The buyer typed a credit-union pre-approval rate: the saving at that rate is shown.",
+  "state": "NJ",
+  "ad": {
+    "price": 20500,
+    "docFee": 699,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": 6.5,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 20500
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 699
+      },
+      {
+        "label": "Title & Registration",
+        "kind": "stateFee",
+        "amount": 145
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1404.43
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 22748.43
+      },
+      {
+        "label": "Cash Down",
+        "kind": "downPayment",
+        "amount": 1500
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 21248.43
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

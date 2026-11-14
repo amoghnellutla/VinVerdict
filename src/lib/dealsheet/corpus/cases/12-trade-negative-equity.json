@@ -1,0 +1,58 @@
+{
+  "note": "Written for the tests (synthetic). Trade-in worth less than its payoff: the difference is rolled into the new loan.",
+  "state": "PA",
+  "ad": {
+    "price": 25500,
+    "docFee": 477,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 25500
+      },
+      {
+        "label": "Documentary Fee",
+        "kind": "docFee",
+        "amount": 477
+      },
+      {
+        "label": "Title/Plate",
+        "kind": "stateFee",
+        "amount": 138
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1558.62
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 27673.62
+      },
+      {
+        "label": "Trade-In Allowance",
+        "kind": "tradeIn",
+        "amount": 9000
+      },
+      {
+        "label": "Payoff on Trade",
+        "kind": "payoff",
+        "amount": 12500
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 31173.62
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

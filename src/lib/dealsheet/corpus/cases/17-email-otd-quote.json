@@ -1,0 +1,55 @@
+{
+  "note": "Hand-laid in a real-world format (synthetic numbers): run before any tuning.",
+  "state": "NJ",
+  "ad": {
+    "price": 24500,
+    "docFee": 599,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2020,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Sale price",
+        "kind": "price",
+        "amount": 24500.0
+      },
+      {
+        "label": "Documentation fee",
+        "kind": "docFee",
+        "amount": 599.0
+      },
+      {
+        "label": "Pro Pack",
+        "kind": "addOn",
+        "amount": 1295.0
+      },
+      {
+        "label": "Sales tax",
+        "kind": "tax",
+        "amount": 1748.6
+      },
+      {
+        "label": "MVC",
+        "kind": "stateFee",
+        "amount": 166.5
+      },
+      {
+        "label": "Out the door",
+        "kind": "total",
+        "amount": 28309.1
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Pro Pack": "remove",
+      "Sale price": "right",
+      "Documentation fee": "right",
+      "Sales tax": "right"
+    },
+    "hiddenTotal": 1295.0
+  }
+}

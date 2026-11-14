@@ -1,0 +1,54 @@
+{
+  "note": "Written for the tests (synthetic). The payment is $37 a month above the loan math, and the paper's total of payments agrees with the packed payment.",
+  "state": "NJ",
+  "ad": {
+    "price": 22500,
+    "docFee": 699,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 22500
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 699
+      },
+      {
+        "label": "Title/Reg",
+        "kind": "stateFee",
+        "amount": 160
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1536.93
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 24895.93
+      },
+      {
+        "label": "Cash Down",
+        "kind": "downPayment",
+        "amount": 2000
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 22895.93
+      }
+    ],
+    "confirmed": true,
+    "loan": "wrong",
+    "hiddenTotal": 2664
+  }
+}

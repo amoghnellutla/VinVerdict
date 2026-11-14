@@ -1,0 +1,59 @@
+{
+  "note": "Written for the tests (synthetic). Independent dealer: prep and reconditioning fees on top of the price; the ad showed no fee.",
+  "state": "OH",
+  "ad": {
+    "price": 12995,
+    "docFee": null,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Cash Price",
+        "kind": "price",
+        "amount": 12995
+      },
+      {
+        "label": "Dealer Prep",
+        "kind": "dealerFee",
+        "amount": 595
+      },
+      {
+        "label": "Reconditioning Fee",
+        "kind": "dealerFee",
+        "amount": 895
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 250
+      },
+      {
+        "label": "Title",
+        "kind": "stateFee",
+        "amount": 15
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 847.26
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 15597.26
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Dealer Prep": "remove",
+      "Reconditioning Fee": "remove",
+      "Doc Fee": "check"
+    },
+    "hiddenTotal": 1490
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "note": "Written for the tests (synthetic). Clean deal where the add-ons are printed but declined: nothing charged, nothing to remove.",
+  "state": "NJ",
+  "ad": {
+    "price": 19995,
+    "docFee": 699,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 19995
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 699
+      },
+      {
+        "label": "MVC Fees",
+        "kind": "stateFee",
+        "amount": 166.5
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1370.98
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 22231.48
+      }
+    ],
+    "confirmed": true,
+    "loan": null
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "note": "Written for the tests (synthetic). Clean NJ financed deal with a cash down payment: payment matches the loan math.",
+  "state": "NJ",
+  "ad": {
+    "price": 21298,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Selling Price",
+        "kind": "price",
+        "amount": 21298
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 799
+      },
+      {
+        "label": "Title & Registration",
+        "kind": "stateFee",
+        "amount": 144.5
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1463.93
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 23705.43
+      },
+      {
+        "label": "Cash Down",
+        "kind": "downPayment",
+        "amount": 3000
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 20705.43
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

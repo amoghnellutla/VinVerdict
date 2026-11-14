@@ -1,0 +1,46 @@
+{
+  "note": "Written for the tests (synthetic). The total is $450 more than the lines add up to: with only one reader, that's 'check this', never 'wrong'.",
+  "state": "NJ",
+  "ad": {
+    "price": 17995,
+    "docFee": 599,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 17995
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 599
+      },
+      {
+        "label": "MVC Fees",
+        "kind": "stateFee",
+        "amount": 150
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1231.85
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 20425.85
+      }
+    ],
+    "confirmed": false,
+    "loan": null,
+    "verdicts": {
+      "Total Price": "check"
+    }
+  }
+}

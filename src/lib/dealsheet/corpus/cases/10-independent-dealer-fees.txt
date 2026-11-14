@@ -1,0 +1,11 @@
+BUYER'S ORDER
+Buyer: Pat Example
+Address: 12 Sample St, Anytown NJ 07000
+Stock #A1234   2021 Toyota RAV4 XLE
+Cash Price .......... $12,995.00
+Dealer Prep .......... $595.00
+Reconditioning Fee .......... $895.00
+Doc Fee .......... $250.00
+Title .......... $15.00
+Sales Tax .......... $847.26
+Total Price .......... $15,597.26

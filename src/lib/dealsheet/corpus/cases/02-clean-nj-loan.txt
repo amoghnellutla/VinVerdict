@@ -1,0 +1,17 @@
+BUYER'S ORDER
+Buyer: Pat Example
+Address: 12 Sample St, Anytown NJ 07000
+Stock #A1234   2021 Toyota RAV4 XLE
+Selling Price .......... $21,298.00
+Doc Fee .......... $799.00
+Title & Registration .......... $144.50
+Sales Tax .......... $1,463.93
+Total Price .......... $23,705.43
+Cash Down .......... $3,000.00
+Balance Due .......... $20,705.43
+Amount Financed $20,705.43
+Annual Percentage Rate 6.49%
+Term 60 months
+Monthly Payment $405.03
+Total of Payments $24,301.80
+Finance Charge $3,596.37

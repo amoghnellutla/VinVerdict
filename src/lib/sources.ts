@@ -30,6 +30,13 @@ export const REF = {
   nhtsaRecalls: { name: "NHTSA recall lookup", href: "https://www.nhtsa.gov/recalls" },
   ftcFakeDealer: { name: "FTC: scammers are spoofing car dealership websites (Sept 2026)", href: "https://consumer.ftc.gov/consumer-alerts/2026/09/scammers-are-spoofing-car-dealership-websites-what-you-need-know" },
   cargurusAccident: { name: "CarGurus study (2012): a past accident lowers value about 3–12%", href: "https://www.cargurus.com/press/20121213.html" },
+  // Checked 2026-11-14: "You can usually buy the vehicle you want without any add-ons"; "ask for the out-the-door prices in writing".
+  ftcAddOns: { name: "FTC: you can usually buy the car without any add-ons", href: "https://consumer.ftc.gov/buying-used-car-dealer" },
+  // Checked 2026-11-14: "Negotiate the APR … just as you would negotiate the price of the car. The APR you negotiate with the
+  // dealer usually includes an amount that compensates the dealer for handling the financing."
+  ftcFinancing: { name: "FTC: financing or leasing a car (the APR is negotiable)", href: "https://consumer.ftc.gov/financing-or-leasing-car" },
+  // Checked 2026-11-14: "Generally you cannot be required to buy an extended warranty, GAP insurance, or credit insurance."
+  cfpbAddOns: { name: "CFPB: an extended warranty, GAP or credit insurance generally can't be required", href: "https://www.consumerfinance.gov/ask-cfpb/am-i-required-to-purchase-an-extended-warranty-or-guaranteed-asset-protection-gap-insurance-from-a-lender-or-dealer-to-get-an-auto-loan-en-807/" },
 } satisfies Record<string, SourceRef>;
 
 /** Warnings that point at another part of the result instead of a website. */

@@ -1,0 +1,54 @@
+{
+  "note": "Hand-laid in a real-world format (synthetic numbers): run before any tuning.",
+  "state": "TX",
+  "ad": {
+    "price": 18495,
+    "docFee": 499,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2019,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "SELLING PRICE",
+        "kind": "price",
+        "amount": 18495.0
+      },
+      {
+        "label": "DOC FEE",
+        "kind": "docFee",
+        "amount": 499.0
+      },
+      {
+        "label": "NITROGEN",
+        "kind": "addOn",
+        "amount": 179.0
+      },
+      {
+        "label": "STATE SALES TAX",
+        "kind": "tax",
+        "amount": 1198.31
+      },
+      {
+        "label": "TITLE/LICENSE",
+        "kind": "stateFee",
+        "amount": 77.5
+      },
+      {
+        "label": "TOTAL CASH PRICE",
+        "kind": "total",
+        "amount": 20448.81
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "NITROGEN": "remove",
+      "SELLING PRICE": "right",
+      "DOC FEE": "right"
+    },
+    "hiddenTotal": 179.0
+  }
+}

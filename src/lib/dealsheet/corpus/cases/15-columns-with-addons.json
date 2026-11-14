@@ -1,0 +1,57 @@
+{
+  "note": "Written for the tests (synthetic). PDF columns flattened, with a section heading, add-ons and a loan product.",
+  "state": "NY",
+  "ad": {
+    "price": 23450,
+    "docFee": 175,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 23450
+      },
+      {
+        "label": "Documentation Fee",
+        "kind": "docFee",
+        "amount": 175
+      },
+      {
+        "label": "Window Tint",
+        "kind": "addOn",
+        "amount": 499
+      },
+      {
+        "label": "Tire & Wheel Protection",
+        "kind": "loanProduct",
+        "amount": 1195
+      },
+      {
+        "label": "DMV Fees",
+        "kind": "stateFee",
+        "amount": 175
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 964.96
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 26458.96
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Window Tint": "remove",
+      "Tire & Wheel Protection": "remove"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+RETAIL INSTALLMENT SALE CONTRACT - SIMPLE FINANCE CHARGE
+Buyer Name and Address: [personal details]
+ANNUAL PERCENTAGE RATE 8.99%   FINANCE CHARGE $7,734.14   Amount Financed $25,998.58   Total of Payments $33,732.72
+Your payment schedule will be: 72 payments of $468.51 monthly
+ITEMIZATION OF THE AMOUNT FINANCED
+1. Cash Price of Motor Vehicle and Services (including sales tax of $1,701.58) $25,171.58
+   A. Cash Price of Vehicle $21,995.00
+   B. Document Processing Charge (not a governmental fee) $85.00
+   C. (Optional) Theft Deterrent Device(s) paid to Dealer $595.00
+   D. (Optional) Surface Protection Product(s) paid to Dealer $795.00
+2. Total Downpayment $3,000.00
+3. Unpaid Balance of Cash Price (1 minus 2) $22,171.58
+4. Other Charges Including Amounts Paid to Others on Your Behalf
+   A. Optional GAP Contract $895.00
+   B. Government License and/or Registration Fees $312.00
+   C. Government Certificate of Title Fees $25.00
+   D. Other Charges: Service Contract paid to ABC Warranty Co. $2,595.00
+   Total Other Charges $3,827.00
+5. Amount Financed (3 + 4) $25,998.58

@@ -1,0 +1,18 @@
+BUYER'S ORDER
+Buyer: Pat Example
+Address: 12 Sample St, Anytown NJ 07000
+Stock #A1234   2021 Toyota RAV4 XLE
+Selling Price		$31,995.00
+Market Adjustment		$2,000.00
+Documentary Fee		$150.00
+Vehicle Service Contract		$2,895.00
+GAP Protection		$895.00
+Title Application		$33.00
+Sales Tax		$2,009.06
+Total Price		$39,977.06
+Amount Financed $39,977.06
+Annual Percentage Rate 8.49%
+Term 72 months
+Monthly Payment $710.53
+Total of Payments $51,158.16
+Finance Charge $11,181.10

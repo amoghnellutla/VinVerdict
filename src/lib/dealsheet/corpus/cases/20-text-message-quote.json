@@ -1,0 +1,44 @@
+{
+  "note": "Hand-laid in a real-world format (synthetic numbers): run before any tuning. Tax, tag and title aren't given as numbers, so the total can't be confirmed: 'check', never 'wrong'.",
+  "state": "OH",
+  "ad": {
+    "price": 17900,
+    "docFee": null,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2017,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "can do",
+        "kind": "price",
+        "amount": 17900
+      },
+      {
+        "label": "doc",
+        "kind": "docFee",
+        "amount": 699
+      },
+      {
+        "label": "dealer prep",
+        "kind": "dealerFee",
+        "amount": 450
+      },
+      {
+        "label": "out the door",
+        "kind": "total",
+        "amount": 20382
+      }
+    ],
+    "confirmed": false,
+    "loan": null,
+    "verdicts": {
+      "dealer prep": "remove",
+      "Price": "right",
+      "out the door": "check"
+    },
+    "hiddenTotal": 450
+  }
+}

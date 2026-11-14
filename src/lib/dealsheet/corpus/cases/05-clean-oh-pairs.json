@@ -1,0 +1,58 @@
+{
+  "note": "Written for the tests (synthetic). Clean Ohio deal, two label/amount pairs per line.",
+  "state": "OH",
+  "ad": {
+    "price": 27880,
+    "docFee": 387,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 27880
+      },
+      {
+        "label": "Documentary Service Charge",
+        "kind": "docFee",
+        "amount": 387
+      },
+      {
+        "label": "Title Fee",
+        "kind": "stateFee",
+        "amount": 15
+      },
+      {
+        "label": "Plate Fee",
+        "kind": "stateFee",
+        "amount": 34.5
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1625.35
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 29941.85
+      },
+      {
+        "label": "Cash Down",
+        "kind": "downPayment",
+        "amount": 5000
+      },
+      {
+        "label": "Balance Due",
+        "kind": "balanceDue",
+        "amount": 24941.85
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "note": "Written for the tests (synthetic). Franchise buyer's order: price $700 over the ad, three add-ons, tax on everything.",
+  "state": "NJ",
+  "ad": {
+    "price": 21298,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 21998
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 799
+      },
+      {
+        "label": "VIN Etching",
+        "kind": "addOn",
+        "amount": 399
+      },
+      {
+        "label": "Nitrogen Tire Fill",
+        "kind": "addOn",
+        "amount": 199
+      },
+      {
+        "label": "Paint & Fabric Protection",
+        "kind": "addOn",
+        "amount": 1295
+      },
+      {
+        "label": "Title & Registration",
+        "kind": "stateFee",
+        "amount": 310
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1635.71
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 26635.71
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Vehicle Price": "wrong",
+      "VIN Etching": "remove",
+      "Nitrogen Tire Fill": "remove",
+      "Paint & Fabric Protection": "remove",
+      "Doc Fee": "right"
+    },
+    "hiddenTotal": 2593
+  }
+}

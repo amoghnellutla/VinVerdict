@@ -1,0 +1,48 @@
+{
+  "note": "Written for the tests (synthetic). Clean NJ cash deal: the ad's price and fee, tax on price + doc fee, totals add up.",
+  "state": "NJ",
+  "ad": {
+    "price": 24995,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 24995
+      },
+      {
+        "label": "Documentation Fee",
+        "kind": "docFee",
+        "amount": 799
+      },
+      {
+        "label": "Title Fee",
+        "kind": "stateFee",
+        "amount": 60
+      },
+      {
+        "label": "Registration Fee",
+        "kind": "stateFee",
+        "amount": 84.5
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1708.85
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 27647.35
+      }
+    ],
+    "confirmed": true,
+    "loan": null
+  }
+}

@@ -1,0 +1,11 @@
+DEAL # 104772                              BUYER'S ORDER                        DATE 11/14/2026
+YEAR 2019  MAKE TOYOTA  MODEL COROLLA LE   VIN 5YFBURHE0KP000000   MILES 41,233
+  CODE  DESCRIPTION                                                       AMOUNT
+  0100  SELLING PRICE                                                    $18,495.00
+  0410  DOC FEE                                                             $499.00
+  0520  NITROGEN FILLED TIRES                                               $179.00
+  0530  VIN ETCH                                                        DECLINED
+  0900  STATE SALES TAX 6.25%                                             $1,198.31
+  0910  TITLE/LICENSE/REGISTRATION                                           $77.50
+        TOTAL CASH PRICE                                                 $20,448.81
+CUSTOMER SIGNATURE ____________________

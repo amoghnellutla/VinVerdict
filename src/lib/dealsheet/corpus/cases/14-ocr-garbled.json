@@ -1,0 +1,51 @@
+{
+  "note": "Written for the tests (synthetic). A photo of the paper read by OCR: commas read as periods, one 0 read as O.",
+  "state": "NJ",
+  "ad": {
+    "price": 21298,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 21998
+      },
+      {
+        "label": "Doc Fee",
+        "kind": "docFee",
+        "amount": 799
+      },
+      {
+        "label": "VIN Etching",
+        "kind": "addOn",
+        "amount": 399
+      },
+      {
+        "label": "Title & Registration",
+        "kind": "stateFee",
+        "amount": 310
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1536.74
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 25042.74
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "VIN Etching": "remove"
+    }
+  }
+}

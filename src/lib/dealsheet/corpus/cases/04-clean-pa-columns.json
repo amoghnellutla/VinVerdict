@@ -1,0 +1,43 @@
+{
+  "note": "Written for the tests (synthetic). Clean PA deal, labels and amounts in separate columns (PDF text).",
+  "state": "PA",
+  "ad": {
+    "price": 16400,
+    "docFee": 477,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Cash Price of Vehicle",
+        "kind": "price",
+        "amount": 16400
+      },
+      {
+        "label": "Documentary Fee",
+        "kind": "docFee",
+        "amount": 477
+      },
+      {
+        "label": "Title / Lien / Plate",
+        "kind": "stateFee",
+        "amount": 138
+      },
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 1012.62
+      },
+      {
+        "label": "Total Price",
+        "kind": "total",
+        "amount": 18027.62
+      }
+    ],
+    "confirmed": true,
+    "loan": null
+  }
+}

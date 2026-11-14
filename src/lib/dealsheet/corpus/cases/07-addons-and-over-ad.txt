@@ -1,0 +1,12 @@
+BUYER'S ORDER
+Buyer: Pat Example
+Address: 12 Sample St, Anytown NJ 07000
+Stock #A1234   2021 Toyota RAV4 XLE
+Vehicle Price .......... $21,998.00
+Doc Fee .......... $799.00
+VIN Etching .......... $399.00
+Nitrogen Tire Fill .......... $199.00
+Paint & Fabric Protection .......... $1,295.00
+Title & Registration .......... $310.00
+Sales Tax .......... $1,635.71
+Total Price .......... $26,635.71
