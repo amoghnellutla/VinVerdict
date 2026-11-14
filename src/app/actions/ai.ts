@@ -6,6 +6,8 @@ import { checkDealerRead, dealerMessages, jsonLdListing, mergeDealer, pageHasVin
 import { checkHistoryRead, HISTORY_IMAGE, HISTORY_LIMITS, historyMessages, type AiHistory } from "@/lib/ai/history-read";
 import { checkDash, dashMessages, type DashRead } from "@/lib/ai/dash-read";
 import { checkListingRead, LISTING_READ_LIMIT, listingReadMessages, type ListingRead } from "@/lib/ai/listing-read";
+import { checkDealRead, DEAL_READ_LIMIT, dealReadMessages, type AiDealRead } from "@/lib/ai/dealsheet-read";
+import { redactDealSheet } from "@/lib/dealsheet/redact";
 import { PROVIDER_NAME } from "@/lib/ai/providers";
 import { currentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/client-ip";
@@ -108,7 +110,25 @@ export async function readListingAiAction(input: { text: unknown; token: unknown
   return { status: "ok", provider: PROVIDER_NAME[r.provider], read: Object.keys(r.data).length ? r.data : null };
 }
 
-export type DashState = { status: "ok"; provider: string; dash: DashRead } | AiError;
+export type DealReadState = { status: "ok"; provider: string; read: AiDealRead | null } | AiError;
+
+/**
+ * "Double-check with free AI" on the dealer's numbers: the paper's text (the buyer's details already taken out
+ * on the device, and again here) read by a second reader that must quote the paper for every line.
+ */
+export async function readDealSheetAction(input: { text: unknown; token: unknown }): Promise<DealReadState> {
+  const sent = redactDealSheet(str(input.text, DEAL_READ_LIMIT)).text;
+  if (sent.replace(/\s/g, "").length < 30) return { status: "error", message: "Attach or paste the dealer's numbers first." };
+
+  const blocked = await gate(input.token);
+  if (blocked) return blocked;
+
+  const r = await aiJson({ messages: dealReadMessages(sent), validate: (raw) => (raw && typeof raw === "object" ? checkDealRead(raw, sent) ?? { lines: [], loan: {} } : null), maxTokens: 2_000, deadlineMs: 40_000 });
+  if (!r.ok) return { status: "error", message: r.reason === "unconfigured" ? UNSET : BUSY };
+  return { status: "ok", provider: PROVIDER_NAME[r.provider], read: r.data.lines.length || Object.keys(r.data.loan).length ? r.data : null };
+}
+
+export type DashState ={ status: "ok"; provider: string; dash: DashRead } | AiError;
 
 /** "Dashboard photo check": the odometer and the warning lights in a photo of the instrument cluster. */
 export async function readDashAction(input: { image: unknown; token: unknown }): Promise<DashState> {

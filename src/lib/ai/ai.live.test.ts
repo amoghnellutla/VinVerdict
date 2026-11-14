@@ -128,4 +128,30 @@ ${r.ok ? `[${r.provider}] ${(r.data as { answer: string }).answer}` : `FAILED: $
       await new Promise((res) => setTimeout(res, 2_500));
     }
   }, 180_000);
+  it("double-checks three dealer papers: every line quotes the paper, and nothing new is called wrong", async () => {
+    const { readdirSync } = await import("node:fs");
+    const { aiJson } = await import("./client");
+    const { checkDealRead, compareReads, dealReadMessages } = await import("./dealsheet-read");
+    const { parseDealSheet } = await import("@/lib/dealsheet/parse");
+    const { redactDealSheet } = await import("@/lib/dealsheet/redact");
+    const { checkDealSheet } = await import("@/lib/dealsheet/check");
+    const dir = "src/lib/dealsheet/corpus/cases";
+    for (const n of ["07-", "18-", "20-"]) {
+      const f = readdirSync(dir).find((x) => x.startsWith(n) && x.endsWith(".txt"))!;
+      const spec = JSON.parse(readFileSync(`${dir}/${f.replace(/\.txt$/, ".json")}`, "utf8"));
+      const sent = redactDealSheet(readFileSync(`${dir}/${f}`, "utf8")).text;
+      const r = await aiJson({ messages: dealReadMessages(sent), validate: (raw) => (raw && typeof raw === "object" ? checkDealRead(raw, sent) ?? { lines: [], loan: {} } : null), maxTokens: 2_000 });
+      const base = checkDealSheet({ sheet: parseDealSheet(sent), ad: spec.ad, state: spec.state, modelYear: spec.modelYear });
+      const both = compareReads(parseDealSheet(sent), r.ok ? r.data : null);
+      const c = checkDealSheet({ sheet: both.sheet, ad: spec.ad, state: spec.state, modelYear: spec.modelYear, aiAgrees: both.aiAgrees });
+      console.log("DEAL READ", f, r.ok ? r.provider : r.reason, JSON.stringify({ agrees: both.aiAgrees.filter(Boolean).length, of: both.aiAgrees.length, aiOnly: both.aiOnly, differs: both.differs,
+        rows: c.rows.map((x) => `${x.line.label}=${x.verdict}`), loan: c.loan?.verdict ?? null, hidden: c.hiddenTotal, baseHidden: base.hiddenTotal }, null, 1));
+      const expected = spec.expect.verdicts ?? {};
+      for (const row of c.rows.filter((x) => x.verdict === "wrong")) {
+        const ok = Object.entries(expected).some(([label, v]) => v === "wrong" && row.line.label.toLowerCase().includes(label.toLowerCase()));
+        expect(ok, `${f}: "${row.line.label}" became wrong: ${row.note}`).toBe(true);
+      }
+      await new Promise((res) => setTimeout(res, 2_500));
+    }
+  }, 240_000);
 });

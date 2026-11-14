@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { DealStandalone } from "@/components/analyzer/DealStandalone";
 import { PageHeader } from "@/components/PageHeader";
+import { currentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Check a dealer's numbers before you sign",
@@ -19,8 +21,16 @@ export default function DealPage() {
         Checking a specific car? <Link href="/" className="link">Check its listing first</Link>: the result has this check too, already compared with the ad.
       </p>
       <div className="mt-6">
-        <DealStandalone />
+        <Suspense fallback={<DealStandalone guest />}>
+          <ForViewer />
+        </Suspense>
       </div>
     </>
   );
+}
+
+/** The owner (logged in) skips the "I'm human" check for the AI double-check; visitors get it. */
+async function ForViewer() {
+  const owner = await currentUser();
+  return <DealStandalone guest={!owner} />;
 }

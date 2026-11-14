@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
+import { readDealSheetAction } from "@/app/actions/ai";
+import { Turnstile } from "@/components/Turnstile";
+import { compareReads, type AiDealRead } from "@/lib/ai/dealsheet-read";
 import { CopyButton } from "@/components/CopyButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { readBuyerZip } from "@/lib/buyer-zip";
@@ -29,7 +32,17 @@ const BADGE: Record<Verdict, { word: string; cls: string }> = {
  * text), and every line is read and checked on this device, with a negotiation plan that assumes every add-on is
  * refused. Nothing is uploaded; the buyer's own details are taken out before anything is shown.
  */
-export function DealSheet({ ad, car = null, modelYear = null, standalone = false }: { ad: AdFacts | null; car?: string | null; modelYear?: number | null; /** On its own page, under the page's own title. */ standalone?: boolean }) {
+export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false }: {
+  ad: AdFacts | null;
+  car?: string | null;
+  modelYear?: number | null;
+  /** On its own page, under the page's own title. */
+  standalone?: boolean;
+  /** A visitor (the AI double-check needs the "I'm human" check). */
+  guest?: boolean;
+  /** AI mode is on. */
+  ai?: boolean;
+}) {
   const [text, setText] = useState("");
   const [read, setRead] = useState<{ text: string; from: string; removed: number } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -39,6 +52,11 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     return z.saved ? z.state : "";
   });
   const [myApr, setMyApr] = useState("");
+  const [aiRead, setAiRead] = useState<{ read: AiDealRead; provider: string } | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   async function readFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -80,17 +98,38 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     // The box shows what was checked: the paper without the buyer's own details.
     setText(red.text);
     setRead({ text: red.text, from, removed: red.removed });
+    // A new paper: an earlier AI reading was of another one.
+    setAiRead(null);
+    setAiMsg(null);
   }
 
   const st = state && isStateCode(state) ? state : null;
   const apr = myApr.trim() ? Number(myApr) : null;
   const result = useMemo(() => {
     if (!read) return null;
-    const sheet = parseDealSheet(read.text);
-    const c = checkDealSheet({ sheet, ad, state: st, modelYear, myAprPct: apr != null && Number.isFinite(apr) ? apr : null });
+    const both = compareReads(parseDealSheet(read.text), aiRead?.read ?? null);
+    const sheet = both.sheet;
+    const c = checkDealSheet({ sheet, ad, state: st, modelYear, myAprPct: apr != null && Number.isFinite(apr) ? apr : null, aiAgrees: aiRead ? both.aiAgrees : undefined });
     const plan = negotiationPlan({ sheet, check: c, ad, state: st, modelYear, car, myAprPct: apr != null && Number.isFinite(apr) ? apr : null });
-    return { sheet, c, plan };
-  }, [read, ad, st, modelYear, car, apr]);
+    return { sheet, c, plan, both };
+  }, [read, ad, st, modelYear, car, apr, aiRead]);
+
+  async function askAi() {
+    if (!read || aiBusy || (guest && !token)) return;
+    setAiBusy(true);
+    setAiMsg(null);
+    try {
+      const r = await readDealSheetAction({ text: read.text, token });
+      if (r.status === "error") setAiMsg(r.message);
+      else if (!r.read) setAiMsg(`${r.provider} couldn't read a line it could quote from the paper, so nothing changed.`);
+      else setAiRead({ read: r.read, provider: r.provider });
+    } catch {
+      setAiMsg("Couldn't reach VinVerdict. Check your connection and try again.");
+    }
+    setAiBusy(false);
+    setToken(null);
+    setAttempt((n) => n + 1);
+  }
 
   return (
     <section id="dealer-numbers" aria-labelledby="dealer-numbers-title" className="space-y-4 rounded-lg border border-border px-4 py-4">
@@ -193,6 +232,28 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {aiRead && (
+            <p className="text-sm">
+              A free AI ({aiRead.provider}) read the paper too, quoting its words: it read the same on {result.both.aiAgrees.filter(Boolean).length} of {result.sheet.lines.length - result.both.aiOnly} lines
+              {result.both.aiOnly ? `, and found ${result.both.aiOnly} more (marked "read by the AI": compare them with the paper)` : ""}
+              {result.both.differs ? `; ${result.both.differs} read differently say "Check this"` : ""}.
+            </p>
+          )}
+          {ai && !aiRead && result.sheet.lines.length > 0 && (
+            <div className="rounded-md border border-border px-4 py-3 text-sm print:hidden">
+              <p>
+                <span className="font-semibold">Double-check with free AI.</span> Every dealer&apos;s paper is laid out differently. A second reader, a free AI
+                service (GLM by Z.ai, or Gemini by Google, or Groq), reads the paper&apos;s text with your details already taken out, and must quote the paper for
+                every line. Lines both readers agree on are confirmed; any difference is shown for you to compare. Google&apos;s free tier may keep what&apos;s sent.
+              </p>
+              {guest && <Turnstile key={attempt} action="ai" onToken={setToken} />}
+              <button type="button" className="btn btn-secondary mt-2" disabled={aiBusy || (guest && !token)} onClick={() => void askAi()}>
+                {aiBusy ? "Reading…" : "Double-check with free AI"}
+              </button>
+              {aiMsg && <p role="status" className="mt-2">{aiMsg}</p>}
             </div>
           )}
 

@@ -24,6 +24,8 @@ export type DealLine = {
   declined: boolean;
   /** The add-on or product's plain name ("VIN etching"), for the message to the dealer. */
   name?: string;
+  /** Read only by the free AI (the pattern reader didn't find it): never a verdict on its own, never in a sum. */
+  fromAi?: boolean;
 };
 
 export type LoanTerms = {

@@ -692,7 +692,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           />
           {/* The dealer's paperwork: only dealers have a buyer's order. */}
           {m.listing.sellerType !== "private" && (
-            <DealSheet ad={{ price: m.listing.price, docFee: m.listing.docFee, sellerType: m.listing.sellerType }} car={carName(m)} modelYear={m.decoded?.year ?? m.listing.year} />
+            <DealSheet ad={{ price: m.listing.price, docFee: m.listing.docFee, sellerType: m.listing.sellerType }} car={carName(m)} modelYear={m.decoded?.year ?? m.listing.year} guest={guest} ai={AI_MODE} />
           )}
           <Safety a={m} />
           <SectionTabs

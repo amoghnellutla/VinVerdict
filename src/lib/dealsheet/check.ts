@@ -52,7 +52,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** The tax the state's rate gives on the likely taxable amounts (price; + doc fee; + dealer fees and add-ons; − trade-in). */
 function taxCandidates(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date): { amount: number; base: string }[] {
-  const live = lines.filter((l) => !l.declined);
+  const live = lines.filter((l) => !l.declined && !l.fromAi);
   const sum = (kinds: string[]) => live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
   const price = sum(["price"]) - sum(["discount", "rebate"]);
   const doc = sum(["docFee"]);
@@ -86,6 +86,8 @@ export function checkDealSheet(input: CheckInput): DealCheck {
 
   const rows: LineResult[] = sheet.lines.map((line, i): LineResult => {
     if (line.declined) return { line, verdict: "right", note: "Not charged (declined or $0)." };
+    // One reader alone is never enough: a line only the AI found is for the buyer to compare with the paper.
+    if (line.fromAi) return { line, verdict: "check", note: line.kind === "addOn" || line.kind === "loanProduct" || line.kind === "dealerFee" ? "Only the free AI read this line. Compare it with the paper: if it's there, it's optional, so ask for it to be removed." : "Only the free AI read this line. Compare it with the paper." };
     switch (line.kind) {
       case "price": {
         if (adPrice == null) return { line, verdict: "info", note: "The car's price. Compare it with the price in the ad you saw." };
@@ -149,6 +151,12 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         const near = rec.sums.reduce((a, b) => (Math.abs(b.amount - line.amount) < Math.abs(a.amount - line.amount) ? b : a));
         const diff = r2(line.amount - near.amount);
         const msg = `The lines add up to ${cents(near.amount)} (${near.label}), ${cents(Math.abs(diff))} ${diff > 0 ? "less" : "more"} than this.`;
+        // A paper that doesn't list its tax and government fees as numbers ("plus tax, tag and title") has charges
+        // the lines can't show, so a higher total isn't proof of anything.
+        const itemized = sheet.lines.some((l) => l.kind === "tax" && !l.fromAi) && sheet.lines.some((l) => l.kind === "stateFee" && !l.fromAi);
+        if (!itemized && diff > 1) {
+          return { line, verdict: "check", note: `${msg} The paper doesn't list its tax and government fees as numbers, so the difference may be those: ask for every charge in writing.` };
+        }
         if (aiAll && diff > 1) {
           hidden.push({ what: "Total more than the lines", amount: diff, why: msg });
           return { line, verdict: "wrong", note: `${msg} Ask what the difference is for.` };

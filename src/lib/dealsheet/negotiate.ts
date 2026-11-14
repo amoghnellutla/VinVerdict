@@ -40,7 +40,7 @@ export const SCRIPTS: Plan["scripts"] = [
 
 export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad: AdFacts | null; state: StateCode | null; modelYear: number | null; car?: string | null; myAprPct?: number | null; now?: Date }): Plan {
   const { sheet, check, ad } = input;
-  const live = sheet.lines.filter((l) => !l.declined);
+  const live = sheet.lines.filter((l) => !l.declined && !l.fromAi);
   const sum = (kinds: string[]) => r2(live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0));
   const paperPrice = sum(["price"]) ? r2(sum(["price"]) - sum(["discount", "rebate"])) : null;
   const adPrice = ad?.price ?? null;
