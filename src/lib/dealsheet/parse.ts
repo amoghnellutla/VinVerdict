@@ -44,6 +44,8 @@ export type DealSheet = {
   lease?: boolean;
   /** Several payment options on one worksheet ("60 months $542/mo, 72 months $468/mo"): no single loan. */
   paymentOptions?: { months: number; payment: number }[];
+  /** A lease's own numbers, as printed: the adjusted capitalized cost, the residual and the money factor. */
+  leaseTerms?: { adjustedCap: number | null; residual: number | null; moneyFactor: number | null };
 };
 
 /** Credits: they lower what's owed. */
@@ -213,7 +215,7 @@ export function parseDealSheet(input: string): DealSheet {
   return {
     lines: lines.filter((l) => l.kind !== "loan"),
     loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : readLoan(text, lines),
-    ...(LEASE_WORDS.test(text) ? { lease: true } : {}),
+    ...(LEASE_WORDS.test(text) ? { lease: true, leaseTerms: leaseTerms(text, lines) } : {}),
     ...(options.length >= 2 ? { paymentOptions: options } : {}),
   };
 }
@@ -243,6 +245,21 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
     out.push({ label: kind === "price" && classify(label).kind !== "price" ? "Price" : label || "A number without words", value });
   }
   return out.length >= 2 ? out : null;
+}
+
+/** The lease's numbers: the adjusted cap cost (or gross less the cap cost reduction), the residual and the money factor. */
+function leaseTerms(text: string, lines: DealLine[]): NonNullable<DealSheet["leaseTerms"]> {
+  const find = (re: RegExp) => lines.find((l) => l.kind === "leaseTerm" && re.test(l.label.toLowerCase()))?.amount ?? null;
+  const adjusted = find(/\badjusted cap|\bnet cap/);
+  const gross = find(/\bgross cap|\bcapitali[sz]ed cost\b(?! reduction)/);
+  const reduction = find(/cap(?:italized)? cost reduction/);
+  const mf = /money factor\s*[:\-]?\s*(0?\.\d{3,6})\b/i.exec(text);
+  const factor = mf ? Number(mf[1]) : null;
+  return {
+    adjustedCap: adjusted ?? (gross != null && reduction != null ? Math.round((gross - reduction) * 100) / 100 : gross),
+    residual: find(/\bresidual/),
+    moneyFactor: factor != null && factor > 0 && factor < 0.01 ? factor : null,
+  };
 }
 
 const LEASE_WORDS = /\bmoney factor\b|\bresidual (?:value|amount)?\b|\bcapitali[sz]ed cost\b|\bcap cost\b|\blease (?:worksheet|agreement|payment|term)\b|\bacquisition fee\b|\bdisposition fee\b/i;

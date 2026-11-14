@@ -38,7 +38,14 @@ export type DealCheck = {
   reconcile: Reconcile;
   /** The reading is confirmed (the sums match, or the AI agrees on every line). */
   confirmed: boolean;
-  loan: (LoanCheck & { verdict: Verdict; note: string; longTerm: string | null; atMyRate: number | null }) | null;
+  loan: (LoanCheck & {
+    verdict: Verdict;
+    note: string;
+    longTerm: string | null;
+    atMyRate: number | null;
+    /** The payment without the lines to take off, how much less that is a month, and what those lines cost with interest. */
+    without: { payment: number; drop: number; withInterest: number; amount: number } | null;
+  }) | null;
   /** Money the buyer can save by saying no and asking for what's right, each with its reason. */
   hidden: Hidden[];
   hiddenTotal: number;
@@ -48,6 +55,8 @@ export type DealCheck = {
   lease: boolean;
   /** The trade-in is worth less than its payoff: this much of the old loan is carried into the deal (0 when not). */
   negativeEquity: number;
+  /** A lease's payment against the lease math (never "wrong": lease tax differs by state). */
+  leaseMath: { base: number; stated: number; verdict: Verdict; note: string } | null;
   /** A worksheet's payment options, each with what it pays in total. */
   paymentOptions: { months: number; payment: number; total: number }[];
 };
@@ -241,6 +250,8 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   });
 
   // ----- The loan -----
+  // The money to take off the lines themselves (before anything about the loan is added).
+  const lineSaving = r2(hidden.reduce((s, h) => s + h.amount, 0));
   const L = sheet.loan;
   let loan: DealCheck["loan"] = null;
   const principal = L.amountFinanced;
@@ -268,10 +279,39 @@ export function checkDealSheet(input: CheckInput): DealCheck {
     const longTerm = L.months > 60
       ? `At ${L.months} months you pay ${usd(totalInterest(principal, L.aprPct, L.months))} in interest; at 60 months it would be ${usd(totalInterest(principal, L.aprPct, 60))} (payment ${cents(monthlyPayment(principal, L.aprPct, 60))}). A long term lowers the payment, not the price.`
       : null;
+    // What the lines to take off (add-ons, products, dealer fees, a price over the ad) cost inside this loan, with
+    // interest, and the payment without them, against the loan math's payment (so money hidden in the payment
+    // isn't counted twice). Tax on them is left out, so the real drop is at least this.
+    const without = lineSaving > 0 && principal - lineSaving > 0
+      ? (() => {
+          const payment = monthlyPayment(principal - lineSaving, L.aprPct!, L.months!);
+          return { payment, drop: r2(c.expected - payment), withInterest: r2((lineSaving / principal) * c.expected * L.months!), amount: lineSaving };
+        })()
+      : null;
     const my = input.myAprPct;
     const atMyRate = my != null && my >= 0 && my < L.aprPct ? savingAtRate(principal, L.aprPct, L.months, my) : null;
     if (atMyRate && atMyRate > 0) hidden.push({ what: `Interest at ${L.aprPct}% instead of your ${my}%`, amount: atMyRate, why: "The dealer's rate usually includes an amount for the dealer, and it's negotiable (FTC)." });
-    loan = { ...c, verdict, note, longTerm, atMyRate };
+    loan = { ...c, verdict, note, longTerm, atMyRate, without };
+  }
+
+  // ----- A lease's payment: (adjusted cap − residual) ÷ term, plus (adjusted cap + residual) × money factor -----
+  // Never "wrong": states tax lease payments differently, and some fees are rolled in. It says what the math gives.
+  let leaseMath: DealCheck["leaseMath"] = null;
+  const T = sheet.leaseTerms;
+  if (sheet.lease && T?.adjustedCap && T.residual && T.moneyFactor && L.months && L.payment && T.adjustedCap > T.residual) {
+    const base = r2((T.adjustedCap - T.residual) / L.months + (T.adjustedCap + T.residual) * T.moneyFactor);
+    const stated = L.payment;
+    const pct = Math.round((stated / base - 1) * 1000) / 10;
+    const rate = `money factor ${T.moneyFactor} (about ${Math.round(T.moneyFactor * 2400 * 100) / 100}% as an interest rate)`;
+    if (Math.abs(stated - base) <= PAYMENT_GAP) {
+      leaseMath = { base, stated, verdict: "right", note: `The payment matches the lease math before tax: ${cents(T.adjustedCap)} adjusted cap cost, ${cents(T.residual)} residual, ${L.months} months, ${rate}.` };
+    } else if (stated > base && pct <= 11.5) {
+      leaseMath = { base, stated, verdict: "info", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper's ${cents(stated)} is ${pct}% more: if that's your state's tax on lease payments it's right. Ask how it's made up.` };
+    } else if (stated > base) {
+      leaseMath = { base, stated, verdict: "check", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper says ${cents(stated)}, ${cents(r2(stated - base))} a month more, more than sales tax would add. Ask for everything in the payment.` };
+    } else {
+      leaseMath = { base, stated, verdict: "check", note: `The lease math gives ${cents(base)} a month, more than the paper's ${cents(stated)}: check the cap cost, residual and money factor on the paper.` };
+    }
   }
 
   const hiddenTotal = r2(hidden.reduce((s, h) => s + h.amount, 0));
@@ -285,5 +325,5 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   ].filter(Boolean);
   const summary = parts.length ? `Dealer's numbers: ${parts.join(", ")}${hiddenTotal > 0 ? `; up to ${usd(hiddenTotal)} to take off` : ""}.` : "Dealer's numbers: every line checks out.";
   const paymentOptions = (sheet.paymentOptions ?? []).map((o) => ({ ...o, total: r2(o.months * o.payment) }));
-  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, lease: !!sheet.lease, negativeEquity, paymentOptions };
+  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath };
 }

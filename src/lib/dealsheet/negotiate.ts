@@ -85,6 +85,9 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
     ...(options.length >= 2 ? [`This worksheet shows monthly payments, not a price. The longest option costs ${usd(spread)} more in total than the shortest: ask for the out-the-door price and the interest rate in writing.`] : []),
     ...(check.negativeEquity > 0 ? [`${usd(check.negativeEquity)} of your old loan is carried into this deal. Consider paying it down first, or selling the trade-in yourself for more.`] : []),
     "Say no to every add-on and every optional product. You can buy a warranty or GAP later, elsewhere, if you want one.",
+    ...(check.loan?.without && check.loan.without.drop > 0
+      ? [`If they say "it's only a few dollars a month": without them the payment is ${cents(check.loan.without.payment)}, ${cents(check.loan.without.drop)} less, and they cost ${usd(check.loan.without.withInterest)} with interest over the loan.`]
+      : []),
     ...(sheet.lines.some((l) => l.kind === "tradeIn" && !l.declined) ? ["Then the trade-in, as a separate number. Bring a written offer from CarMax, Carvana or another dealer."] : []),
     "Then the financing: bring a bank or credit union pre-approval and ask the dealer to beat it.",
     "Before you sign, check the final paper again here: every line should match what you agreed.",

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import { useReportPart } from "./report-parts";
 import { readDealSheetAction } from "@/app/actions/ai";
 import { Turnstile } from "@/components/Turnstile";
 import { compareReads, type AiDealRead } from "@/lib/ai/dealsheet-read";
+import { diffPapers, forgetPapers, keepPaper, loadPapers, snapshot, type PaperChange, type PaperSnapshot } from "@/lib/dealsheet/diff";
 import { CopyButton } from "@/components/CopyButton";
 import { ExternalLink } from "@/components/ExternalLink";
 import { readBuyerZip } from "@/lib/buyer-zip";
@@ -18,6 +19,15 @@ import type { OcrProgress } from "@/lib/ocr";
 const MAX_TEXT = 40_000;
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const cents = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const subscribeNever = () => () => {};
+
+/** One change between two papers, in words. */
+function changeText(c: PaperChange): string {
+  if (c.type === "added") return `Added: ${c.line.label}, ${cents(c.line.amount)}.`;
+  if (c.type === "removed") return `Gone: ${c.line.label}, ${cents(c.line.amount)}.`;
+  return `${c.label}: ${cents(c.from)} then, ${cents(c.to)} now.`;
+}
 
 /** The assistant sends a pasted buyer's order here (its text, already on this device). */
 export const DEAL_EVENT = "vinverdict:deal-sheet";
@@ -50,7 +60,13 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
   onChecked?: ((s: { summary: string; wrong: number; remove: number } | null) => void) | null;
 }) {
   const [text, setText] = useState("");
-  const [read, setRead] = useState<{ text: string; from: string; removed: number } | null>(null);
+  const [read, setRead] = useState<{ text: string; from: string; removed: number; at: string } | null>(null);
+  // Papers the buyer chose to keep on this device, to compare with the final one.
+  const inBrowser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const [savedState, setSaved] = useState<PaperSnapshot[] | null>(null);
+  const saved = savedState ?? (inBrowser ? loadPapers() : []);
+  const [compareId, setCompareId] = useState<string>("");
+  const [keptMsg, setKeptMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<StateCode | "">(() => {
@@ -104,7 +120,8 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     const red = redactDealSheet(raw.slice(0, MAX_TEXT));
     // The box shows what was checked: the paper without the buyer's own details.
     setText(red.text);
-    setRead({ text: red.text, from, removed: red.removed });
+    setRead({ text: red.text, from, removed: red.removed, at: new Date().toISOString() });
+    setKeptMsg(null);
     // A new paper: an earlier AI reading was of another one.
     setAiRead(null);
     setAiMsg(null);
@@ -120,6 +137,11 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     const plan = negotiationPlan({ sheet, check: c, ad, state: st, modelYear, car, myAprPct: apr != null && Number.isFinite(apr) ? apr : null });
     return { sheet, c, plan, both };
   }, [read, ad, st, modelYear, car, apr, aiRead]);
+
+  const current = useMemo(() => (result && read && result.sheet.lines.length ? snapshot(result.sheet, result.c, { car, from: read.from, at: new Date(read.at) }) : null), [result, read, car]);
+  const others = saved.filter((x) => x.id !== current?.id);
+  const earlier = others.find((x) => x.id === compareId) ?? others[0] ?? null;
+  const diff = current && earlier ? diffPapers(earlier, current) : null;
 
   // A buyer's order pasted into the assistant is checked here.
   useEffect(() => {
@@ -343,12 +365,25 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
             </div>
           )}
 
-          {(result.c.loan || result.sheet.loan.aprPct != null) && (
+          {result.c.leaseMath && (
+            <div className="rounded-md border border-border px-4 py-3 text-sm">
+              <p className="font-semibold">The lease payment</p>
+              <p className="mt-1"><span className={`mr-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${BADGE[result.c.leaseMath.verdict].cls}`}>{BADGE[result.c.leaseMath.verdict].word}</span>{result.c.leaseMath.note}</p>
+            </div>
+          )}
+
+          {(result.c.loan || result.sheet.loan.aprPct != null) && !result.c.lease && (
             <div className="rounded-md border border-border px-4 py-3 text-sm">
               <p className="font-semibold">The loan</p>
               {result.c.loan ? (
                 <>
                   <p className="mt-1"><span className={`mr-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${BADGE[result.c.loan.verdict].cls}`}>{BADGE[result.c.loan.verdict].word}</span>{result.c.loan.note}</p>
+                  {result.c.loan.without && result.c.loan.without.drop > 0 && (
+                    <p className="mt-1 font-semibold">
+                      Without the {usd(result.c.loan.without.amount)} to take off, the payment would be {cents(result.c.loan.without.payment)}: {cents(result.c.loan.without.drop)} less
+                      a month. Inside this loan, those charges cost {usd(result.c.loan.without.withInterest)} with interest.
+                    </p>
+                  )}
                   {result.c.loan.longTerm && <p className="mt-1">{result.c.loan.longTerm}</p>}
                 </>
               ) : (
@@ -361,6 +396,61 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
               {result.c.loan?.atMyRate ? <p className="mt-1">At {myApr}% instead of {result.c.loan.aprPct}%, you&apos;d pay {usd(result.c.loan.atMyRate)} less interest over the loan.</p> : null}
             </div>
           )}
+
+          <div className="rounded-md border border-border px-4 py-3 text-sm print:hidden">
+            <p className="font-semibold">Compare with the final paper</p>
+            {diff && earlier ? (
+              <>
+                <label className="mt-1 block">
+                  Compared with{" "}
+                  <select className="field ml-1 inline-block w-auto py-1" value={earlier.id} onChange={(e) => setCompareId(e.target.value)}>
+                    {others.map((o) => (
+                      <option key={o.id} value={o.id}>{new Date(o.at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}, {o.car ?? "a car"}, {o.from}</option>
+                    ))}
+                  </select>
+                </label>
+                {diff.changes.length === 0 ? (
+                  <p className="mt-2">Same lines and amounts as that paper.</p>
+                ) : (
+                  <ul className="mt-2 space-y-1">
+                    {diff.changes.map((c, i) => {
+                      const bad = diff.worse.includes(c);
+                      return <li key={i} className={bad ? "font-semibold text-bad" : ""}>{changeText(c)}{bad ? " Ask why: it wasn't agreed on the earlier paper." : ""}</li>;
+                    })}
+                  </ul>
+                )}
+                {diff.total.from != null && diff.total.to != null && diff.total.from !== diff.total.to && (
+                  <p className="mt-1">Total: {cents(diff.total.from)} then, {cents(diff.total.to)} now ({diff.total.to > diff.total.from ? "+" : "-"}{cents(Math.abs(diff.total.to - diff.total.from))}).</p>
+                )}
+                {diff.payment.from != null && diff.payment.to != null && diff.payment.from !== diff.payment.to && (
+                  <p className="mt-1">Monthly payment: {cents(diff.payment.from)} then, {cents(diff.payment.to)} now.</p>
+                )}
+              </>
+            ) : (
+              <p className="mt-1 text-muted">
+                Keep this paper, and when they hand you the final contract, check it here too: VinVerdict shows anything added or changed since. Products are
+                often added in the finance office after the price is agreed.
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={!current || saved.some((x) => x.id === current?.id)}
+                onClick={() => {
+                  if (!current) return;
+                  setKeptMsg(keepPaper(current) ? "Kept on this device (its lines only; your details were already taken out)." : "This browser won't keep it (private mode or storage blocked).");
+                  setSaved(loadPapers());
+                }}
+              >
+                {current && saved.some((x) => x.id === current.id) ? "Kept" : "Keep this paper to compare"}
+              </button>
+              {saved.length > 0 && (
+                <button type="button" className="link text-sm" onClick={() => { forgetPapers(); setSaved([]); setKeptMsg("Forgotten."); }}>Forget kept papers</button>
+              )}
+              {keptMsg && <span role="status" className="text-muted">{keptMsg}</span>}
+            </div>
+          </div>
 
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Your negotiation plan</h3>
