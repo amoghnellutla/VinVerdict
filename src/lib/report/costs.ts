@@ -98,7 +98,21 @@ export function runningFor(a: Analysis, pick = 0, milesPerYear: number, fuelPric
 export type AiDealerLine = { name: string; url: string; line: string };
 export type AiAnswerLine = { q: string; a: string; by: string };
 
+/** The dealer's numbers as checked on the page (personal details already taken out). */
+export type DealSheetPart = {
+  summary: string;
+  hiddenTotal: number;
+  target: number | null;
+  plusTax: boolean;
+  rows: { label: string; amount: number; verdict: string; note: string }[];
+  loan: string | null;
+  message: string;
+  /** A free AI double-checked it (which service). */
+  ai: string | null;
+};
+
 export type CostParts = {
+  dealSheet?: DealSheetPart;
   aiDealers?: { at: string; lines: AiDealerLine[] };
   aiAnswers?: AiAnswerLine[];
   otd?: { input: OtdInput; result: OtdResult };

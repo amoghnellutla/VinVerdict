@@ -8,7 +8,7 @@ import { dealAnswer, type Lever } from "./deal";
 import type { SellContext } from "./sell";
 
 export type Action =
-  | { kind: "go"; label: string; target: "#verdict" | "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" }
+  | { kind: "go"; label: string; target: "#verdict" | "#price-check" | "#check-yourself" | "#history-report" | "#before-you-buy" | "#listing-history" | "#safety" | "#costs" | "#dealer-numbers" }
   | { kind: "link"; label: string; href: string }
   | { kind: "attach"; label: string }
   | { kind: "copy"; label: string; text: string }

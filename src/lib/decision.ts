@@ -170,6 +170,8 @@ export type DecisionInput = {
   /** The price check has run. */
   priced: boolean;
   price: { label: DealLabel | null; low: number; high: number; confidence: "high" | "medium" | "low"; unpriced: string | null } | null;
+  /** The dealer's numbers, once checked on the page: its summary and how many lines to refuse or were wrong. */
+  dealSheet?: { summary: string; wrong: number; remove: number } | null;
 };
 
 const ORDER: Severity[] = ["stop", "verify", "note"];
@@ -286,11 +288,13 @@ export function decide(d: DecisionInput): Decision {
   const payWarning = findings.find((f) => baseId(f.id).startsWith("pay-") && f.severity === "stop");
   const deal: AreaRow = {
     area: "deal",
-    status: payWarning ? "stop" : dw ? dw.severity as AreaStatus : ask.length === 0 ? "ok" : "unchecked",
+    status: payWarning ? "stop" : dw ? dw.severity as AreaStatus : d.dealSheet && (d.dealSheet.wrong || d.dealSheet.remove) ? "verify" : ask.length === 0 ? "ok" : "unchecked",
     line: payWarning
       ? `${payWarning.title}: pay only in person, after seeing the car and title`
       : dw
         ? dw.title
+        : d.dealSheet
+          ? d.dealSheet.summary
         : ask.length === 0
           ? d.dealer
             ? "Dealer says: inspection allowed"

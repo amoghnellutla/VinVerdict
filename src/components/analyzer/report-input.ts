@@ -124,6 +124,7 @@ export function reportInput(s: ReportState): ReportInput {
     auctionSale: s.auctionSale ?? null,
     aiDealers: p.aiDealers ?? null,
     aiAnswers: p.aiAnswers ?? null,
+    dealSheet: p.dealSheet ?? null,
     sources: reportSourceItems({
       a: m, hits: s.selling ? [] : s.hits, live, sources, history: s.rawHistory, recordedAt: s.recordedAt, report: s.answers,
       proofs: s.proofs.map((x) => ({ source: x.source, screenshot: x.screenshot })),

@@ -13,6 +13,7 @@
 import { readProof, type ProofSource } from "@/lib/evidence/parse";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
+import { parseDealSheet } from "@/lib/dealsheet/parse";
 import { checkVin } from "@/lib/vin";
 import { isChat, sellerSide } from "./chat";
 import { termIn } from "./glossary";
@@ -38,6 +39,8 @@ export type Route =
   | { kind: "said"; facts: Fact[] }
   /** A pasted or screenshotted conversation with the seller: their side, checked like a reply. */
   | { kind: "chat"; seller: string; facts: Fact[] }
+  /** The dealer's numbers: sent to "Check the dealer's numbers". */
+  | { kind: "deal-sheet" }
   | { kind: "small-talk" }
   /** A pasted link: VinVerdict doesn't open listing links, so ask for the page's text. */
   | { kind: "link"; host: string }
@@ -115,6 +118,21 @@ const SAID_STRONG = new RegExp(String.raw`${WHO}\b(?:said|says|told me|tells me|
 /** "they want…", "he'd…": a seller's request, but a plain price ("they want 14,500") stays a fact. */
 const SAID_WEAK = new RegExp(String.raw`${WHO}\b(?:wants?|is asking|would|will|'d|'ll)\b`, "i");
 
+/**
+ * A dealer's paper, not a listing page: at least four lines with amounts, a total, and the tax or government
+ * fees itemized with amounts (listing pages say "Taxes & fees" without numbers), plus deal-paper words.
+ */
+export function isDealSheet(text: string): boolean {
+  if (!/buyer'?s order|out[- ]the[- ]door|doc(?:ument\w*)? fee|total (?:cash )?price|amount financed|retail installment|purchase agreement|worksheet|balance due/i.test(text)) return false;
+  const lines = parseDealSheet(text).lines.filter((l) => !l.declined);
+  const has = (k: string) => lines.some((l) => l.kind === k);
+  // A listing page has a price box and a payment calculator ("Total Price", "amount financed") among hundreds of
+  // other lines; a dealer's paper is mostly money lines (or one sentence of them, a texted quote).
+  const textLines = text.split(/\r?\n/).filter((l) => l.trim()).length;
+  const mostlyMoney = lines.length / Math.max(1, textLines) >= 0.2;
+  return lines.length >= 4 && mostlyMoney && (has("total") || has("balanceDue") || has("amountFinanced")) && (has("tax") || has("stateFee"));
+}
+
 /** How many of a listing's key facts a paste has. A price or miles the ad states twice ("not sure") still counts. */
 function listingSignals(l: ParsedListing): number {
   const has = (f: "price" | "miles") => l[f] != null || !!l.unsure?.some((u) => u.field === f);
@@ -169,6 +187,9 @@ export function routeMessage(raw: string, carVin: string | null): Route {
     // The seller's own claims and prices; a ZIP or "dealer/private" in a chat isn't reliable.
     return { kind: "chat", seller, facts: factsFromSentence(seller).filter((f) => f.kind !== "zip" && f.kind !== "seller") };
   }
+
+  // The dealer's numbers (a buyer's order or out-the-door quote): checked line by line in "Check the dealer's numbers".
+  if (text.length >= 80 && isDealSheet(text)) return { kind: "deal-sheet" };
 
   if (text.length >= 80) {
     const listing = parseListing(text);

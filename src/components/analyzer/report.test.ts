@@ -325,3 +325,33 @@ describe("short report: recalls by part, and an unknown seller said once", () =>
     expect(md).toMatch(/\| Seller \| Seller type not stated \|/);
   });
 });
+
+describe("The dealer's numbers in the report", () => {
+  const a = offline("2021 Toyota RAV4 XLE $21,298 31,450 miles dealer stock #T1 doc fee $799. VIN 2T3P1RFV3MW000000");
+  const parts: CostParts = {
+    dealSheet: {
+      summary: "Dealer's numbers: 1 charge to refuse, 1 wrong; up to $1,099 to take off.",
+      hiddenTotal: 1099,
+      target: 23727.43,
+      plusTax: false,
+      rows: [
+        { label: "Vehicle Price", amount: 21998, verdict: "Wrong", note: "$700 more than the ad's price ($21,298)." },
+        { label: "VIN [Etching](https://evil.example) |", amount: 399, verdict: "Remove", note: "Optional add-on." },
+      ],
+      loan: null,
+      message: "Hi, I'm ready to buy the car at $23,727 out the door.",
+      ai: null,
+    },
+  };
+
+  it("lists every line with its verdict, the target and the message, escaped", () => {
+    const md = report(a, null, { parts });
+    checkWellFormed(md);
+    expect(md).toContain("## The dealer's numbers");
+    expect(md).toContain("| Vehicle Price | $21,998.00 | Wrong |");
+    expect(md).toContain("**Out-the-door price to ask for, with every add-on refused:** $23,727");
+    expect(md).toContain("> Hi, I'm ready to buy the car at $23,727 out the door.");
+    expect(outsideFences(md)).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example/);
+    expect(report(a, null)).not.toContain("## The dealer's numbers");
+  });
+});

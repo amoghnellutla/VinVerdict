@@ -284,3 +284,18 @@ describe("the assistant's routing test set", () => {
     for (const [, t] of [...PROOF_PAGES.slice(0, 1), ...AUCTIONS.slice(0, 1)]) expect(routeMessage(t.replaceAll(VIN, other), VIN)).toEqual({ kind: "other-car", vin: other });
   });
 });
+
+describe("a pasted buyer's order goes to the deal check", () => {
+  it("every deal-sheet corpus paper with tax or a balance is recognised; no listing page is", async () => {
+    const { readdirSync } = await import("node:fs");
+    const { routeMessage, isDealSheet } = await import("./route");
+    const dir = "src/lib/dealsheet/corpus/cases";
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".txt") && !x.startsWith("20-"))) {
+      expect(routeMessage(readFileSync(`${dir}/${f}`, "utf8"), null).kind, f).toBe("deal-sheet");
+    }
+    const listings = "src/lib/listing/corpus/cases";
+    for (const f of readdirSync(listings).filter((x) => x.endsWith(".txt"))) {
+      expect(isDealSheet(readFileSync(`${listings}/${f}`, "utf8")), f).toBe(false);
+    }
+  });
+});

@@ -140,3 +140,14 @@ describe("'not checked' lines say what the ad claims (real case 30)", () => {
     expect(car.unknown.join(" ")).toMatch(/Title records: not checked \(the ad says clean; NMVTIS confirms it\)/);
   });
 });
+
+describe("the dealer's numbers in 'Ready to pay'", () => {
+  it("shows the checked paper's summary, and asks to verify when a line is wrong or to refuse", () => {
+    const row = (dealSheet: { summary: string; wrong: number; remove: number } | null) => run({ dealer: true, dealSheet }).areas.find((x) => x.area === "deal")!;
+    const bad = row({ summary: "Dealer's numbers: 3 charges to refuse, 1 wrong.", wrong: 1, remove: 3 });
+    expect(bad.line).toBe("Dealer's numbers: 3 charges to refuse, 1 wrong.");
+    expect(bad.status).toBe("verify");
+    expect(row({ summary: "Dealer's numbers: every line checks out.", wrong: 0, remove: 0 }).line).toBe("Dealer's numbers: every line checks out.");
+    expect(row(null).line).not.toContain("Dealer's numbers");
+  });
+});

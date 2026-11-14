@@ -162,6 +162,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   // A ZIP the person tells VinVerdict is theirs (not the car's): saved like the one typed in the
   // costs section, and the sections that read it start over so they show the new state's numbers.
   const [zipTick, setZipTick] = useState(0);
+  // The dealer's numbers, once checked in "Check the dealer's numbers" (for the verdict's "Ready to pay" row).
+  const [dealChecked, setDealChecked] = useState<{ summary: string; wrong: number; remove: number } | null>(null);
   const tell = (t: Told) => {
     const zip = t.facts?.findLast((f) => f.kind === "zip");
     const st = zip ? zipToState(String(zip.value)) : null;
@@ -339,6 +341,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     listingStatesHistory: accidentHistoryConfirmed(m.listing, EMPTY_REPORT),
     priced: !!sources,
     price: valuation ? { label: valuation.label, low: valuation.low, high: valuation.high, confidence: valuation.confidence, unpriced: valuation.unpriced } : null,
+    dealSheet: dealChecked,
   });
   const hits: Finding[] = decision.findings;
   const make = a.decoded?.make ?? a.listing.make;
@@ -692,7 +695,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           />
           {/* The dealer's paperwork: only dealers have a buyer's order. */}
           {m.listing.sellerType !== "private" && (
-            <DealSheet ad={{ price: m.listing.price, docFee: m.listing.docFee, sellerType: m.listing.sellerType }} car={carName(m)} modelYear={m.decoded?.year ?? m.listing.year} guest={guest} ai={AI_MODE} />
+            <DealSheet ad={{ price: m.listing.price, docFee: m.listing.docFee, sellerType: m.listing.sellerType }} car={carName(m)} modelYear={m.decoded?.year ?? m.listing.year} guest={guest} ai={AI_MODE} onChecked={setDealChecked} />
           )}
           <Safety a={m} />
           <SectionTabs

@@ -18,6 +18,7 @@ import { pickImages, readEachScreenshot, type OcrProgress } from "@/lib/ocr";
 import { shrink } from "./AiHistoryRead";
 import { aiReadAttached, proofFromText, type Attached } from "./CheckYourself";
 import { ATTACH_EVENT, TELL_EVENT } from "./KnowsPanel";
+import { DEAL_EVENT } from "./DealSheet";
 
 /** `read`: a history report waiting for the person's tap (and "I'm human" check) to be read closely. */
 type Msg = { id: string; who: "you" | "vv"; text: string; points?: string[]; actions?: Action[]; note?: string; by?: string; vin?: string; read?: { text: string; label: string; thumb: string | null }; quote?: string; next?: string[] };
@@ -291,6 +292,11 @@ export function Assistant(props: {
             sold ? `Sold for ${$(sold)}` : "No sold price on it: tell VinVerdict what it sold for, if you know",
           ].filter((x): x is string => !!x),
         }, before);
+      }
+      case "deal-sheet": {
+        // The dealer's numbers are checked in their own section, line by line, on this device.
+        window.dispatchEvent(new CustomEvent(DEAL_EVENT, { detail: text }));
+        return say({ text: "That's the dealer's numbers. They're checked line by line in Check the dealer's numbers, with a plan to bring the price down.", actions: [{ kind: "go", label: "See it", target: "#dealer-numbers" }] }, before);
       }
       case "listing": {
         const l = route.listing;

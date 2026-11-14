@@ -27,7 +27,7 @@ import { RULE_SOURCE, type SourceRef } from "@/lib/sources";
 import { DEAL_TEXT, type PriceSources, type Valuation } from "@/lib/value/estimate";
 import type { ManualResult } from "@/lib/value/manual";
 import type { StepGroup } from "./content";
-import type { AiAnswerLine, AiDealerLine, RunningSnapshot } from "./costs";
+import type { AiAnswerLine, AiDealerLine, DealSheetPart, RunningSnapshot } from "./costs";
 import { adOffersHistoryReport } from "./checks";
 import { redact } from "./redact";
 import type { SourceItem } from "./sources";
@@ -81,6 +81,8 @@ export type ReportInput = {
   /** AI mode: dealer pages checked and questions answered on the page, if any. */
   aiDealers?: { at: string; lines: AiDealerLine[] } | null;
   aiAnswers?: AiAnswerLine[] | null;
+  /** The dealer's numbers, when the person checked them on the page. */
+  dealSheet?: DealSheetPart | null;
 };
 
 const AD_LIMIT = 12_000;
@@ -467,6 +469,16 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   }
 
   if (!short) fullOnly(r, push);
+
+  // ----- The dealer's numbers (checked on the page) -----
+  const ds = r.dealSheet;
+  if (ds && ds.rows.length) {
+    push("## The dealer's numbers", "", `Checked on your device${ds.ai ? `, double-checked by a free AI (${esc(ds.ai)})` : ""}. ${esc(ds.summary)}`, "");
+    push(table(["Line", "Amount", "Verdict", "Why"], ds.rows.map((x) => [esc(x.label), cents(x.amount), x.verdict, esc(x.note)])), "");
+    if (ds.loan) push(`**The loan:** ${esc(ds.loan)}`, "");
+    if (ds.target != null) push(`**Out-the-door price to ask for, with every add-on refused:** ${money(ds.target)}${ds.plusTax ? " plus tax" : ""}`, "");
+    push("**Message to the dealer:**", "", `> ${esc(ds.message)}`, "");
+  }
 
   // ----- Found by AI (AI mode on the page) -----
   const dealers = r.aiDealers?.lines.length ? r.aiDealers : null;

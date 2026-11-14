@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useReportPart } from "./report-parts";
 import { readDealSheetAction } from "@/app/actions/ai";
 import { Turnstile } from "@/components/Turnstile";
 import { compareReads, type AiDealRead } from "@/lib/ai/dealsheet-read";
@@ -18,6 +19,9 @@ const MAX_TEXT = 40_000;
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const cents = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** The assistant sends a pasted buyer's order here (its text, already on this device). */
+export const DEAL_EVENT = "vinverdict:deal-sheet";
+
 const BADGE: Record<Verdict, { word: string; cls: string }> = {
   right: { word: "Right", cls: "bg-good-soft text-good" },
   wrong: { word: "Wrong", cls: "bg-bad-soft text-bad" },
@@ -32,7 +36,7 @@ const BADGE: Record<Verdict, { word: string; cls: string }> = {
  * text), and every line is read and checked on this device, with a negotiation plan that assumes every add-on is
  * refused. Nothing is uploaded; the buyer's own details are taken out before anything is shown.
  */
-export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false }: {
+export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false, onChecked = null }: {
   ad: AdFacts | null;
   car?: string | null;
   modelYear?: number | null;
@@ -42,6 +46,8 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
   guest?: boolean;
   /** AI mode is on. */
   ai?: boolean;
+  /** The result's verdict shows the outcome in its "Ready to pay" row. */
+  onChecked?: ((s: { summary: string; wrong: number; remove: number } | null) => void) | null;
 }) {
   const [text, setText] = useState("");
   const [read, setRead] = useState<{ text: string; from: string; removed: number } | null>(null);
@@ -113,6 +119,48 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     const plan = negotiationPlan({ sheet, check: c, ad, state: st, modelYear, car, myAprPct: apr != null && Number.isFinite(apr) ? apr : null });
     return { sheet, c, plan, both };
   }, [read, ad, st, modelYear, car, apr, aiRead]);
+
+  // A buyer's order pasted into the assistant is checked here.
+  useEffect(() => {
+    const onPaste = (e: Event) => {
+      const t = (e as CustomEvent<unknown>).detail;
+      if (typeof t !== "string" || !t.trim()) return;
+      check(t, "what you pasted to the assistant");
+      document.getElementById("dealer-numbers")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener(DEAL_EVENT, onPaste);
+    return () => window.removeEventListener(DEAL_EVENT, onPaste);
+  });
+
+  // The downloadable report and the verdict's "Ready to pay" row follow what's shown here.
+  useReportPart(
+    "dealSheet",
+    useMemo(
+      () =>
+        result && result.sheet.lines.length
+          ? {
+              summary: result.c.summary,
+              hiddenTotal: result.c.hiddenTotal,
+              target: result.plan.target,
+              plusTax: result.plan.plusTax,
+              rows: result.c.rows.map((r) => ({ label: r.line.label, amount: r.line.amount, verdict: BADGE[r.verdict].word, note: r.note })),
+              loan: result.c.loan?.note ?? null,
+              message: result.plan.message,
+              ai: aiRead?.provider ?? null,
+            }
+          : null,
+      [result, aiRead],
+    ),
+  );
+  useEffect(() => {
+    if (!onChecked) return;
+    if (!result || !result.sheet.lines.length) return onChecked(null);
+    onChecked({
+      summary: result.c.summary,
+      wrong: result.c.rows.filter((r) => r.verdict === "wrong").length + (result.c.loan?.verdict === "wrong" ? 1 : 0),
+      remove: result.c.rows.filter((r) => r.verdict === "remove").length,
+    });
+  }, [result, onChecked]);
 
   async function askAi() {
     if (!read || aiBusy || (guest && !token)) return;
