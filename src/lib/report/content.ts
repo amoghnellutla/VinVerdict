@@ -4,6 +4,7 @@
  */
 
 import type { Analysis } from "@/lib/analyze";
+import { priceWithFee } from "@/lib/format";
 import { STATE_TAX } from "@/lib/costs/stateTax";
 import { STATES, type StateCode } from "@/lib/geo/zip";
 import type { SellerType } from "@/lib/listing/parse";
@@ -121,7 +122,7 @@ export function carFactRows(a: Analysis, live: LiveListing | null): [string, str
     ["Transmission", l.transmission === "unknown" ? null : cap(l.transmission), d?.transmission ?? null, null],
     ["Drive", null, d?.driveType ?? null, null],
     ["Fuel", null, d?.fuel ?? null, null],
-    ["Price", money(l.price), null, money(live?.price ?? null)],
+    ["Price", priceWithFee(l), null, money(live?.price ?? null)],
     ["Miles", mi(l.miles), null, mi(live?.miles ?? null)],
     ["Title", l.titleStatus === "unknown" ? null : cap(l.titleStatus), null, live?.cleanTitle ? "Carfax clean-title flag on the listing" : null],
     ["Accidents", l.accident === "unknown" ? null : l.accident === "none" ? "None mentioned" : "Reported", null, liveAccidents],

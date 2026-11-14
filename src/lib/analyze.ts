@@ -114,9 +114,9 @@ export async function analyzeListing(text: string): Promise<Analysis> {
         const rv = rc.status === "fulfilled" ? (rc.value as Recall[]) : null;
         const cv = cc.status === "fulfilled" ? (cc.value as ComplaintSummary) : null;
         if (!rv && !cv) return null;
-        return { year, recalls: rv?.length ?? null, complaints: cv?.total ?? null, crashOrFire: cv ? cv.crashes + cv.fires : null };
+        return { year, recalls: rv?.length ?? null, complaints: cv?.total ?? null, crashOrFire: cv ? (cv.crashOrFire ?? cv.crashes + cv.fires) : null };
       };
-      const mine: YearRow = { year: vehicle.year, recalls: recalls?.length ?? null, complaints: complaints.total, crashOrFire: complaints.crashes + complaints.fires };
+      const mine: YearRow = { year: vehicle.year, recalls: recalls?.length ?? null, complaints: complaints.total, crashOrFire: complaints.crashOrFire ?? complaints.crashes + complaints.fires };
       const others = neighbours.map((y, i) => row(y, near[i * 2], near[i * 2 + 1])).filter((x): x is YearRow => x !== null);
       // Only worth showing when the other years have data too (a brand-new model has none).
       if (others.some((o) => (o.complaints ?? 0) > 0 || (o.recalls ?? 0) > 0)) years = [...others, mine].sort((a, b) => a.year - b.year);

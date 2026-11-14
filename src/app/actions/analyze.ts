@@ -2,7 +2,7 @@
 
 import { looksLikeCar, NOT_A_CAR } from "@/lib/listing/looks-like-car";
 
-import { makeName } from "@/lib/format";
+import { dealerFee, makeName } from "@/lib/format";
 import { analyzeListing, type Analysis } from "@/lib/analyze";
 import { currentUser } from "@/lib/auth/session";
 import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
@@ -98,7 +98,7 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
       risk: v.risk,
       facts: {
         year: d?.year ?? l.year, make: makeName(d?.make) ?? l.make, model: d?.model ?? l.model, trim: d?.trim ?? null,
-        seller: l.sellerType, accident: l.accident, title: l.titleStatus, owners: l.ownerCount, usage: l.usage, zip: l.zip,
+        seller: l.sellerType, accident: l.accident, title: l.titleStatus, owners: l.ownerCount, usage: l.usage, zip: l.zip, docFee: dealerFee(l) || null,
         phones: l.phones,
         findings: [...v.hits].sort((x, y) => order[x.action] - order[y.action]).filter((h) => h.action !== "info").slice(0, 5).map((h) => h.title),
       },

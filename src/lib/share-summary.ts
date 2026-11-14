@@ -6,12 +6,13 @@
  */
 
 import { AREA_LABEL, type Decision } from "@/lib/decision";
+import { usdWithFee } from "@/lib/format";
 
 const SITE = "https://vinverdict.vercel.app";
 const WORD = { stop: "Warning", verify: "Check", ok: "OK so far", unchecked: "Not checked" } as const;
 
-export function shareSummary(car: { name: string; price: number | null; miles: number | null; vin: string | null }, d: Decision): string {
-  const facts = [car.price != null ? `$${car.price.toLocaleString("en-US")}` : null, car.miles != null ? `${car.miles.toLocaleString("en-US")} miles` : null]
+export function shareSummary(car: { name: string; price: number | null; dealerFee?: number; miles: number | null; vin: string | null }, d: Decision): string {
+  const facts = [car.price != null ? usdWithFee(car.price, car.dealerFee) : null, car.miles != null ? `${car.miles.toLocaleString("en-US")} miles` : null]
     .filter(Boolean)
     .join(", ");
   const warnings = d.findings.filter((f) => f.severity !== "note").slice(0, 4);

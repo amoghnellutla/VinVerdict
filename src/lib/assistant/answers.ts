@@ -27,6 +27,8 @@ export type PageContext = {
   checks: string[];
   unknowns: string[];
   price: number | null;
+  /** The dealer's fee the ad adds on top of the price (Autotrader "Dealer Fee + $799"), or 0. */
+  dealerFee?: number;
   /** Price estimate, when the price check ran. */
   estimate: { low: number; high: number; label: string | null; open: number | null; walk: number | null; basis?: string } | null;
   auctionSold: number | null;
@@ -164,7 +166,7 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
   switch (intent) {
     case "offer": {
       const d = dealAnswer({
-        car: c.car, asking: c.price, auctionSold: c.auctionSold, auctionDate: c.auctionDate,
+        car: c.car, asking: c.price, dealerFee: c.dealerFee, auctionSold: c.auctionSold, auctionDate: c.auctionDate,
         estimate: c.estimate ? { low: c.estimate.low, high: c.estimate.high, open: c.estimate.open, walk: c.estimate.walk, basis: c.estimate.basis } : null,
         otherListing: c.otherListing, leverage: c.leverage, dealer: c.dealer,
         scam: c.trust.stops, concerns: c.trust.checks, inspection: c.inspection ?? null,
@@ -211,7 +213,7 @@ export function answerIntent(intent: string, c: PageContext, question = ""): Rep
         if (!comps) rest.push("That's from one guide value and wasn't compared with cars for sale: run the price check to see what similar cars ask nearby.");
         return { text: head, points: rest, actions: [{ kind: "go", label: "See the price details", target: "#price-check" }] };
       }
-      if (c.price) points.push(`Asking price: ${$(c.price)}.`);
+      if (c.price) points.push(c.dealerFee ? `Asking price: ${$(c.price + c.dealerFee)} (${$(c.price)} + ${$(c.dealerFee)} dealer fee).` : `Asking price: ${$(c.price)}.`);
       return c.estimate
         ? { text: "Here's the price, from this page:", points, actions: [{ kind: "go", label: "See the price details", target: "#price-check" }] }
         : {

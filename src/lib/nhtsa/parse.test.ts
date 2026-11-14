@@ -125,13 +125,18 @@ describe("summarizeComplaints", () => {
       ],
     });
     expect(s).toEqual({
-      total: 3, crashes: 1, fires: 1, injuries: 2, deaths: 0,
+      total: 3, crashes: 1, fires: 1, crashOrFire: 2, injuries: 2, deaths: 0,
       topComponents: [
         { component: "ELECTRICAL SYSTEM", count: 2, samples: [] },
         { component: "ENGINE", count: 1, samples: [] },
       ],
       byPrefix: {},
     });
+  });
+
+  it("counts a complaint with both a crash and a fire once in crash-or-fire", () => {
+    const s = summarizeComplaints({ results: [{ crash: true, fire: true }, { crash: true, fire: false }, { crash: false, fire: false }] });
+    expect([s.crashes, s.fires, s.crashOrFire]).toEqual([2, 1, 2]);
   });
 
   it("keeps the newest owner reports per area and counts VIN prefixes", () => {

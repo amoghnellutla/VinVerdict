@@ -177,6 +177,8 @@ export type ComplaintSummary = {
   total: number;
   crashes: number;
   fires: number;
+  /** Complaints that involved a crash, a fire or both, each counted once. */
+  crashOrFire?: number;
   injuries: number;
   deaths: number;
   /** Each common problem area with the most recent owner reports about it. */
@@ -210,10 +212,11 @@ export function summarizeComplaints(body: unknown, top = 5, samplesEach = 2): Co
   const counts = new Map<string, number>();
   const reports = new Map<string, ComplaintSample[]>();
   const byPrefix: Record<string, number> = {};
-  let crashes = 0, fires = 0, injuries = 0, deaths = 0;
+  let crashes = 0, fires = 0, crashOrFire = 0, injuries = 0, deaths = 0;
   for (const r of rows) {
     if (r.crash === true) crashes++;
     if (r.fire === true) fires++;
+    if (r.crash === true || r.fire === true) crashOrFire++;
     injuries += Number(r.numberOfInjuries) || 0;
     deaths += Number(r.numberOfDeaths) || 0;
     const prefix = String(r.vin ?? "").toUpperCase().slice(0, 8);
@@ -240,7 +243,7 @@ export function summarizeComplaints(body: unknown, top = 5, samplesEach = 2): Co
         .sort((a, b) => (b.filed ?? "").localeCompare(a.filed ?? "") || b.odi - a.odi)
         .slice(0, samplesEach),
     }));
-  return { total: rows.length, crashes, fires, injuries, deaths, topComponents, byPrefix };
+  return { total: rows.length, crashes, fires, crashOrFire, injuries, deaths, topComponents, byPrefix };
 }
 
 /** How many complaints came from cars whose VIN starts like this one (null when unknown). */

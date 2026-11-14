@@ -37,7 +37,7 @@
 
 **Facts about this exact car.** The VIN is decoded by NHTSA and compared with the ad. Every past listing of the VIN shows who sold it, when, for how much and at what miles. Recalls and owner complaints come for its model year.
 
-**Rules you can check, not a guess.** The same listing always gets the same answer, from more than 50 checks tied to FBI, FTC and NICB guidance. In the [test set](#accuracy-measured-not-claimed) it caught 50 of 50 scam ads with 0 false alarms on 71 honest ones.
+**Rules you can check, not a guess.** The same listing always gets the same answer, from more than 50 checks tied to FBI, FTC and NICB guidance. In the [test set](#accuracy-measured-not-claimed) it caught 50 of 50 scam ads with 0 false alarms on 72 honest ones.
 
 **Free and private.** No sign-up. Screenshots are read on your phone, nothing you paste is saved, and the code refuses anything that would cost money. It never says a car is "safe"; it says what's still unknown.
 
@@ -149,8 +149,8 @@ Every ad below is labelled by hand as a scam or as an honest ad that uses the sa
 | Checked by | Scams caught | False alarms on honest ads | Warnings that were right |
 | --- | :-: | :-: | :-: |
 | VinVerdict, **held-out ads** (never used to tune the rules) | 12 / 12 | 0 / 13 | 100% |
-| VinVerdict, tuning ads | 38 / 38 | 0 / 58 | 100% |
-| A keyword filter (payment app, shipping, deposit, away) | 33 / 38 | **28 / 58** | 54% |
+| VinVerdict, tuning ads | 38 / 38 | 0 / 59 | 100% |
+| A keyword filter (payment app, shipping, deposit, away) | 33 / 38 | **29 / 59** | 53% |
 | VinVerdict, **seller replies** | 12 / 12 | 0 / 13 | 100% |
 | The keyword filter, same replies | 10 / 12 | **7 / 13** | 59% |
 
@@ -159,18 +159,19 @@ A keyword filter catches most scams but warns on half the honest ads. VinVerdict
 > [!NOTE]
 > Most test ads are written from published scam patterns. The real listings collected so far are all honest, and none got a false alarm. Real-world numbers will be lower, and they're reported separately as real listings are added. A trained model (naive Bayes) is scored next to the rules on every change ([`learned.ts`](src/lib/scam/eval/learned.ts)); it misses 12 of the 38 tuning scams, so it changes no answer.
 
-**Listing parser:** 33 real listing pages (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong became a test case. From the `npm test` output:
+**Listing parser:** 34 real listing pages (Facebook, Craigslist, Autotrader, Cars.com, CarGurus, CarMax, Carvana, dealer sites) are tested field by field in [`listing/corpus/`](src/lib/listing/corpus/). Every listing it once got wrong became a test case. From the `npm test` output:
 
 ```
-Listing corpus scorecard (33 cases)
-  price        33/33    miles        30/30    year         29/29
-  make         28/28    model        28/28    vin          15/15
-  accident     24/24    titleStatus  20/20    sellerType   24/24
-  transmission 18/18    ownerCount   17/17    verdict      27/27
-  rules fired  38/38    false alarms avoided  165/165
+Listing corpus scorecard (34 cases)
+  price        34/34    docFee       10/10    miles        31/31
+  year         30/30    make         29/29    model        29/29
+  vin          16/16    exteriorColor 15/15   accident     25/25
+  titleStatus  21/21    sellerType   25/25    transmission 19/19
+  ownerCount   18/18    verdict      28/28    rules fired  38/38
+  false alarms avoided  192/192
 ```
 
-**The assistant:** 170+ labelled messages and every real listing page must route correctly ([`eval.test.ts`](src/lib/assistant/eval.test.ts)). **The dataset:** all 149 labelled rows are in [`dataset/vinverdict-labelled.jsonl`](dataset/), with a [description](dataset/README.md) of how they were labelled.
+**The assistant:** 170+ labelled messages and every real listing page must route correctly ([`eval.test.ts`](src/lib/assistant/eval.test.ts)). **The dataset:** all 150 labelled rows are in [`dataset/vinverdict-labelled.jsonl`](dataset/), with a [description](dataset/README.md) of how they were labelled.
 
 ## Free, private and secure
 

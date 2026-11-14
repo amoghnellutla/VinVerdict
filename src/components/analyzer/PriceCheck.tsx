@@ -12,6 +12,7 @@ import type { LiveListing } from "@/lib/live/parse";
 import type { Comp, CompEstimate } from "@/lib/value/comps";
 import { DEAL_TEXT, fmt, type DealLabel, type PriceSources, type Valuation } from "@/lib/value/estimate";
 import { basisText, priceBasis } from "@/lib/value/basis";
+import { dealerFee } from "@/lib/format";
 import { LiveFacts } from "./LiveListing";
 import { LookupProgress, useElapsed } from "./LookupProgress";
 import { SellValue } from "./SellValue";
@@ -218,7 +219,7 @@ export function PriceCheck(props: Props) {
       {!done && v && !selling && (
         <div className="mb-6 space-y-4">
           <p className="text-sm text-muted">From the price guide value you told VinVerdict (in the box above). The check below compares it with cars for sale nearby.</p>
-          {v.unpriced ? <p className="rounded-md bg-warn-soft px-4 py-3">{v.unpriced}</p> : <ValueSummary v={v} price={l.price} />}
+          {v.unpriced ? <p className="rounded-md bg-warn-soft px-4 py-3">{v.unpriced}</p> : <ValueSummary v={v} price={l.price} fee={dealerFee(l)} />}
           <Sources v={v} />
         </div>
       )}
@@ -247,7 +248,7 @@ export function PriceCheck(props: Props) {
             )
           ) : v ? (
             <>
-              <ValueSummary v={v} price={l.price} />
+              <ValueSummary v={v} price={l.price} fee={dealerFee(l)} />
               {done.sources && <PriceBasis sources={done.sources} miles={l.miles} />}
             </>
           ) : (
@@ -286,7 +287,7 @@ export function PriceCheck(props: Props) {
   );
 }
 
-function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
+function ValueSummary({ v, price, fee = 0 }: { v: Valuation; price: number | null; fee?: number }) {
   if (v.unpriced) {
     return (
       <div className="space-y-2">
@@ -311,6 +312,12 @@ function ValueSummary({ v, price }: { v: Valuation; price: number | null }) {
         {diff !== null && Math.abs(diff) >= 100 && (
           <p className="nums text-muted">
             The asking price is {fmt(Math.abs(diff))} {diff > 0 ? "under" : "over"} the most likely price.
+          </p>
+        )}
+        {price !== null && fee > 0 && (
+          <p className="nums text-sm text-muted">
+            Compared using {fmt(price)}, the price before the dealer&apos;s {fmt(fee)} fee. The offer below is for that price too; the fee
+            comes on top (see Out the door).
           </p>
         )}
         <p className="mt-1 text-sm text-muted">

@@ -26,6 +26,8 @@ export type CarFacts = {
   owners?: number | null;
   usage?: string | null;
   zip?: string | null;
+  /** The dealer's fee the ad added on top of the price (Autotrader "Dealer Fee + $799"). */
+  docFee?: number | null;
   /** Top findings, most serious first ("Accident reported", "Very high miles…"). */
   findings?: string[];
   fair?: number | null;

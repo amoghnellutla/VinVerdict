@@ -3,6 +3,7 @@
  * this check found and what's still unknown. Pure; plain text only.
  */
 
+import { priceWithFee } from "@/lib/format";
 import type { ParsedListing } from "@/lib/listing/parse";
 import type { RuleHit, SellerChecklist } from "@/lib/scam/rules";
 
@@ -98,7 +99,8 @@ export function sellerMessage(m: MessageInput): string {
       ];
   const asked = [...q.slice(0, MAX_QUESTIONS - photo.length), ...photo];
 
-  const priced = l.price ? ` listed at $${l.price.toLocaleString("en-US")}` : "";
+  // The ad's own total when it adds a dealer fee: "listed at $22,097 ($21,298 + $799 dealer fee)".
+  const priced = l.price ? ` listed at ${priceWithFee(l)}` : "";
   return [
     `Hi, I'm interested in your ${m.carName}${priced}. Before I come to see it, could you tell me:`,
     "",

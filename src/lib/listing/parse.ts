@@ -391,14 +391,17 @@ const PAINT: Record<string, string> = {
 function findColor(text: string): string | null {
   // "Ext. Color: Wind Chill Pearl" (toyota.com): the maker's paint name, labelled as the exterior.
   const names = Object.keys(PAINT).sort((a, b) => b.length - a.length).join("|"); // "obsidian blue" before "obsidian"
-  const paint = text.match(new RegExp(`\\b(?:exterior|ext\\.?)(?: colou?r)?[:\\s-]*(${names})\\b`));
+  // Not when the paint name is the next line's interior: Autotrader's "Sterling Gray Metallic Exterior /
+  // Jet Black With Red Accents Interior" reads "exterior jet black with red accents interior" (case 34).
+  const notInterior = String.raw`(?!(?: [a-z/-]+){0,4} interior\b(?!:| colou?r))`; // "Interior: Gray" is the next label, so that one is fine
+  const paint = text.match(new RegExp(`\\b(?:exterior|ext\\.?)(?: colou?r)?[:\\s-]*(${names})\\b${notInterior}`));
   if (paint) return PAINT[paint[1]];
   const list = COLORS.join("|");
   const labelled =
     // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
     // Not a part's colour ("Exterior: Black Grille", "black side windows trim") or the next
     // line's interior ("Gravity Grey Exterior / Black Interior" reads "exterior black interior").
-    text.match(new RegExp(`(?:exterior|\\bext\\.?)(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
+    text.match(new RegExp(`(?:exterior|\\bext\\.?)(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b${notInterior}(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
     text.match(new RegExp(`(?<!(?:interior|\\bint\\.?) )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));
@@ -557,6 +560,15 @@ function findDealerName(raw: string): string | null {
     const name = lines[i];
     if (!/^(?:open(?: today| now)?|closed(?: now| today)?)\b|^hours\b/i.test(lines[i + 1])) continue;
     if (name.length > 60 || !/^[A-Z0-9][\w&'.-]*(?: [\w&'.-]+){1,7}$/.test(name) || !DEALER_WORD.test(name)) continue;
+    return name;
+  }
+  // The dealer's own blurb: "Chevrolet-Cadillac of Turnersville, located at the Turnersville AutoMall, ..." (case 34).
+  // Only a business-shaped name ("X of Place", "... Motors", "... Auto Group") that starts a line, never "My Honda, located in".
+  for (const line of lines) {
+    const m = line.match(/^((?!(?:My|Our|This|The|It|Your|His|Her)\b)[A-Z][\w&'.-]*(?: [A-Z0-9][\w&'.-]*){0,5}(?: of(?: [A-Z][\w&'.-]*){1,3})?),? (?:is )?located (?:at|in|on)\b/);
+    if (!m) continue;
+    const name = m[1];
+    if (name.length > 60 || !DEALER_WORD.test(name) || !(/ of [A-Z]/.test(name) || /\b(?:motors?|auto(?:s|motive| group| mall|plex)|cars|dealership)$/i.test(name))) continue;
     return name;
   }
   return null;

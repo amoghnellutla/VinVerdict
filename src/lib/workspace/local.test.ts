@@ -11,6 +11,7 @@ const empty: Workspace = { version: 1, cars: [] };
 describe("workspace", () => {
   it("round-trips a saved car", () => {
     expect(parseCar(JSON.parse(JSON.stringify(car())))).toEqual(car());
+    expect(parseCar(JSON.parse(JSON.stringify(car({ dealerFee: 799 }))))?.dealerFee).toBe(799);
   });
 
   it("refuses or cleans a tampered import", () => {

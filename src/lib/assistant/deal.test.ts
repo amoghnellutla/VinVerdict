@@ -17,7 +17,7 @@ describe("What should I offer? (numbers only from the page)", () => {
     expect(d.points[0]).toContain("aren't known, so not all of that is profit");
     expect(d.points.join(" ")).toContain("Fast Track Motors lists the same VIN for $13,995, $1,000 less");
     expect(d.message).toContain("it sold at a dealer auction for $9,100 on 10/14/2026, and Fast Track Motors lists the same car for $13,995");
-    expect(d.message).toContain("Would you take $13,400 out the door?");
+    expect(d.message).toContain("Would you take $13,400 for the car, before tax and fees? Please send the out-the-door price with every fee listed.");
     expect(d.message).toContain("my own mechanic to inspect it");
   });
 
@@ -65,5 +65,14 @@ describe("What should I offer? (numbers only from the page)", () => {
 
   it("with nothing to go on, it asks for the price", () => {
     expect(dealAnswer({ ...base, asking: null, auctionSold: null, estimate: null, otherListing: null }).text).toContain("needs the asking price");
+  });
+});
+
+describe("a dealer fee on top of the price (real case 34)", () => {
+  it("names the ad's total in the message and keeps the offer a price for the car", () => {
+    const d = dealAnswer({ car: "2024 Chevrolet Trax 2RS", asking: 21_298, dealerFee: 799, auctionSold: null, auctionDate: null, estimate: { low: 20_000, high: 23_000, open: 20_500, walk: 22_000 }, otherListing: null, leverage: [], dealer: true });
+    expect(d.message).toContain("listed at $22,097 ($21,298 + $799 dealer fee)");
+    expect(d.message).toContain("Would you take $20,500 for the car, before tax and fees?");
+    expect(d.message).not.toMatch(/\$20,500 out the door/);
   });
 });

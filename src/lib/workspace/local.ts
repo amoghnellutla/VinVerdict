@@ -28,6 +28,8 @@ export type SavedCar = {
   text: string;
   vin: string | null;
   price: number | null;
+  /** The dealer's fee the ad added on top of the price. */
+  dealerFee?: number | null;
   miles: number | null;
   level: Level;
   verdict: string;
@@ -69,6 +71,7 @@ export function parseCar(raw: unknown): SavedCar | null {
     id, savedAt, title, text, level,
     vin: vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(vin) ? vin : null,
     price: num(r.price),
+    ...(num(r.dealerFee) ? { dealerFee: num(r.dealerFee) } : {}),
     miles: num(r.miles),
     verdict: str(r.verdict, MAX_LINE) ?? "",
     areas,

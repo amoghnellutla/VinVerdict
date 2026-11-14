@@ -4,7 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { getCars, priceChange, type SavedCar } from "@/lib/cars/store";
-import { mi, usd, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
+import { mi, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
 
 export const metadata: Metadata = { title: "Compare" };
@@ -45,7 +45,7 @@ async function CompareTable({ ids: raw }: { ids: string[] }) {
   const under = (c: SavedCar) => (c.facts.fair && c.price ? c.facts.fair - c.price : null);
   const rows: { label: string; cell: (c: SavedCar) => ReactNode; bestOf?: number | null; num?: (c: SavedCar) => number | null | undefined }[] = [
     { label: "Verdict", cell: (c) => <span className={`tag ${VERDICT_TAG[c.verdict]}`}>{VERDICT_TEXT[c.verdict]}</span> },
-    { label: "Price", cell: (c) => usd(c.price), num: (c) => c.price, bestOf: best(cars.map((c) => c.price)) },
+    { label: "Price", cell: (c) => usdWithFee(c.price, c.facts.docFee), num: (c) => c.price, bestOf: best(cars.map((c) => c.price)) },
     { label: "Price check", cell: (c) => (c.dealLabel ? DEAL_TEXT[c.dealLabel] : "Not checked") },
     { label: "Fair range", cell: (c) => (c.fairLow && c.fairHigh ? `${usd(c.fairLow)}–${usd(c.fairHigh)}` : "—") },
     { label: "Under fair price by", cell: (c) => { const u = under(c); return u === null ? "—" : u >= 0 ? usd(u) : `over by ${usd(-u)}`; }, num: under, bestOf: best(cars.map(under), false) },

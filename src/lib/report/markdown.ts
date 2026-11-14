@@ -15,6 +15,7 @@ import type { OtdInput, OtdResult } from "@/lib/costs/outTheDoor";
 import type { Ownership } from "@/lib/costs/ownership";
 import { AREA_LABEL, EVIDENCE_LABEL, SEVERITY_LABEL, STATUS_WORD, type Decision } from "@/lib/decision";
 import { STATES, type StateCode } from "@/lib/geo/zip";
+import { dealerFee, priceWithFee } from "@/lib/format";
 import { DAMAGE_LABEL, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
 import type { HistorySummary } from "@/lib/history/summary";
 import type { Checklist as Inspection } from "@/lib/inspection";
@@ -106,7 +107,7 @@ function table(head: string[], rows: Cell[][]): string {
 const notRun = (what: string, why: string) => `_${what}: ${why}_`;
 
 /** Bumped when the layout or the data header changes, so a saved report says which layout it uses. */
-export const REPORT_FORMAT = 2;
+export const REPORT_FORMAT = 3; // 3: dealer_fee_usd in the data header
 /** The short version quotes less of the ad, so it fits small chat boxes. */
 const SHORT_AD_LIMIT = 3_000;
 /** Sections the short version keeps (the rest are in the full report). Numbers stay the same in both. */
@@ -145,6 +146,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
     `car: ${JSON.stringify(r.name)}`,
     `vin: ${vin ? JSON.stringify(vin) : "null"}`,
     `asking_price_usd: ${l.price ?? "null"}`,
+    `dealer_fee_usd: ${dealerFee(l) || "null"}`,
     `miles: ${l.miles ?? "null"}`,
     `seller: ${l.sellerType}`,
     `verdict: ${JSON.stringify(r.decision.title)}`,
@@ -172,11 +174,13 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   const stops = r.decision.findings.filter((f) => f.severity === "stop");
   const verifies = r.decision.findings.filter((f) => f.severity === "verify");
   const unknowns = r.decision.areas.flatMap((x) => x.unknown);
+  // "$22,097 ($21,298 + $799 dealer fee)": the ad's total; the estimate compares the price before the fee.
+  const asked = priceWithFee(l) ?? money(l.price);
   const priceLine = v0
-    ? `${money(l.price)}: ${v0.label ? `${DEAL_TEXT[v0.label]}, ` : ""}estimate ${money(v0.low)}–${money(v0.high)} (${v0.confidence} confidence)`
+    ? `${asked}: ${v0.label ? `${DEAL_TEXT[v0.label]}, ` : ""}estimate ${money(v0.low)}–${money(v0.high)} (${v0.confidence} confidence)${dealerFee(l) ? `, compared using ${money(l.price)}, the price before the dealer fee` : ""}`
     : r.valuation?.unpriced
-      ? `${money(l.price)}: not priced (${r.valuation.unpriced})`
-      : `${money(l.price)}: not priced yet`;
+      ? `${asked}: not priced (${r.valuation.unpriced})`
+      : `${asked}: not priced yet`;
   const sellerLine = [l.sellerType === "unknown" ? "Seller type not stated" : l.sellerType === "dealer" ? "Dealer" : "Private seller", l.distanceMiles != null ? `${l.distanceMiles.toLocaleString("en-US")} miles away` : null, !["Dealer", "Private seller", "Seller type unknown"].includes(r.protection.name) ? r.protection.name : null].filter(Boolean).join(", ");
   push(
     "## At a glance",

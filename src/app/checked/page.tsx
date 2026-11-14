@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { listCars, priceChange } from "@/lib/cars/store";
-import { mi, shortDate, usd, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
+import { mi, shortDate, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
 
 export const metadata: Metadata = { title: "My cars" };
@@ -42,7 +42,7 @@ async function CarList() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4">
                   <Link href={`/car/${c.id}`} className="font-serif text-lg font-semibold hover:underline">{c.title}</Link>
-                  <span className="nums font-semibold">{usd(c.price)}</span>
+                  <span className="nums font-semibold">{usdWithFee(c.price, c.facts.docFee)}</span>
                 </div>
                 <div className="nums mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] text-muted">
                   <span className={`tag ${VERDICT_TAG[c.verdict]}`}>{VERDICT_TEXT[c.verdict]}</span>

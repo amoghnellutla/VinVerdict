@@ -19,6 +19,8 @@ export type KnowsInput = {
   car: string | null;
   vin: string | null;
   price: number | null;
+  /** The dealer's fee the ad adds on top (Autotrader "Dealer Fee + $799"), shown with the price. */
+  dealerFee?: number;
   miles: number | null;
   /** Where the miles come from when it isn't the ad ("Carfax's last reading"). */
   milesFrom?: string | null;
@@ -53,7 +55,7 @@ export function knowsList(k: KnowsInput): Known[] {
       ? { key: "vin", label: "The exact car", done: true, detail: `${k.car ?? "Decoded"} (VIN checked)`, action: null }
       : { key: "vin", label: "The exact car", done: false, detail: "No valid VIN yet", action: { kind: "tell", label: "Add the VIN", prefill: "VIN: " } },
     k.price
-      ? { key: "price", label: "Asking price", done: true, detail: $(k.price), action: null }
+      ? { key: "price", label: "Asking price", done: true, detail: k.dealerFee ? `${$(k.price + k.dealerFee)} (${$(k.price)} + ${$(k.dealerFee)} dealer fee)` : $(k.price), action: null }
       : { key: "price", label: "Asking price", done: false, detail: "Not known", action: { kind: "tell", label: "Tell the price", prefill: "They're asking $" } },
     k.miles
       ? { key: "miles", label: "Miles", done: true, detail: `${k.miles.toLocaleString("en-US")} miles${k.milesFrom ? ` (${k.milesFrom})` : ""}`, action: null }

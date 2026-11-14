@@ -16,6 +16,8 @@ export type Lever = { id: string; title: string };
 export type DealInput = {
   car: string;
   asking: number | null;
+  /** The dealer's fee the ad adds on top of the asking price, or 0. The offer is for the price before it. */
+  dealerFee?: number;
   auctionSold: number | null;
   auctionDate: string | null;
   estimate: { low: number; high: number; open: number | null; walk: number | null; basis?: string } | null;
@@ -112,18 +114,25 @@ export function dealAnswer(input: DealInput): DealAnswer {
     d.otherListing && (!d.asking || d.otherListing.price < d.asking) ? `${d.otherListing.seller} lists the same car for ${$(d.otherListing.price)}` : null,
     ...said.slice(0, 2),
   ].filter((x): x is string => !!x);
+  // The ad's own total when it adds a dealer fee: "listed at $22,097 ($21,298 + $799 dealer fee)".
+  const fee = d.dealer && d.dealerFee ? d.dealerFee : 0;
+  const listed = d.asking ? (fee ? `${$(d.asking + fee)} (${$(d.asking)} + ${$(fee)} dealer fee)` : $(d.asking)) : "";
   // Once the buyer's mechanic has seen it, the message is a follow-up, not a first contact.
   const inspected = !!d.inspection;
   const message = cheap
     ? [
-        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car} listed at ${$(d.asking!)}.`,
+        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car} listed at ${listed}.`,
         found ? `My mechanic's inspection found this: ${found}. Would you fix it first, or take the repair cost off?` : "Before I come to see it: why is it priced below similar cars, and is there anything I should know about its history or title?",
         inspected ? "Thanks!" : "If my mechanic's inspection checks out, I'm ready to buy. Thanks!",
       ].join(" ")
     : [
-        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car}${d.asking ? ` listed at ${$(d.asking)}` : ""}.`,
+        `Hi, ${inspected ? "about" : "I'm interested in"} the ${d.car}${d.asking ? ` listed at ${listed}` : ""}.`,
         reasons.length ? `${inspected ? "Having had it inspected" : "Before I come in"}: ${reasons.join(", and ")}.` : null,
-        offer ? `Would you take ${$(offer)}${d.dealer ? " out the door" : ""}?` : `What's your best ${d.dealer ? "out-the-door " : ""}price, with every fee listed?`,
+        offer
+          ? d.dealer
+            ? `Would you take ${$(offer)} for the car, before tax and fees? Please send the out-the-door price with every fee listed.`
+            : `Would you take ${$(offer)}?`
+          : `What's your best ${d.dealer ? "out-the-door " : ""}price, with every fee listed?`,
         inspected ? "Thanks!" : "I'd like my own mechanic to inspect it before I buy. Thanks!",
       ].filter(Boolean).join(" ");
 

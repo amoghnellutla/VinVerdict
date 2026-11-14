@@ -321,3 +321,18 @@ describe("a VIN typed by hand (O/I/Q for 0/1, spaces): read only when the check 
     expect(parseListing("4TIB11HK8JU145880").vin).toBeNull();
   });
 });
+
+describe("exterior paint vs the next line's interior, and the dealer's blurb (real case 34)", () => {
+  it("doesn't take the interior's paint name as the exterior", () => {
+    expect(parseListing("Sterling Gray Metallic Exterior\nJet Black With Red Accents Interior").exteriorColor).toBe("gray");
+    expect(parseListing("Exterior: Jet Black\nInterior: Gray cloth").exteriorColor).toBe("black");
+    expect(parseListing("Ext. Color: Wind Chill Pearl").exteriorColor).toBe("white");
+  });
+  it("reads a dealer's name from its blurb, never a private seller's sentence", () => {
+    expect(parseListing("Chevrolet-Cadillac of Turnersville, located at the Turnersville AutoMall, is minutes away.").dealerName).toBe("Chevrolet-Cadillac of Turnersville");
+    expect(parseListing("Route 22 Toyota Motors is located in Hillside.").dealerName).toBe("Route 22 Toyota Motors");
+    expect(parseListing("My Honda Civic, located in Edison, runs great. $6,500").dealerName).toBeNull();
+    expect(parseListing("The Toyota is located in Newark, NJ").dealerName).toBeNull();
+    expect(parseListing("Honda Civic located in Edison").dealerName).toBeNull();
+  });
+});

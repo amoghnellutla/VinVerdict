@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
-import { makeName } from "@/lib/format";
+import { dealerFee, makeName } from "@/lib/format";
 import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
@@ -374,6 +374,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     checks: hits.filter((f) => f.severity === "verify").map((f) => f.title),
     unknowns: decision.areas.flatMap((x) => x.unknown),
     price: m.listing.price,
+    dealerFee: dealerFee(m.listing),
     estimate: valuation && !valuation.unpriced ? { low: valuation.low, high: valuation.high, label: valuation.label ? DEAL_TEXT[valuation.label] : null, open: valuation.offer?.open ?? null, walk: valuation.offer?.max ?? null, basis: sources ? "similar cars" : `the ${guide?.name ?? "price guide"} value you quoted` } : null,
     auctionSold: auction?.soldPrice ?? null,
     auctionDate: auction?.record?.saleDate ?? null,
@@ -546,6 +547,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
                   text: a.text,
                   vin: goodVin,
                   price: m.listing.price,
+                  dealerFee: dealerFee(m.listing) || null,
                   miles: m.listing.miles,
                   level: decision.level,
                   verdict: decision.title,
@@ -558,7 +560,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
             )}
             {!selling && (
               <CopyButton
-                text={shareSummary({ name: carName(m), price: m.listing.price, miles: m.listing.miles, vin: goodVin }, decision)}
+                text={shareSummary({ name: carName(m), price: m.listing.price, dealerFee: dealerFee(m.listing), miles: m.listing.miles, vin: goodVin }, decision)}
                 label="Copy summary"
                 className="link"
               />
@@ -590,7 +592,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           <VerdictCard d={decision} />
           <KnowsPanel
             items={knowsList({
-              car: carName(m), vin: goodVin, price: m.listing.price,
+              car: carName(m), vin: goodVin, price: m.listing.price, dealerFee: dealerFee(m.listing),
               // The ad's miles, or the latest history report's last reading when the ad has none.
               miles: m.listing.miles ?? reportMiles?.miles ?? null,
               milesFrom: m.listing.miles ? null : reportMiles ? `${reportMiles.source}'s last reading` : null,
@@ -848,8 +850,13 @@ function carName(a: Analysis): string {
 function CarLine({ a }: { a: Analysis }) {
   const l = a.listing;
   const name = carName(a);
+  // With a dealer fee, the headline matches the ad's total ("$22,097"), and says what it's made of.
+  const fee = dealerFee(l);
   const facts = [
-    l.price != null && { value: money(l.price), label: "asking" },
+    l.price != null &&
+      (fee
+        ? { value: money(l.price + fee), label: `asking with the ${money(fee)} dealer fee (${money(l.price)} before it)` }
+        : { value: money(l.price), label: "asking" }),
     l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: l.miles === 1 ? "mile" : "miles" },
   ].filter((x): x is { value: string; label: string } => !!x && !!x.value);
   return (

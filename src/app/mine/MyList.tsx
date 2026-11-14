@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import { AREA_LABEL, type AreaStatus, type Level } from "@/lib/decision";
+import { usdWithFee } from "@/lib/format";
 import { importFile, load, maybeSameCar, merge, parseWorkspace, remove, save, setNote, WORKSPACE_KEY, type SavedCar } from "@/lib/workspace/local";
 
 const LEVEL_TAG: Record<Level, string> = {
@@ -134,7 +135,7 @@ export function MyList() {
                 <span className="text-sm text-muted">Saved {day(c.savedAt)}</span>
               </div>
               <p className="nums mt-0.5">
-                {usd(c.price)} · {mi(c.miles)} <span className={`tag ml-2 ${LEVEL_TAG[c.level]}`}>{c.verdict}</span>
+                {usdWithFee(c.price, c.dealerFee)} · {mi(c.miles)} <span className={`tag ml-2 ${LEVEL_TAG[c.level]}`}>{c.verdict}</span>
               </p>
               {c.warnings.length > 0 && <p className="mt-1 text-sm text-muted">{c.warnings.slice(0, 3).join(" · ")}</p>}
               <label className="mt-3 block text-sm">
@@ -184,7 +185,7 @@ function ImportButton({ onChange }: { onChange: (e: ChangeEvent<HTMLInputElement
 
 function Compare({ cars }: { cars: SavedCar[] }) {
   const rows: { label: string; cell: (c: SavedCar) => React.ReactNode }[] = [
-    { label: "Asking price", cell: (c) => usd(c.price) },
+    { label: "Asking price", cell: (c) => usdWithFee(c.price, c.dealerFee) },
     { label: "Miles", cell: (c) => mi(c.miles) },
     { label: "Next step", cell: (c) => <span className={`tag ${LEVEL_TAG[c.level]}`}>{c.verdict}</span> },
     ...(["listing", "car", "price", "deal"] as const).map((area) => ({

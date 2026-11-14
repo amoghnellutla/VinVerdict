@@ -5,7 +5,7 @@ import { ExternalLink } from "@/components/ExternalLink";
 import { CarActions } from "@/components/cars/CarActions";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { getCars, priceChange } from "@/lib/cars/store";
-import { mi, shortDate, usd, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
+import { mi, shortDate, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
 
 export const metadata: Metadata = { title: "Car" };
@@ -31,7 +31,7 @@ async function Car({ id }: { id: number }) {
   const again = c.listingText ?? c.vin;
   const f = c.facts;
   const facts: [string, string | number | null | undefined][] = [
-    ["Price", usd(c.price)],
+    ["Price", usdWithFee(c.price, f.docFee)],
     ["Miles", mi(c.miles)],
     ["Year", f.year],
     ["Seller", f.seller !== "unknown" ? f.seller : null],
@@ -54,7 +54,7 @@ async function Car({ id }: { id: number }) {
         <h1 className="mt-2 text-3xl sm:text-[2.5rem]">{c.title}</h1>
         <div className="nums mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg">
           <span className={`tag ${VERDICT_TAG[c.verdict]}`}>{VERDICT_TEXT[c.verdict]}</span>
-          <strong>{usd(c.price)}</strong>
+          <strong>{usdWithFee(c.price, c.facts.docFee)}</strong>
           {c.dealLabel && <span>{DEAL_TEXT[c.dealLabel]}{c.fairLow && c.fairHigh ? ` (fair ${usd(c.fairLow)}–${usd(c.fairHigh)})` : ""}</span>}
         </div>
         {c.sourceUrl && (

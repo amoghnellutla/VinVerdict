@@ -90,7 +90,7 @@ function frontMatter(md: string): Record<string, unknown> {
 function checkWellFormed(md: string, headings = HEADINGS) {
   for (const h of headings) expect(md, h).toContain(h);
   expect(Object.keys(frontMatter(md))).toEqual([
-    "report", "report_kind", "report_format", "generated", "car", "vin", "asking_price_usd", "miles", "seller", "verdict", "verdict_level",
+    "report", "report_kind", "report_format", "generated", "car", "vin", "asking_price_usd", "dealer_fee_usd", "miles", "seller", "verdict", "verdict_level",
     "serious_warnings", "things_to_check", "estimated_fair_price_usd", "out_the_door_usd", "listing_url", "open_items",
   ]);
   // After the data header, no placeholder ever leaks into the text.
@@ -245,7 +245,7 @@ describe("short report", () => {
     const full = report(d.analysis, d.price);
     const md = report(d.analysis, d.price, {}, true);
     checkWellFormed(md, SHORT);
-    expect(frontMatter(md)).toMatchObject({ report_kind: "short", report_format: 2 });
+    expect(frontMatter(md)).toMatchObject({ report_kind: "short", report_format: 3 });
     expect(frontMatter(full)).toMatchObject({ report_kind: "full" });
     for (const gone of ["## 3. The car", "## 8. Are", "## 11. Buyer", "## 12. Before", "## 13. Sources", "| First seen |"]) expect(md).not.toContain(gone);
     for (const n of [3, 8, 11, 12, 13]) expect(md).not.toMatch(new RegExp(String.raw`\bsection ${n}\b`));
