@@ -229,20 +229,50 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
         <div className="space-y-5">
           <div className={`rounded-md px-4 py-3 ${result.c.hiddenTotal > 0 ? "bg-warn-soft" : "bg-good-soft"}`}>
             <p className="text-lg font-semibold">
-              {result.c.hiddenTotal > 0 ? `Up to ${usd(result.c.hiddenTotal)} you can ask them to take off` : result.sheet.lines.length ? "Every line checks out" : "No lines read"}
+              {result.c.hiddenTotal > 0
+                ? `Up to ${usd(result.c.hiddenTotal)} you can ask them to take off`
+                : !result.sheet.lines.length
+                  ? "No lines read"
+                  : result.c.rows.some((r) => r.verdict === "check" || r.verdict === "wrong") || result.c.loan?.verdict === "check"
+                    ? "Nothing to take off, but some lines to ask about"
+                    : "Every line checks out"}
             </p>
             <p className="text-sm">
               {result.sheet.lines.length
                 ? `${result.c.summary.replace(/^Dealer's numbers: /, "").replace(/; up to \$[\d,]+ to take off\.$/, ".")} Read from ${read.from}${read.removed ? `; ${read.removed} personal ${read.removed === 1 ? "detail" : "details"} taken out` : ""}.`
                 : "Couldn't find lines with amounts. Paste the numbers as text, or attach a clearer photo."}
             </p>
-            {!result.c.confirmed && result.sheet.lines.length > 0 && (
+            {!result.c.confirmed && result.c.reconcile.totals.length > 0 && result.sheet.lines.length > 0 && (
               <p className="mt-1 text-sm">
                 The lines read don&apos;t add up to a total on the paper yet, so nothing is called wrong: lines that look off say &quot;Check this&quot;.
                 Compare them with the paper.
               </p>
             )}
           </div>
+
+          {result.c.lease && (
+            <p className="rounded-md border border-border px-4 py-3 text-sm">
+              <span className="font-semibold">This is a lease.</span> The selling price, fees and add-ons are checked below. The lease payment itself (money
+              factor and residual) isn&apos;t: ask for both in writing. The money factor times 2,400 is roughly the interest rate.
+            </p>
+          )}
+          {result.c.negativeEquity > 0 && (
+            <p className="rounded-md bg-warn-soft px-4 py-3 text-sm">
+              <span className="font-semibold">{usd(result.c.negativeEquity)} of your old loan is in this deal.</span> Your trade-in is worth less than what you
+              owe on it, and the difference is added to what you finance, with interest. Paying it down first, or selling the trade-in yourself, may cost less.
+            </p>
+          )}
+          {result.c.paymentOptions.length >= 2 && (
+            <div className="rounded-md border border-border px-4 py-3 text-sm">
+              <p className="font-semibold">Payment options on this worksheet</p>
+              <ul className="nums mt-1">
+                {result.c.paymentOptions.map((o) => (
+                  <li key={o.months}>{o.months} months at {cents(o.payment)}: {usd(o.total)} in total</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-muted">A longer term lowers the payment, not the price. Ask for the out-the-door price and the interest rate before choosing.</p>
+            </div>
+          )}
 
           {result.sheet.lines.length > 0 && (
             // Phones: one card per line, so the reason is never cut off.
@@ -251,7 +281,7 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
                 <li key={i} className="py-2">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="font-semibold">{r.line.label}</span>
-                    <span className="nums shrink-0">{r.line.declined ? "Declined" : cents(r.line.amount)}</span>
+                    <span className="nums shrink-0">{r.line.declined && r.line.amount > 0 ? "Declined" : cents(r.line.amount)}</span>
                   </span>
                   <span className={`mt-1 inline-block rounded px-2 py-0.5 text-xs font-semibold ${BADGE[r.verdict].cls}`}>{BADGE[r.verdict].word}</span>{" "}
                   {r.note}
@@ -271,7 +301,7 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
                   {result.c.rows.map((r, i) => (
                     <tr key={i} className="align-top">
                       <td className="py-2 pr-3">{r.line.label}</td>
-                      <td className="nums py-2 pr-3 text-right">{r.line.declined ? "Declined" : cents(r.line.amount)}</td>
+                      <td className="nums py-2 pr-3 text-right">{r.line.declined && r.line.amount > 0 ? "Declined" : cents(r.line.amount)}</td>
                       <td className="py-2 pr-3"><span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${BADGE[r.verdict].cls}`}>{BADGE[r.verdict].word}</span></td>
                       <td className="py-2">
                         {r.note}

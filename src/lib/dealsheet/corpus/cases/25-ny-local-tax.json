@@ -1,0 +1,27 @@
+{
+  "note": "Round 2 (written before the change, run first). NYC: 4% state + 4.875% local = 8.875%. VinVerdict should say which local rate the tax implies, not call it wrong.",
+  "state": "NY",
+  "ad": {
+    "price": 23450,
+    "docFee": 175,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Sales Tax",
+        "kind": "tax",
+        "amount": 2096.72
+      }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Sales Tax": "check"
+    },
+    "taxNote": "4.875%"
+  }
+}

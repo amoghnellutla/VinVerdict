@@ -1,0 +1,29 @@
+{
+  "note": "Round 2 (written before the change, run first). Trade-in $9,000 against a $12,500 payoff: $3,500 of the old loan is added to the new one, with no line saying so.",
+  "state": "PA",
+  "ad": {
+    "price": 26500,
+    "docFee": 477,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2022,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Trade-In Allowance",
+        "kind": "tradeIn",
+        "amount": 9000.0
+      },
+      {
+        "label": "Payoff on Trade",
+        "kind": "payoff",
+        "amount": 12500.0
+      }
+    ],
+    "confirmed": true,
+    "loan": "right",
+    "negativeEquity": 3500
+  }
+}

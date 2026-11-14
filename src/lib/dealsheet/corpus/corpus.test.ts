@@ -28,6 +28,14 @@ type Spec = {
     loan: "right" | "wrong" | "check" | null;
     verdicts?: Record<string, string>;
     hiddenTotal?: number;
+    /** A lease worksheet: no loan check, its own note. */
+    lease?: boolean;
+    /** Payoff above the trade-in: the old loan's amount carried into this deal. */
+    negativeEquity?: number;
+    /** A worksheet with several payment options. */
+    paymentOptions?: number;
+    /** Text the tax row's note must contain (the local rate it implies). */
+    taxNote?: string;
   };
 };
 
@@ -73,6 +81,11 @@ describe("deal-sheet corpus", () => {
       if (c.spec.expect.hiddenTotal != null && Math.abs(result.hiddenTotal - c.spec.expect.hiddenTotal) > 1) {
         problems.push(`hidden total: expected ${c.spec.expect.hiddenTotal}, got ${result.hiddenTotal} [${result.hidden.map((h) => `${h.what} ${h.amount}`).join("; ")}]`);
       }
+      const e = c.spec.expect;
+      if (e.lease !== undefined && result.lease !== e.lease) problems.push(`lease: expected ${e.lease}, got ${result.lease}`);
+      if (e.negativeEquity !== undefined && result.negativeEquity !== e.negativeEquity) problems.push(`negative equity: expected ${e.negativeEquity}, got ${result.negativeEquity}`);
+      if (e.paymentOptions !== undefined && result.paymentOptions.length !== e.paymentOptions) problems.push(`payment options: expected ${e.paymentOptions}, got ${result.paymentOptions.length}`);
+      if (e.taxNote && !result.rows.find((r) => r.line.kind === "tax")?.note.includes(e.taxNote)) problems.push(`tax note should mention ${e.taxNote}: ${result.rows.find((r) => r.line.kind === "tax")?.note}`);
       if (c.spec.clean) {
         const alarms = result.rows.filter((r) => r.verdict === "wrong" || r.verdict === "remove" || r.verdict === "check");
         score.cleanFalseAlarms += alarms.length + (result.loan && result.loan.verdict !== "right" ? 1 : 0);

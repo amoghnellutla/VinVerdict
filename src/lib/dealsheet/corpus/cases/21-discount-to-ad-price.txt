@@ -1,0 +1,7 @@
+BUYER'S ORDER
+Vehicle Price .......... $23,000.00
+Dealer Discount .......... -$1,000.00
+Documentation Fee .......... $699.00
+NJ Sales Tax .......... $1,503.81
+MVC Fees .......... $166.50
+Total Price .......... $24,369.31

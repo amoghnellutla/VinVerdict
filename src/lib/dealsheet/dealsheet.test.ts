@@ -128,3 +128,23 @@ describe("OCR repairs on dealer papers", () => {
     expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["total", 26635.71], ["price", 21998]]);
   });
 });
+
+describe("doc fee above a state's legal maximum", () => {
+  it("New York caps it at $175: a confirmed $399 fee is $224 over, with the DMV's page linked", () => {
+    const paper = "Vehicle Price $22,000.00\nDocumentation Fee $399.00\nDMV Fees $175.00\nTotal Price $22,574.00";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: { price: 22000, docFee: null, sellerType: "dealer" }, state: "NY", modelYear: 2021 });
+    const row = c.rows.find((r) => r.line.kind === "docFee")!;
+    expect(row.verdict).toBe("wrong");
+    expect(row.note).toContain("$224 more than New York's legal maximum of $175");
+    expect(row.source?.href).toContain("dmv.ny.gov");
+    expect(c.hidden.some((h) => h.amount === 224)).toBe(true);
+  });
+
+  it("no cap is applied in a state whose cap isn't confirmed, and a fee within the cap is fine", () => {
+    const paper = "Vehicle Price $22,000.00\nDocumentation Fee $175.00\nTotal Price $22,175.00";
+    const ny = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "NY", modelYear: 2021 });
+    expect(ny.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong");
+    const ca = checkDealSheet({ sheet: parseDealSheet(paper.replace("$175.00", "$399.00").replace("$22,175.00", "$22,399.00")), ad: null, state: "CA", modelYear: 2021 });
+    expect(ca.rows.find((r) => r.line.kind === "docFee")?.verdict).toBe("check");
+  });
+});

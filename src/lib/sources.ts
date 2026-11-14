@@ -36,6 +36,10 @@ export const REF = {
   // dealer usually includes an amount that compensates the dealer for handling the financing."
   ftcFinancing: { name: "FTC: financing or leasing a car (the APR is negotiable)", href: "https://consumer.ftc.gov/financing-or-leasing-car" },
   // Checked 2026-11-14: "Generally you cannot be required to buy an extended warranty, GAP insurance, or credit insurance."
+  // Checked 2026-11-14: "The dealer may charge you up to $175 for this service" (processing registration and title documents).
+  nyDocFee: { name: "NY DMV: a dealer may charge up to $175 to process registration and title", href: "https://dmv.ny.gov/brochure/let-the-buyer-be-aware" },
+  // Checked 2026-11-14: RCW 46.70.180(2)(a)(ii): "an amount not to exceed $200 per vehicle sale or lease"; it must be disclosed as "a negotiable fee".
+  waDocFee: { name: "RCW 46.70.180: Washington's documentary service fee, at most $200 and negotiable", href: "https://app.leg.wa.gov/RCW/default.aspx?cite=46.70.180" },
   cfpbAddOns: { name: "CFPB: an extended warranty, GAP or credit insurance generally can't be required", href: "https://www.consumerfinance.gov/ask-cfpb/am-i-required-to-purchase-an-extended-warranty-or-guaranteed-asset-protection-gap-insurance-from-a-lender-or-dealer-to-get-an-auto-loan-en-807/" },
 } satisfies Record<string, SourceRef>;
 

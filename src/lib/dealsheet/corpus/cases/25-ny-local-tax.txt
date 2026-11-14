@@ -1,0 +1,6 @@
+BUYER'S ORDER
+Vehicle Price $23,450.00
+Documentation Fee $175.00
+Sales Tax $2,096.72
+DMV Fees $175.00
+Total Price $25,896.72

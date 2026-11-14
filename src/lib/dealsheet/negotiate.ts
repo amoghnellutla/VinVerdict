@@ -59,7 +59,8 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
     tax = r2(t.lines.reduce((s, l) => s + l.amount, 0));
   }
   const plusTax = tax == null && !!taxRow;
-  const target = carPrice == null ? null : r2(carPrice + docFee + gov + (tax ?? 0));
+  // A lease has no out-the-door price to pay: what's negotiated is the selling price (the capitalized cost).
+  const target = carPrice == null || sheet.lease ? null : r2(carPrice + docFee + gov + (tax ?? 0));
 
   const parts: Plan["parts"] = [
     { label: "The car", amount: carPrice, note: adPrice != null && paperPrice != null && paperPrice > adPrice ? "the advertised price" : undefined },
@@ -71,10 +72,20 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const removes = check.rows.filter((r) => r.verdict === "remove").map((r) => `${r.line.name ?? r.line.label} (${usd(r.line.amount)})`);
   const priceOver = adPrice != null && paperPrice != null && paperPrice > adPrice + 1;
   const L = check.loan;
-  const steps = [
+  const options = check.paymentOptions;
+  const spread = options.length >= 2 ? Math.max(...options.map((o) => o.total)) - Math.min(...options.map((o) => o.total)) : 0;
+  const steps = sheet.lease ? [
+    `Negotiate the selling price (the capitalized cost) first, like a purchase${adPrice != null ? `: the ad's ${usd(adPrice)}` : ""}.`,
+    "Say no to every add-on and optional product.",
+    "Ask for the money factor and the residual in writing. The money factor times 2,400 is roughly the interest rate: ask whether it's the leasing company's base rate or marked up.",
+    "Ask for the leasing company's own acquisition fee, and what's due at signing line by line.",
+    "Before you sign, check the final paper again here.",
+  ] : [
     "Agree the out-the-door price first, in writing. Not the monthly payment.",
+    ...(options.length >= 2 ? [`This worksheet shows monthly payments, not a price. The longest option costs ${usd(spread)} more in total than the shortest: ask for the out-the-door price and the interest rate in writing.`] : []),
+    ...(check.negativeEquity > 0 ? [`${usd(check.negativeEquity)} of your old loan is carried into this deal. Consider paying it down first, or selling the trade-in yourself for more.`] : []),
     "Say no to every add-on and every optional product. You can buy a warranty or GAP later, elsewhere, if you want one.",
-    ...(sheet.lines.some((l) => l.kind === "tradeIn") ? ["Then the trade-in, as a separate number. Bring a written offer from CarMax, Carvana or another dealer."] : []),
+    ...(sheet.lines.some((l) => l.kind === "tradeIn" && !l.declined) ? ["Then the trade-in, as a separate number. Bring a written offer from CarMax, Carvana or another dealer."] : []),
     "Then the financing: bring a bank or credit union pre-approval and ask the dealer to beat it.",
     "Before you sign, check the final paper again here: every line should match what you agreed.",
     target != null ? `Walk away if they won't come to ${usd(target)}${plusTax ? " plus tax" : ""} out the door. Other cars like this one exist.` : "Walk away if they won't put an itemized out-the-door price in writing.",
@@ -86,12 +97,16 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
     const made = parts.filter((p) => p.amount != null).map((p) => `${usd(p.amount!)} ${p.label === "The car" ? "for the car" : p.label === "Doc fee" ? "doc fee" : p.label === "Government fees" ? "in government fees" : "tax"}`);
     lines.push(`Hi, I'm ready to buy ${car} at ${usd(target)}${plusTax ? " plus tax" : ""} out the door: ${made.join(", ")}.`);
   } else {
-    lines.push(`Hi, I'm interested in ${car}. Please send me an itemized out-the-door price.`);
+    lines.push(sheet.lease && carPrice != null
+      ? `Hi, I'd like to lease ${car} at a selling price of ${usd(carPrice)}.`
+      : `Hi, I'm interested in ${car}. Please send me an itemized out-the-door price.`);
   }
   if (priceOver) lines.push(`Your buyer's order shows ${usd(paperPrice!)} for the car; it was advertised at ${usd(adPrice!)}. Please honor the advertised price.`);
   if (removes.length) lines.push(`Please remove ${removes.length === 1 ? removes[0] : `${removes.slice(0, -1).join(", ")} and ${removes[removes.length - 1]}`}. I'm not buying any add-ons.`);
   if (L && L.verdict !== "right" && L.diff > 0) lines.push(`Your payment of ${cents(L.stated)} doesn't match ${cents(L.principal)} at ${L.aprPct}% for ${L.months} months (${cents(L.expected)}). Please list everything included in it.`);
   if (L && input.myAprPct != null && input.myAprPct < L.aprPct) lines.push(`I'm pre-approved at ${input.myAprPct}%. Can you beat that rate?`);
+  if (sheet.lease) lines.push("Please send the money factor, the residual and the leasing company's acquisition fee in writing.");
+  if (options.length >= 2 && !sheet.lease) lines.push("Please send the out-the-door price and the interest rate in writing, not only monthly payments.");
   lines.push("Please send an updated, itemized buyer's order. Thank you.");
 
   return { target, parts, plusTax, steps, message: lines.join(" "), scripts: SCRIPTS };

@@ -1,0 +1,24 @@
+{
+  "note": "Round 2 (written before the change, run first). A dealer worksheet with three payment options: there's no single loan, so no loan verdict, and nothing is called wrong.",
+  "state": "NJ",
+  "ad": {
+    "price": 27995,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2023,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Selling Price",
+        "kind": "price",
+        "amount": 27995
+      }
+    ],
+    "confirmed": false,
+    "loan": null,
+    "paymentOptions": 3
+  }
+}

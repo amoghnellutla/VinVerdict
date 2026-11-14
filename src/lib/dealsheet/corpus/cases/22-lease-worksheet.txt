@@ -1,0 +1,12 @@
+LEASE WORKSHEET
+Vehicle Selling Price $31,450.00
+Acquisition Fee $695.00
+Doc Fee $499.00
+Gross Capitalized Cost $32,644.00
+Cap Cost Reduction $2,000.00
+Adjusted Capitalized Cost $30,644.00
+Residual Value (58%) $18,241.00
+Money Factor .00210
+Term 36 months
+Monthly Payment $489.00
+Due at Signing $2,983.00

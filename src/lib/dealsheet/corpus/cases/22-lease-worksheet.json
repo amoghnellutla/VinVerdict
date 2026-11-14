@@ -1,0 +1,27 @@
+{
+  "note": "Round 2 (written before the change, run first). A lease: the payment comes from the money factor and residual, not loan math. The loan check must not run on it.",
+  "state": "NJ",
+  "ad": {
+    "price": 31450,
+    "docFee": 499,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2025,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Selling Price",
+        "kind": "price",
+        "amount": 31450
+      }
+    ],
+    "confirmed": false,
+    "loan": null,
+    "lease": true,
+    "verdicts": {
+      "Acquisition Fee": "check"
+    }
+  }
+}

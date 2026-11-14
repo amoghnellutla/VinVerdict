@@ -1,0 +1,28 @@
+{
+  "note": "Round 2 (written before the change, run first). Price $23,000 less a $1,000 dealer discount is the ad's $22,000: nothing about the price is wrong.",
+  "state": "NJ",
+  "ad": {
+    "price": 22000,
+    "docFee": 699,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle Price",
+        "kind": "price",
+        "amount": 23000.0
+      },
+      {
+        "label": "Dealer Discount",
+        "kind": "discount",
+        "amount": 1000.0
+      }
+    ],
+    "confirmed": true,
+    "loan": null
+  }
+}

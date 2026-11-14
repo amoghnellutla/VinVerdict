@@ -13,7 +13,7 @@ import { ocrThousands } from "@/lib/listing/parse";
 export type LineKind =
   | "price" | "reference" | "discount" | "rebate" | "tradeIn" | "payoff" | "negativeEquity"
   | "docFee" | "dealerFee" | "addOn" | "loanProduct" | "stateFee" | "tax" | "downPayment"
-  | "subtotal" | "total" | "balanceDue" | "amountFinanced" | "loan" | "other";
+  | "subtotal" | "total" | "balanceDue" | "amountFinanced" | "loan" | "leaseTerm" | "leaseFee" | "other";
 
 export type DealLine = {
   /** The paper's own words for the line. */
@@ -37,7 +37,14 @@ export type LoanTerms = {
   financeCharge: number | null;
 };
 
-export type DealSheet = { lines: DealLine[]; loan: LoanTerms };
+export type DealSheet = {
+  lines: DealLine[];
+  loan: LoanTerms;
+  /** A lease worksheet (money factor, residual, capitalized cost): the loan check doesn't apply. */
+  lease?: boolean;
+  /** Several payment options on one worksheet ("60 months $542/mo, 72 months $468/mo"): no single loan. */
+  paymentOptions?: { months: number; payment: number }[];
+};
 
 /** Credits: they lower what's owed. */
 export const CREDIT_KINDS: readonly LineKind[] = ["discount", "rebate", "tradeIn", "downPayment"];
@@ -77,6 +84,10 @@ const has = (re: RegExp, s: string) => re.test(s);
 /** What a line is, from its label (lowercased, with spaces collapsed). */
 export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   const l = rawLabel.toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
+  // Lease terms are information, not charges: the cap cost, residual, money factor, the amount due at signing.
+  if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b/, l)) return { kind: "leaseTerm" };
+  // The leasing company's own fees (often marked up by the dealer): asked about, not refused.
+  if (has(/\b(?:acquisition|disposition|bank|lease (?:origination|initiation)|lessor) fee\b/, l)) return { kind: "leaseFee" };
   // Loan disclosure words first: "Total of payments" is not the total price.
   if (has(/\b(?:annual percentage rate|apr|interest rate|finance charge|total of payments|total sale price|monthly payment|payment amount|amount of (?:each )?payments?|number of payments|term|first payment|payments? (?:of|due))\b/, l)) return { kind: "loan" };
   if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financed\b|\bloan amount\b|\bbalance to finance\b/, l)) return { kind: "amountFinanced" };
@@ -198,7 +209,13 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   }
   flush();
-  return { lines: lines.filter((l) => l.kind !== "loan"), loan: readLoan(text, lines) };
+  const options = paymentOptions(text);
+  return {
+    lines: lines.filter((l) => l.kind !== "loan"),
+    loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : readLoan(text, lines),
+    ...(LEASE_WORDS.test(text) ? { lease: true } : {}),
+    ...(options.length >= 2 ? { paymentOptions: options } : {}),
+  };
 }
 
 /**
@@ -226,6 +243,19 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
     out.push({ label: kind === "price" && classify(label).kind !== "price" ? "Price" : label || "A number without words", value });
   }
   return out.length >= 2 ? out : null;
+}
+
+const LEASE_WORDS = /\bmoney factor\b|\bresidual (?:value|amount)?\b|\bcapitali[sz]ed cost\b|\bcap cost\b|\blease (?:worksheet|agreement|payment|term)\b|\bacquisition fee\b|\bdisposition fee\b/i;
+
+/** "60 months $542/mo", "72 mos @ $468": a worksheet's payment options, each a term and a monthly payment. */
+function paymentOptions(text: string): { months: number; payment: number }[] {
+  const out: { months: number; payment: number }[] = [];
+  for (const m of text.matchAll(/\b(\d{2})\s?(?:months?|mos?\.?)\s*(?:@|at|for|:|-|–)?\s*\$\s?(\d{2,4}(?:\.\d{2})?)\s?(?:\/\s?mo(?:nth)?|per month|a month|monthly)?/gi)) {
+    const months = Number(m[1]);
+    const payment = Number(m[2]);
+    if (months >= 12 && months <= 96 && payment >= 25 && !out.some((o) => o.months === months)) out.push({ months, payment });
+  }
+  return out;
 }
 
 const num = (s: string | undefined) => (s == null ? null : Number(s.replace(/[$,\s]/g, "")));

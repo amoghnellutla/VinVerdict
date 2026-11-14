@@ -44,6 +44,22 @@ export type DealCheck = {
   hiddenTotal: number;
   /** One-line summary for the verdict's "Ready to pay" row. */
   summary: string;
+  /** A lease worksheet: price, fees and add-ons are checked; the lease payment isn't. */
+  lease: boolean;
+  /** The trade-in is worth less than its payoff: this much of the old loan is carried into the deal (0 when not). */
+  negativeEquity: number;
+  /** A worksheet's payment options, each with what it pays in total. */
+  paymentOptions: { months: number; payment: number; total: number }[];
+};
+
+/**
+ * Doc-fee caps set by a state's own law or DMV, checked on the official page (2026-11-14). Only states whose
+ * current cap could be confirmed are here; others are left out rather than guessed (California's changed
+ * recently and couldn't be confirmed).
+ */
+export const DOC_FEE_CAP: Partial<Record<StateCode, { max: number; source: SourceRef; extra?: string }>> = {
+  NY: { max: 175, source: REF.nyDocFee },
+  WA: { max: 200, source: REF.waDocFee, extra: "Washington law also says the dealer must tell you it's negotiable, and can't say the state requires it." },
 };
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -73,6 +89,23 @@ function taxCandidates(lines: DealLine[], state: StateCode, modelYear: number | 
     });
 }
 
+/** The local rate (city, county, district) a state-plus-local tax implies, on the likely taxable amount: up to 6%. */
+function impliedLocal(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date, tax: number): { pct: number; base: string } | null {
+  const live = lines.filter((l) => !l.declined && !l.fromAi);
+  const sum = (kinds: string[]) => live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
+  const price = sum(["price"]) - sum(["discount", "rebate"]);
+  const doc = sum(["docFee"]);
+  const extras = sum(["dealerFee", "addOn"]);
+  for (const [b, base] of [[price + doc, "the price and doc fee"], [price, "the price"], [price + doc + extras, "the price, fees and add-ons"]] as const) {
+    if (b <= 0) continue;
+    const stateOnly = vehicleTax(state, { taxable: b, price: b, seller: "dealer", modelYear, localPct: 0, now }).lines.reduce((s, l) => s + l.amount, 0);
+    const pct = Math.round(((tax - stateOnly) / b) * 100000) / 1000;
+    // A whole-thousandth local rate (4.875%, 2.25%) is how local rates are set; anything else isn't a clean match.
+    if (pct > 0 && pct <= 6 && Math.abs(stateOnly + (b * pct) / 100 - tax) <= 1) return { pct, base };
+  }
+  return null;
+}
+
 export function checkDealSheet(input: CheckInput): DealCheck {
   const { sheet, ad, state } = input;
   const now = input.now ?? new Date();
@@ -83,23 +116,52 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   const hidden: Hidden[] = [];
   const adPrice = ad?.price ?? null;
   const adFee = ad && ad.sellerType === "dealer" ? ad.docFee : null;
+  const counted = sheet.lines.filter((l) => !l.declined && !l.fromAi);
+  const sumOf = (kinds: string[]) => r2(counted.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0));
+  // The car's price after the paper's own discounts and rebates is what's compared with the ad: "$23,000 less a
+  // $1,000 dealer discount" is the ad's $22,000, not $1,000 over it.
+  const credits = sumOf(["discount", "rebate"]);
+  const netPrice = r2(sumOf(["price"]) - credits);
+  const firstPrice = sheet.lines.findIndex((l) => l.kind === "price" && !l.declined && !l.fromAi);
+  const trade = sumOf(["tradeIn"]);
+  const payoff = sumOf(["payoff"]);
+  const negativeEquity = sheet.lines.some((l) => l.kind === "negativeEquity") ? sumOf(["negativeEquity"]) : payoff > trade && trade > 0 ? r2(payoff - trade) : 0;
 
   const rows: LineResult[] = sheet.lines.map((line, i): LineResult => {
-    if (line.declined) return { line, verdict: "right", note: "Not charged (declined or $0)." };
+    if (line.declined) {
+      // "Trade Allowance $0.00" is no trade-in, not a declined charge.
+      if (["tradeIn", "downPayment", "discount", "rebate"].includes(line.kind)) return { line, verdict: "info", note: "None on this paper." };
+      return { line, verdict: "right", note: "Not charged (declined or $0)." };
+    }
     // One reader alone is never enough: a line only the AI found is for the buyer to compare with the paper.
     if (line.fromAi) return { line, verdict: "check", note: line.kind === "addOn" || line.kind === "loanProduct" || line.kind === "dealerFee" ? "Only the free AI read this line. Compare it with the paper: if it's there, it's optional, so ask for it to be removed." : "Only the free AI read this line. Compare it with the paper." };
     switch (line.kind) {
       case "price": {
+        if (i !== firstPrice) return { line, verdict: "info", note: "Part of the car's price on this paper." };
         if (adPrice == null) return { line, verdict: "info", note: "The car's price. Compare it with the price in the ad you saw." };
-        const over = r2(line.amount - adPrice);
-        if (over <= 1) return { line, verdict: "right", note: over < -1 ? `${usd(-over)} below the ad's price (${usd(adPrice)}).` : `Matches the ad's price (${usd(adPrice)}).` };
+        const after = credits ? ` after the paper's ${usd(credits)} in discounts and rebates (${usd(netPrice)})` : "";
+        const over = r2(netPrice - adPrice);
+        if (over <= 1) return { line, verdict: "right", note: over < -1 ? `${usd(-over)} below the ad's price (${usd(adPrice)})${after}.` : `Matches the ad's price (${usd(adPrice)})${after}.` };
         // Counted as money to take off only once the line's reading is confirmed.
-        if (sure(i)) hidden.push({ what: "Price above the ad", amount: over, why: `The ad's price was ${usd(adPrice)}; this paper says ${usd(line.amount)}.` });
+        if (sure(i)) hidden.push({ what: "Price above the ad", amount: over, why: `The ad's price was ${usd(adPrice)}; this paper says ${usd(netPrice)}${credits ? " after its discounts" : ""}.` });
         return sure(i)
-          ? { line, verdict: "wrong", note: `${usd(over)} more than the ad's price (${usd(adPrice)}). Ask them to honor the advertised price.` }
-          : { line, verdict: "check", note: `Reads as ${usd(over)} more than the ad's price (${usd(adPrice)}). Check this line on the paper, then ask for the advertised price.` };
+          ? { line, verdict: "wrong", note: `${usd(over)} more than the ad's price (${usd(adPrice)})${after}. Ask them to honor the advertised price.` }
+          : { line, verdict: "check", note: `Reads as ${usd(over)} more than the ad's price (${usd(adPrice)})${after}. Check this line on the paper, then ask for the advertised price.` };
       }
+      case "leaseFee":
+        return { line, verdict: "check", note: "The leasing company's fee. Dealers sometimes add to it: ask for the leasing company's own amount in writing." };
+      case "leaseTerm":
+        return { line, verdict: "info", note: "A lease term (see the note on leases above)." };
       case "docFee": {
+        // A state's legal maximum, where its own law or DMV says so (only those checked are listed).
+        const cap = state ? DOC_FEE_CAP[state] : undefined;
+        if (cap && line.amount > cap.max + 0.5) {
+          const over = r2(line.amount - cap.max);
+          if (sure(i)) hidden.push({ what: `Doc fee above ${STATES[state!]}'s legal maximum`, amount: over, why: `${STATES[state!]} caps it at ${usd(cap.max)}.` });
+          return sure(i)
+            ? { line, verdict: "wrong", note: `${usd(over)} more than ${STATES[state!]}'s legal maximum of ${usd(cap.max)}.${cap.extra ? ` ${cap.extra}` : ""}`, source: cap.source }
+            : { line, verdict: "check", note: `Reads as ${usd(over)} more than ${STATES[state!]}'s legal maximum of ${usd(cap.max)}. Check this line.`, source: cap.source };
+        }
         if (adFee != null) {
           const over = r2(line.amount - adFee);
           if (over <= 1) return { line, verdict: "right", note: `Matches the dealer fee the ad showed (${usd(adFee)}).` };
@@ -125,14 +187,24 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         const hit = cands.find((c) => Math.abs(c.amount - line.amount) <= 2);
         if (hit) return { line, verdict: "right", note: `What ${STATES[state]}'s ${STATE_TAX[state].summary} gives on ${hit.base}.` };
         const low = Math.min(...cands.map((c) => c.amount));
-        const local = STATE_TAX[state].local ? " A city or county tax can add to it." : "";
-        return { line, verdict: "check", note: `${STATES[state]}'s ${STATE_TAX[state].summary} on these lines gives ${cands.length ? cents(low) : "a different amount"}. Ask how they worked it out.${local}` };
+        if (STATE_TAX[state].local) {
+          // A state with city or county tax: say which local rate the paper's tax implies, for the buyer to compare.
+          const implied = impliedLocal(sheet.lines, state, input.modelYear, now, line.amount);
+          if (implied) {
+            return { line, verdict: "check", note: `That's ${STATES[state]}'s ${STATE_TAX[state].summary.replace(/ \+.*$/, "")} plus about ${implied.pct}% local tax on ${implied.base}. Check that ${implied.pct}% is your city or county's rate.` };
+          }
+          return { line, verdict: "check", note: `${STATES[state]}'s ${STATE_TAX[state].summary} on these lines gives ${cands.length ? cents(low) : "a different amount"} before any local tax. Ask how they worked it out.` };
+        }
+        return { line, verdict: "check", note: `${STATES[state]}'s ${STATE_TAX[state].summary} on these lines gives ${cands.length ? cents(low) : "a different amount"}. Ask how they worked it out.` };
       }
       case "stateFee":
         return { line, verdict: "info", note: state ? `A government fee (title, registration, plates). Compare with ${STATES[state]}'s own fee page.` : "A government fee (title, registration, plates). Compare with your DMV's fee page." };
       case "negativeEquity":
         return { line, verdict: "check", note: "What you still owe on your trade-in, added to this loan. You'll pay interest on it: ask for the trade-in's payoff in writing and whether paying it down first is cheaper." };
       case "payoff":
+        if (negativeEquity > 0 && !sheet.lines.some((l) => l.kind === "negativeEquity")) {
+          return { line, verdict: "check", note: `Your trade-in (${usd(trade)}) is worth less than what you owe on it (${usd(payoff)}): ${usd(negativeEquity)} of your old loan is carried into this deal, and you'll pay interest on it. Check the payoff against your lender's letter.` };
+        }
         return { line, verdict: "info", note: "The payoff of the loan on your trade-in. Check it against your lender's payoff letter." };
       case "discount":
       case "rebate":
@@ -174,7 +246,7 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   const principal = L.amountFinanced;
   // Only numbers that make sense as a car loan are checked (a misread "24.27" financed is not a loan).
   const plausible = !!principal && principal >= 1_000 && L.payment != null && L.payment >= 25 && L.months != null && L.payment * L.months >= principal * 0.9;
-  if (plausible && principal && L.aprPct != null && L.months && L.payment) {
+  if (!sheet.lease && !sheet.paymentOptions && plausible && principal && L.aprPct != null && L.months && L.payment) {
     const c = checkPayment(principal, L.aprPct, L.months, L.payment);
     // Second check for the loan numbers: the paper's own total of payments (payment × months, a final payment a
     // few cents different). When they disagree, one of them was misread (a photo's "$450.20" read as "$450.00").
@@ -212,5 +284,6 @@ export function checkDealSheet(input: CheckInput): DealCheck {
     checks ? `${checks} to ask about` : null,
   ].filter(Boolean);
   const summary = parts.length ? `Dealer's numbers: ${parts.join(", ")}${hiddenTotal > 0 ? `; up to ${usd(hiddenTotal)} to take off` : ""}.` : "Dealer's numbers: every line checks out.";
-  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary };
+  const paymentOptions = (sheet.paymentOptions ?? []).map((o) => ({ ...o, total: r2(o.months * o.payment) }));
+  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, lease: !!sheet.lease, negativeEquity, paymentOptions };
 }
