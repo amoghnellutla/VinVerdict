@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { adSays, dealerFee, makeName, notSure } from "@/lib/format";
+import type { ListingRead } from "@/lib/ai/listing-read";
 import type { ListingFixes } from "@/lib/listing/fixes";
 import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
@@ -147,7 +148,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   /** Check a listing text again (the same ad with the VIN the person got from the seller). */
   onRecheck?: ((text: string) => void) | null;
   /** Check the same ad again with the buyer's corrections ("What we read from the ad"). */
-  onFix?: ((fixes: ListingFixes) => void) | null;
+  onFix?: ((fixes: ListingFixes | null, ai: ListingRead | null) => void) | null;
   /** The verdict as it stands, for the lot list on the home page. */
   onSummary?: ((s: Summary) => void) | null;
 }) {
@@ -575,7 +576,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           </span>
         </div>
         {goodVin && a.decoded && <VinDecode vin={goodVin} decoded={a.decoded} size="sm" />}
-        {!selling && <ReadPanel listing={original.listing} onFix={onFix} guest={guest} />}
+        {!selling && <ReadPanel listing={original.listing} text={original.text} onFix={onFix} guest={guest} ai={AI_MODE} />}
         {photos.length > 0 && (
           <CarGallery
             photos={photos}

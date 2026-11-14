@@ -5,6 +5,7 @@ import { ASK_LIMITS, askMessages, checkAsk, type AskAnswer, type AskTurn } from 
 import { checkDealerRead, dealerMessages, jsonLdListing, mergeDealer, pageHasVin, pageText, relevantText, type DealerPage } from "@/lib/ai/dealer-check";
 import { checkHistoryRead, HISTORY_IMAGE, HISTORY_LIMITS, historyMessages, type AiHistory } from "@/lib/ai/history-read";
 import { checkDash, dashMessages, type DashRead } from "@/lib/ai/dash-read";
+import { checkListingRead, LISTING_READ_LIMIT, listingReadMessages, type ListingRead } from "@/lib/ai/listing-read";
 import { PROVIDER_NAME } from "@/lib/ai/providers";
 import { currentUser } from "@/lib/auth/session";
 import { clientIp } from "@/lib/client-ip";
@@ -86,6 +87,25 @@ export async function readHistoryAction(input: { text: unknown; image: unknown; 
   });
   if (!r.ok) return { status: "error", message: r.reason === "unconfigured" ? UNSET : BUSY };
   return { status: "ok", provider: PROVIDER_NAME[r.provider], ai: r.data, sentText };
+}
+
+export type ListingReadState = { status: "ok"; provider: string; read: ListingRead | null } | AiError;
+
+/**
+ * "Double-check with free AI": a second reader for the pasted listing. Every fact must quote the page; the
+ * check runs again with this reading compared in (`mergeAiRead`), so nothing here is shown on its own.
+ */
+export async function readListingAiAction(input: { text: unknown; token: unknown }): Promise<ListingReadState> {
+  // Phone numbers and emails out before anything leaves; the quotes are checked against exactly what was sent.
+  const sent = redact(str(input.text, LISTING_READ_LIMIT)).text;
+  if (sent.trim().length < 40) return { status: "error", message: "Paste more of the listing first." };
+
+  const blocked = await gate(input.token);
+  if (blocked) return blocked;
+
+  const r = await aiJson({ messages: listingReadMessages(sent), validate: (raw) => (raw && typeof raw === "object" ? checkListingRead(raw, sent) ?? {} : null), maxTokens: 700, deadlineMs: 30_000 });
+  if (!r.ok) return { status: "error", message: r.reason === "unconfigured" ? UNSET : BUSY };
+  return { status: "ok", provider: PROVIDER_NAME[r.provider], read: Object.keys(r.data).length ? r.data : null };
 }
 
 export type DashState = { status: "ok"; provider: string; dash: DashRead } | AiError;

@@ -56,6 +56,8 @@ export type ParsedListing = {
   unsure?: Unsure[];
   /** Facts the buyer entered or picked on the result ("What we read from the ad"), shown as "you entered". */
   fixed?: FixField[];
+  /** The free AI's second reading, when the buyer asked for one: what it agreed on, added (with its quote) or disagreed on. */
+  aiRead?: { field: "year" | "make" | "model" | "price" | "miles" | "exteriorColor"; value: number | string; quote: string; outcome: "agreed" | "added" | "disagreed" }[];
 };
 
 export type FixField = "year" | "make" | "model" | "price" | "docFee" | "miles" | "exteriorColor" | "titleStatus" | "sellerType";

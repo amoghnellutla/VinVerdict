@@ -106,4 +106,26 @@ ${r.ok ? `[${r.provider}] ${(r.data as { answer: string }).answer}` : `FAILED: $
       console.log("DEALER", url, JSON.stringify({ hasVin, ld, ai, merged: hasVin ? mergeDealer(ld, ai?.ok ? ai.data : null) : null }, null, 1));
     }
   }, 180_000);
+  it("double-checks three corpus listings: every fact quotes the ad, and the merge never shows a wrong value", async () => {
+    const { readdirSync } = await import("node:fs");
+    const { aiJson } = await import("./client");
+    const { checkListingRead, listingReadMessages, mergeAiRead } = await import("./listing-read");
+    const { parseListing } = await import("@/lib/listing/parse");
+    const { redact } = await import("@/lib/report/redact");
+    const dir = "src/lib/listing/corpus/cases";
+    for (const n of ["34-", "51-", "35-"]) {
+      const f = readdirSync(dir).find((x) => x.startsWith(n) && x.endsWith(".txt"))!;
+      const text = readFileSync(`${dir}/${f}`, "utf8");
+      const want = JSON.parse(readFileSync(`${dir}/${f.replace(/\.txt$/, ".json")}`, "utf8")).expect as Record<string, unknown>;
+      const sent = redact(text).text;
+      const r = await aiJson({ messages: listingReadMessages(sent), validate: (raw) => (raw && typeof raw === "object" ? checkListingRead(raw, sent) ?? {} : null), maxTokens: 700 });
+      const merged = mergeAiRead(parseListing(text), r.ok ? r.data : null);
+      console.log("LISTING READ", f, JSON.stringify({ ai: r, aiRead: merged.aiRead, unsure: merged.unsure }, null, 1));
+      for (const k of ["year", "make", "model", "price", "miles", "exteriorColor"] as const) {
+        const got = merged[k];
+        if (got != null && k in want && want[k] != null) expect(got, `${f} ${k}`).toBe(want[k]);
+      }
+      await new Promise((res) => setTimeout(res, 2_500));
+    }
+  }, 180_000);
 });

@@ -1,5 +1,6 @@
 import "server-only";
 import { makeName } from "@/lib/format";
+import { mergeAiRead, type ListingRead } from "@/lib/ai/listing-read";
 import { applyFixes, type ListingFixes } from "@/lib/listing/fixes";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { decodeVin, getComplaintSummary, getRecalls, getSafetyRatings, type VehicleKey } from "@/lib/nhtsa/client";
@@ -48,8 +49,9 @@ export type Analysis = {
 export type YearRow = { year: number; recalls: number | null; complaints: number | null; crashOrFire: number | null };
 
 /** `fixes`: what the buyer corrected on the result (already checked by `parseFixes`), applied before any check runs. */
-export async function analyzeListing(text: string, fixes: ListingFixes | null = null): Promise<Analysis> {
-  const listing = applyFixes(parseListing(text), fixes);
+export async function analyzeListing(text: string, fixes: ListingFixes | null = null, aiRead: ListingRead | null = null): Promise<Analysis> {
+  // `aiRead`: the free AI's second reading (already checked against the text by `checkListingRead`).
+  const listing = mergeAiRead(applyFixes(parseListing(text), fixes), aiRead);
   const notices: string[] = [];
 
   const vinCheck = listing.vin ? checkVin(listing.vin) : null;

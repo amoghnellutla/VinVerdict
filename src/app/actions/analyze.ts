@@ -8,7 +8,9 @@ import { currentUser } from "@/lib/auth/session";
 import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
 import { clientIp } from "@/lib/client-ip";
 import { allowanceMessage, takeGuestAllowance } from "@/lib/guest/allowance";
+import { checkListingRead, LISTING_READ_LIMIT } from "@/lib/ai/listing-read";
 import { parseFixes } from "@/lib/listing/fixes";
+import { redact } from "@/lib/report/redact";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import { buildVerdict } from "@/lib/verdict";
@@ -42,6 +44,19 @@ const GUEST_PER_MINUTE = 5;
  * login): the free check only (NHTSA is free, no paid API), within the
  * per-visitor and daily limits stored in Supabase, and nothing is saved.
  */
+/**
+ * The free AI's reading sent back with a re-check. Anyone can send this field, so it's checked again exactly
+ * like the AI's own answer: every quote must be in the listing (as sent to the AI) and every value in its quote.
+ */
+function aiReadFrom(raw: unknown, text: string) {
+  if (typeof raw !== "string" || !raw || raw.length > 4_000) return null;
+  try {
+    return checkListingRead(JSON.parse(raw), redact(text.slice(0, LISTING_READ_LIMIT)).text);
+  } catch {
+    return null;
+  }
+}
+
 export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Promise<AnalyzeState> {
   const owner = await currentUser();
 
@@ -68,7 +83,7 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   let analysis: Analysis;
   try {
     // The buyer's corrections from "What we read from the ad" (each value checked; anything invalid is dropped).
-    analysis = await analyzeListing(text, parseFixes(formData.get("fixes")));
+    analysis = await analyzeListing(text, parseFixes(formData.get("fixes")), aiReadFrom(formData.get("aiRead"), text));
   } catch (err) {
     console.error("analyzeAction failed", err);
     return { status: "error", message: "Something went wrong while checking that listing. Try again." };
