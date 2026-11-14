@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/auth/session";
 import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
 import { clientIp } from "@/lib/client-ip";
 import { allowanceMessage, takeGuestAllowance } from "@/lib/guest/allowance";
+import { parseFixes } from "@/lib/listing/fixes";
 import { MAX_LISTING_CHARS } from "@/lib/listing/parse";
 import { rateLimit } from "@/lib/rate-limit";
 import { buildVerdict } from "@/lib/verdict";
@@ -66,7 +67,8 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
 
   let analysis: Analysis;
   try {
-    analysis = await analyzeListing(text);
+    // The buyer's corrections from "What we read from the ad" (each value checked; anything invalid is dropped).
+    analysis = await analyzeListing(text, parseFixes(formData.get("fixes")));
   } catch (err) {
     console.error("analyzeAction failed", err);
     return { status: "error", message: "Something went wrong while checking that listing. Try again." };

@@ -54,8 +54,11 @@ export type ParsedListing = {
    * Only present when there is at least one.
    */
   unsure?: Unsure[];
+  /** Facts the buyer entered or picked on the result ("What we read from the ad"), shown as "you entered". */
+  fixed?: FixField[];
 };
 
+export type FixField = "year" | "make" | "model" | "price" | "docFee" | "miles" | "exteriorColor" | "titleStatus" | "sellerType";
 export type UnsureField = "price" | "miles" | "year" | "make" | "model" | "exteriorColor";
 export type Unsure = { field: UnsureField; values: (number | string)[] };
 
@@ -104,6 +107,8 @@ const MODEL_NEEDS_MAKE = new Set(["Land Rover", "Jaguar", "Genesis", "Alfa Romeo
 const MAKE_ALIASES: Record<string, string> = { chevy: "Chevrolet", vw: "Volkswagen", mercedes: "Mercedes-Benz", benz: "Mercedes-Benz" };
 
 const COLORS = ["black", "white", "silver", "gray", "grey", "blue", "red", "green", "brown", "beige", "gold", "tan", "orange", "yellow", "purple", "maroon", "burgundy", "charcoal", "pearl"];
+/** Makes the reader knows (for checking a make the buyer types in). */
+export const KNOWN_MAKES: readonly string[] = Object.keys(MODELS);
 
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 

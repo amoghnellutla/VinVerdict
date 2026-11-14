@@ -7,7 +7,7 @@ import type { Analysis } from "@/lib/analyze";
 import { notSure, priceWithFee } from "@/lib/format";
 import { STATE_TAX } from "@/lib/costs/stateTax";
 import { STATES, type StateCode } from "@/lib/geo/zip";
-import type { SellerType } from "@/lib/listing/parse";
+import type { FixField, SellerType } from "@/lib/listing/parse";
 import { liveSeller, type LiveListing } from "@/lib/live/parse";
 import { REF } from "@/lib/sources";
 import type { Line } from "./text";
@@ -113,20 +113,22 @@ export function carFactRows(a: Analysis, live: LiveListing | null): [string, str
   const vinStatus = !l.vin ? null : a.vinCheck?.ok ? (d?.clean === false ? "Decoded with warnings" : "Valid") : "Invalid check digit";
   // A feed's "0 accidents" isn't a history report, so it's never shown as "none".
   const liveAccidents = live?.accidentCount ? `${live.accidentCount} reported` : live ? "Not confirmed" : null;
+  // What the buyer corrected on the result is labelled as theirs, not the ad's.
+  const you = (f: FixField, v: string | null) => (v && l.fixed?.includes(f) ? `${v} (you entered)` : v);
   const rows: [string, string | null, string | null, string | null][] = [
-    ["Year", l.year?.toString() ?? notSure(l, "year"), d?.year?.toString() ?? null, live?.year?.toString() ?? null],
-    ["Make", l.make ?? notSure(l, "make"), d?.make ?? null, live?.make ?? null],
-    ["Model", l.model ?? notSure(l, "model"), d?.model ?? null, live?.model ?? null],
+    ["Year", you("year", l.year?.toString() ?? null) ?? notSure(l, "year"), d?.year?.toString() ?? null, live?.year?.toString() ?? null],
+    ["Make", you("make", l.make) ?? notSure(l, "make"), d?.make ?? null, live?.make ?? null],
+    ["Model", you("model", l.model) ?? notSure(l, "model"), d?.model ?? null, live?.model ?? null],
     ["Trim", null, d?.trim ?? null, live?.trim ?? null],
     ["Body", null, d?.body ?? null, null],
     ["Transmission", l.transmission === "unknown" ? null : cap(l.transmission), d?.transmission ?? null, null],
     ["Drive", null, d?.driveType ?? null, null],
     ["Fuel", null, d?.fuel ?? null, null],
-    ["Price", priceWithFee(l) ?? notSure(l, "price"), null, money(live?.price ?? null)],
-    ["Miles", notSure(l, "miles") ?? mi(l.miles), null, mi(live?.miles ?? null)],
+    ["Price", you("price", priceWithFee(l)) ?? notSure(l, "price"), null, money(live?.price ?? null)],
+    ["Miles", notSure(l, "miles") ?? (l.miles == null ? mi(null) : you("miles", mi(l.miles))), null, mi(live?.miles ?? null)],
     ["Title", l.titleStatus === "unknown" ? null : cap(l.titleStatus), null, live?.cleanTitle ? "Carfax clean-title flag on the listing" : null],
     ["Accidents", l.accident === "unknown" ? null : l.accident === "none" ? "None mentioned" : "Reported", null, liveAccidents],
-    ["Exterior", cap(l.exteriorColor) ?? notSure(l, "exteriorColor"), null, live?.exteriorColor ?? null],
+    ["Exterior", you("exteriorColor", cap(l.exteriorColor)) ?? notSure(l, "exteriorColor"), null, live?.exteriorColor ?? null],
     ["Owners", l.ownerCount?.toString() ?? null, null, null],
     ["Prior use", USAGE_LABEL[l.usage] ?? null, null, live && (live.usage === "fleet" || live.usage === "rental") ? USAGE_LABEL[live.usage] : null],
     ["Seller", l.sellerType === "unknown" ? null : cap(l.sellerType), null, live ? (liveSeller(live).mismatch ? `unclear (the feed's name, ${live.sellerName}, doesn't match its link)` : live.sellerName ?? (live.sellerType !== "unknown" ? cap(live.sellerType) : null)) : null],

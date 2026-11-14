@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { adSays, dealerFee, makeName, notSure } from "@/lib/format";
+import type { ListingFixes } from "@/lib/listing/fixes";
 import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
@@ -68,6 +69,7 @@ import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
 import { Assistant } from "./Assistant";
+import { ReadPanel } from "./ReadPanel";
 import { KnowsPanel } from "./KnowsPanel";
 import { DealerCheck } from "./DealerCheck";
 import { DealerCheckAi } from "./DealerCheckAi";
@@ -129,7 +131,7 @@ function ReportSummary({ summary, onSummary }: { summary: Summary; onSummary: (s
   return null;
 }
 
-export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null, onSummary = null }: {
+export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null, onFix = null, onSummary = null }: {
   analysis: Analysis;
   carId?: number | null;
   saveNote?: string | null;
@@ -144,6 +146,8 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   onCheckVin?: ((vin: string) => void) | null;
   /** Check a listing text again (the same ad with the VIN the person got from the seller). */
   onRecheck?: ((text: string) => void) | null;
+  /** Check the same ad again with the buyer's corrections ("What we read from the ad"). */
+  onFix?: ((fixes: ListingFixes) => void) | null;
   /** The verdict as it stands, for the lot list on the home page. */
   onSummary?: ((s: Summary) => void) | null;
 }) {
@@ -571,6 +575,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           </span>
         </div>
         {goodVin && a.decoded && <VinDecode vin={goodVin} decoded={a.decoded} size="sm" />}
+        {!selling && <ReadPanel listing={original.listing} onFix={onFix} guest={guest} />}
         {photos.length > 0 && (
           <CarGallery
             photos={photos}
@@ -854,14 +859,16 @@ function CarLine({ a }: { a: Analysis }) {
   const name = carName(a);
   // With a dealer fee, the headline matches the ad's total ("$22,097"), and says what it's made of.
   const fee = dealerFee(l);
+  // What the buyer corrected is theirs, not the ad's.
+  const entered = (f: "price" | "miles") => (l.fixed?.includes(f) ? " (you entered)" : "");
   const facts = [
     l.price != null &&
       (fee
-        ? { value: money(l.price + fee), label: `asking with the ${money(fee)} dealer fee (${money(l.price)} before it)` }
-        : { value: money(l.price), label: "asking" }),
+        ? { value: money(l.price + fee), label: `asking with the ${money(fee)} dealer fee (${money(l.price)} before it)${entered("price")}` }
+        : { value: money(l.price), label: `asking${entered("price")}` }),
     // The ad gives two prices or two mileages: say so instead of picking one.
     l.price == null && adSays(l, "price") && { value: "Price not sure", label: `the ad shows ${adSays(l, "price")}` },
-    l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: l.miles === 1 ? "mile" : "miles" },
+    l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: `${l.miles === 1 ? "mile" : "miles"}${entered("miles")}` },
     l.miles == null && adSays(l, "miles") && { value: "Miles not sure", label: `the ad shows ${adSays(l, "miles")}` },
   ].filter((x): x is { value: string; label: string } => !!x && !!x.value);
   return (

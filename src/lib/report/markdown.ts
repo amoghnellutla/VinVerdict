@@ -176,7 +176,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   const unknowns = r.decision.areas.flatMap((x) => x.unknown);
   // "$22,097 ($21,298 + $799 dealer fee)": the ad's total; the estimate compares the price before the fee.
   // Two prices in the ad and nothing says which: say so, never pick one.
-  const asked = priceWithFee(l) ?? notSure(l, "price") ?? money(l.price);
+  const asked = priceWithFee(l) ? `${priceWithFee(l)}${l.fixed?.includes("price") ? " (you entered)" : ""}` : notSure(l, "price") ?? money(l.price);
   const priceLine = v0
     ? `${asked}: ${v0.label ? `${DEAL_TEXT[v0.label]}, ` : ""}estimate ${money(v0.low)}–${money(v0.high)} (${v0.confidence} confidence)${dealerFee(l) ? `, compared using ${money(l.price)}, the price before the dealer fee` : ""}`
     : r.valuation?.unpriced

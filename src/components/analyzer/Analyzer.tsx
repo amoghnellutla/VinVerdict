@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type ClipboardEvent, type DragEvent, type ReactNode } from "react";
 import { analyzeAction, type AnalyzeState } from "@/app/actions/analyze";
+import type { ListingFixes } from "@/lib/listing/fixes";
 import { readListingHash } from "@/lib/bookmarklet";
 import { loadLot, rankLot, saveLot, upsertLot, type LotCar } from "@/lib/lot";
 import { VinScanner } from "./VinScanner";
@@ -87,7 +88,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
   }
 
   /** Fill the box and run the check straight away. */
-  function check(listing: string, fromShots: string[] = []) {
+  function check(listing: string, fromShots: string[] = [], fixes: ListingFixes | null = null) {
     const t = listing.trim().slice(0, MAX_LISTING_CHARS);
     if (!t) return;
     setShotUrls(fromShots);
@@ -96,6 +97,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
     setExample(null);
     const data = new FormData();
     data.set("listing", t);
+    if (fixes) data.set("fixes", JSON.stringify(fixes));
     startTransition(() => formAction(data));
   }
 
@@ -413,7 +415,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (
-          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} onSummary={(x) => setLot((l) => {
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} onFix={(f) => check(done.analysis.text, shots, f)} onSummary={(x) => setLot((l) => {
             if (!l.some((c) => c.vin === x.vin)) return l;
             const next = upsertLot(l, { ...x, at: Date.now() });
             saveLot(next);

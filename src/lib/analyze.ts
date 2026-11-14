@@ -1,5 +1,6 @@
 import "server-only";
 import { makeName } from "@/lib/format";
+import { applyFixes, type ListingFixes } from "@/lib/listing/fixes";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { decodeVin, getComplaintSummary, getRecalls, getSafetyRatings, type VehicleKey } from "@/lib/nhtsa/client";
 import { nhtsaModelName, type ComplaintSummary, type DecodedVin, type Recall, type SafetyRating } from "@/lib/nhtsa/parse";
@@ -46,8 +47,9 @@ export type Analysis = {
 
 export type YearRow = { year: number; recalls: number | null; complaints: number | null; crashOrFire: number | null };
 
-export async function analyzeListing(text: string): Promise<Analysis> {
-  const listing = parseListing(text);
+/** `fixes`: what the buyer corrected on the result (already checked by `parseFixes`), applied before any check runs. */
+export async function analyzeListing(text: string, fixes: ListingFixes | null = null): Promise<Analysis> {
+  const listing = applyFixes(parseListing(text), fixes);
   const notices: string[] = [];
 
   const vinCheck = listing.vin ? checkVin(listing.vin) : null;
