@@ -1,5 +1,7 @@
 /** Small display helpers shared by pages. */
 
+import type { Unsure, UnsureField } from "@/lib/listing/parse";
+
 export const usd = (n: number | null | undefined) => (n == null ? "—" : `$${Math.round(n).toLocaleString("en-US")}`);
 /** The dealer's own fee the ad adds on top of its price (Autotrader: "Listing Price $21,298 / Dealer Fee + $799 / Total Price $22,097"), or 0. */
 export const dealerFee = (l: { docFee?: number | null; sellerType: string }) => (l.sellerType === "dealer" && l.docFee && l.docFee > 0 ? l.docFee : 0);
@@ -14,6 +16,23 @@ export const usdWithFee = (price: number | null | undefined, fee?: number | null
   price == null ? "—" : fee && fee > 0 ? `${usd(price + fee)} (${usd(price)} + ${usd(fee)} dealer fee)` : usd(price);
 
 export const mi = (n: number | null | undefined) => (n == null ? "—" : `${Math.round(n).toLocaleString("en-US")} mi`);
+
+/**
+ * What the ad says for a fact it gives two answers for ("$15,990 or $14,990"), or null when it doesn't.
+ * Shown instead of a guess wherever that fact appears.
+ */
+export function adSays(l: { unsure?: Unsure[] }, field: UnsureField): string | null {
+  const u = l.unsure?.find((x) => x.field === field);
+  if (!u || !u.values.length) return null;
+  const vals = u.values.map((v) => (typeof v === "number" ? (field === "price" ? usd(v) : field === "miles" ? mi(v) : String(v)) : v));
+  return vals.length === 1 ? vals[0] : `${vals.slice(0, -1).join(", ")} or ${vals[vals.length - 1]}`;
+}
+
+/** "Not sure: the ad shows $15,990 or $14,990", or null. */
+export const notSure = (l: { unsure?: Unsure[] }, field: UnsureField) => {
+  const said = adSays(l, field);
+  return said ? `Not sure: the ad shows ${said}` : null;
+};
 export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 

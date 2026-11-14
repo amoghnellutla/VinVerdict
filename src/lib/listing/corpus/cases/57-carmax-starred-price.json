@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). CarMax-style page: '$22,998*' with a footnote and '45K mi'.",
+  "expect": {
+    "year": 2019,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 22998,
+    "miles": 45000,
+    "exteriorColor": "white",
+    "sellerType": "dealer"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

@@ -1,0 +1,18 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). TrueCar: 'Total price with est. fees' includes taxes and is not the asking price.",
+  "expect": {
+    "year": 2020,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 23400,
+    "miles": 42915,
+    "exteriorColor": "blue",
+    "accident": "none",
+    "ownerCount": 1
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

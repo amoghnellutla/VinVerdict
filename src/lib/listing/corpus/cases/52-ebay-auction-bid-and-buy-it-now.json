@@ -1,0 +1,14 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). eBay auction with a current bid and a Buy It Now price: two prices, so 'not sure'.",
+  "expect": {
+    "price": null,
+    "miles": 121000,
+    "titleStatus": "clean",
+    "exteriorColor": "white"
+  },
+  "unsure": [
+    "price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

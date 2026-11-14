@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). TrueCar card pasted as one line.",
+  "expect": {
+    "year": 2018,
+    "make": "Mazda",
+    "model": "CX-5",
+    "price": 18850,
+    "miles": 58770,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

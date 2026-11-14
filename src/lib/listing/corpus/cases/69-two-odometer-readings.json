@@ -1,0 +1,15 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). The heading and the details disagree on the miles: 'not sure'.",
+  "expect": {
+    "price": 13400,
+    "miles": null
+  },
+  "unsure": [
+    "miles"
+  ],
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

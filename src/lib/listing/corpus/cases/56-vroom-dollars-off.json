@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Vroom-style page: '$1,000 off' and a monthly estimate.",
+  "expect": {
+    "year": 2020,
+    "make": "Toyota",
+    "model": "Highlander",
+    "price": 31480,
+    "miles": 51203,
+    "exteriorColor": "white"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

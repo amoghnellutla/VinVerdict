@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Odometer given in kilometres with the miles in brackets: the miles count, not the km.",
+  "expect": {
+    "year": 2018,
+    "make": "Toyota",
+    "model": "RAV4",
+    "price": 17900,
+    "miles": 52195,
+    "exteriorColor": "white"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Cars.com private seller.",
+  "expect": {
+    "year": 2014,
+    "make": "Toyota",
+    "model": "Prius",
+    "price": 9450,
+    "miles": 131780,
+    "exteriorColor": "blue",
+    "sellerType": "private"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

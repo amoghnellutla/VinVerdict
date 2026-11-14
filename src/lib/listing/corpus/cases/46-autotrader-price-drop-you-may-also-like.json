@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Autotrader-style page with 'Price Drop $500' and a 'You may also like' list after this car.",
+  "expect": {
+    "year": 2017,
+    "make": "Honda",
+    "model": "Pilot",
+    "price": 19991,
+    "miles": 88540,
+    "exteriorColor": "silver"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

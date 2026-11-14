@@ -1,0 +1,13 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Two real prices (cash and with dealer financing) and nothing says which one to compare: the price must be 'not sure', never a guess.",
+  "expect": {
+    "price": null,
+    "miles": 98100,
+    "exteriorColor": "gray"
+  },
+  "unsure": [
+    "price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

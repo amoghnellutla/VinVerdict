@@ -1,0 +1,15 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Two prices and nothing explains them: 'not sure', never a guess.",
+  "expect": {
+    "price": null,
+    "year": 2020,
+    "make": "Kia",
+    "model": "Soul",
+    "miles": 41200
+  },
+  "unsure": [
+    "price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

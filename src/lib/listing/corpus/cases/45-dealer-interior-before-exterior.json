@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Interior colour listed before the exterior.",
+  "expect": {
+    "year": 2018,
+    "make": "Subaru",
+    "model": "Outback",
+    "price": 19250,
+    "miles": 77900,
+    "exteriorColor": "white"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

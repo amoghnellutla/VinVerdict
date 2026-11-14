@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Labels on their own line with the value below ('Interior' / 'Black' / 'Exterior' / 'Crystal White Pearl').",
+  "expect": {
+    "year": 2019,
+    "make": "Subaru",
+    "model": "Crosstrek",
+    "price": 19700,
+    "miles": 48330,
+    "exteriorColor": "white"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

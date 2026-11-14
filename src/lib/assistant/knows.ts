@@ -22,6 +22,9 @@ export type KnowsInput = {
   /** The dealer's fee the ad adds on top (Autotrader "Dealer Fee + $799"), shown with the price. */
   dealerFee?: number;
   miles: number | null;
+  /** "Not sure: the ad shows $15,990 or $14,990" when the ad gives two prices (or miles). */
+  priceNotSure?: string | null;
+  milesNotSure?: string | null;
   /** Where the miles come from when it isn't the ad ("Carfax's last reading"). */
   milesFrom?: string | null;
   /** History report answers (from a report the person read or attached). */
@@ -56,10 +59,10 @@ export function knowsList(k: KnowsInput): Known[] {
       : { key: "vin", label: "The exact car", done: false, detail: "No valid VIN yet", action: { kind: "tell", label: "Add the VIN", prefill: "VIN: " } },
     k.price
       ? { key: "price", label: "Asking price", done: true, detail: k.dealerFee ? `${$(k.price + k.dealerFee)} (${$(k.price)} + ${$(k.dealerFee)} dealer fee)` : $(k.price), action: null }
-      : { key: "price", label: "Asking price", done: false, detail: "Not known", action: { kind: "tell", label: "Tell the price", prefill: "They're asking $" } },
+      : { key: "price", label: "Asking price", done: false, detail: k.priceNotSure ?? "Not known", action: { kind: "tell", label: k.priceNotSure ? "Tell the real price" : "Tell the price", prefill: "They're asking $" } },
     k.miles
       ? { key: "miles", label: "Miles", done: true, detail: `${k.miles.toLocaleString("en-US")} miles${k.milesFrom ? ` (${k.milesFrom})` : ""}`, action: null }
-      : { key: "miles", label: "Miles", done: false, detail: "Not known", action: { kind: "tell", label: "Tell the miles", prefill: "It has  miles" } },
+      : { key: "miles", label: "Miles", done: false, detail: k.milesNotSure ?? "Not known", action: { kind: "tell", label: "Tell the miles", prefill: "It has  miles" } },
     k.history
       ? {
           key: "history", label: "Accidents, title, owners", done: true,

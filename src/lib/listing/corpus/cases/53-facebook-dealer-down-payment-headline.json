@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Facebook dealer ad whose headline amount is the down payment; the ad states the total price.",
+  "expect": {
+    "year": 2017,
+    "make": "Nissan",
+    "model": "Rogue",
+    "price": 16990,
+    "miles": 88000,
+    "exteriorColor": "black",
+    "sellerType": "dealer"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

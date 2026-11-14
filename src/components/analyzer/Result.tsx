@@ -2,7 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
-import { dealerFee, makeName } from "@/lib/format";
+import { adSays, dealerFee, makeName, notSure } from "@/lib/format";
 import { toldGuide, toldInspection, toldReplies, applyTold, auctionHits, toldAuction, type Told } from "@/lib/assistant/apply";
 import type { PageContext } from "@/lib/assistant/answers";
 import { knowsList } from "@/lib/assistant/knows";
@@ -323,6 +323,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     kind: a.listing.kind,
     hasVin: !!goodVin,
     hasPrice: m.listing.price != null,
+    priceNotSure: adSays(m.listing, "price"),
     decoded: !!a.decoded,
     recalls: a.recalls?.length ?? null,
     report: answers,
@@ -593,6 +594,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
           <KnowsPanel
             items={knowsList({
               car: carName(m), vin: goodVin, price: m.listing.price, dealerFee: dealerFee(m.listing),
+              priceNotSure: notSure(m.listing, "price"), milesNotSure: reportMiles ? null : notSure(m.listing, "miles"),
               // The ad's miles, or the latest history report's last reading when the ad has none.
               miles: m.listing.miles ?? reportMiles?.miles ?? null,
               milesFrom: m.listing.miles ? null : reportMiles ? `${reportMiles.source}'s last reading` : null,
@@ -857,7 +859,10 @@ function CarLine({ a }: { a: Analysis }) {
       (fee
         ? { value: money(l.price + fee), label: `asking with the ${money(fee)} dealer fee (${money(l.price)} before it)` }
         : { value: money(l.price), label: "asking" }),
+    // The ad gives two prices or two mileages: say so instead of picking one.
+    l.price == null && adSays(l, "price") && { value: "Price not sure", label: `the ad shows ${adSays(l, "price")}` },
     l.miles != null && { value: miles(l.miles)?.replace(" mi", ""), label: l.miles === 1 ? "mile" : "miles" },
+    l.miles == null && adSays(l, "miles") && { value: "Miles not sure", label: `the ad shows ${adSays(l, "miles")}` },
   ].filter((x): x is { value: string; label: string } => !!x && !!x.value);
   return (
     <div className="rise min-w-0">

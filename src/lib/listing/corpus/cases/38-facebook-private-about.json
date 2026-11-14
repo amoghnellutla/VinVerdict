@@ -1,0 +1,18 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Facebook Marketplace private sale with the 'About this vehicle' box.",
+  "expect": {
+    "year": 2016,
+    "make": "Honda",
+    "model": "Civic",
+    "price": 11500,
+    "miles": 98000,
+    "exteriorColor": "blue",
+    "sellerType": "private",
+    "titleStatus": "clean"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

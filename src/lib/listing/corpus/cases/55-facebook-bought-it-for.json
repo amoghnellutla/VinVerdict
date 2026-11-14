@@ -1,0 +1,18 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Facebook private sale mentioning what the seller paid; '2,000 miles ago' is service history.",
+  "expect": {
+    "year": 2015,
+    "make": "Honda",
+    "model": "CR-V",
+    "price": 14000,
+    "miles": 104000,
+    "titleStatus": "clean",
+    "accident": "none",
+    "sellerType": "private"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

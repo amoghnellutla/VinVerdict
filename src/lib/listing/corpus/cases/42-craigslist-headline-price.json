@@ -1,0 +1,18 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Craigslist: the price is in the heading; 'timing belt done at 105k' is service history.",
+  "expect": {
+    "year": 2012,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 6900,
+    "miles": 168000,
+    "exteriorColor": "gray",
+    "titleStatus": "clean",
+    "sellerType": "private"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

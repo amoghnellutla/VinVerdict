@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). The model year plus other years in the text (bought new, inspection, brake job).",
+  "expect": {
+    "year": 2018,
+    "make": "Honda",
+    "model": "Accord",
+    "price": 16900,
+    "miles": 68450,
+    "titleStatus": "clean"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

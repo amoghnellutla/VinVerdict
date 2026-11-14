@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Edmunds: the dealer's price and Edmunds' suggested price; only the dealer's is the asking price.",
+  "expect": {
+    "year": 2019,
+    "make": "Toyota",
+    "model": "Highlander",
+    "price": 28750,
+    "miles": 51844,
+    "exteriorColor": "black"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

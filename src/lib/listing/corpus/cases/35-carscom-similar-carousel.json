@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Cars.com page with a 'Similar vehicles' list of other cars (other prices and miles) after this car.",
+  "expect": {
+    "year": 2019,
+    "make": "Honda",
+    "model": "CR-V",
+    "price": 22488,
+    "miles": 48211,
+    "exteriorColor": "white"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

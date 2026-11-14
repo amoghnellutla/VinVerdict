@@ -1,0 +1,15 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Short private ad: the odometer is 142k; the other mileages are service history.",
+  "expect": {
+    "year": 2013,
+    "make": "Honda",
+    "model": "Civic",
+    "price": 6800,
+    "miles": 142000
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

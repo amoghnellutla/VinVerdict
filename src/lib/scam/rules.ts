@@ -113,7 +113,8 @@ export function evaluateScamRules(input: ScamInput): ScamResult {
     const v = checkVin(l.vin);
     if (!v.ok) add("vin-invalid", "hide", "VIN is invalid", v.message);
   }
-  if (l.price === null) {
+  // An ad that shows two prices without saying which is the asking price has a price; it's just not clear which.
+  if (l.price === null && !l.unsure?.some((u) => u.field === "price")) {
     add("no-price", "hide", "No price", "The listing has no clear asking price.");
   }
   if (decoded) {

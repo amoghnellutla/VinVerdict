@@ -1,0 +1,15 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). The old price is shown after the new one, and 'Price drop $500' explains it.",
+  "expect": {
+    "year": 2019,
+    "make": "Toyota",
+    "model": "Corolla",
+    "price": 15995,
+    "miles": 34600
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

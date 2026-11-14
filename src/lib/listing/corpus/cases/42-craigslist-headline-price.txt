@@ -1,0 +1,9 @@
+2012 honda accord ex - $6,900 (san jose)
+condition: good
+cylinders: 4 cylinders
+fuel: gas
+odometer: 168000
+paint color: grey
+title status: clean
+transmission: automatic
+Selling my accord, timing belt done at 105k.

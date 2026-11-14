@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). OfferUp listing: 'Mileage 134k' and 'Title: Rebuilt'.",
+  "expect": {
+    "year": 2017,
+    "make": "Toyota",
+    "model": "Corolla",
+    "price": 9800,
+    "miles": 134000,
+    "titleStatus": "rebuilt"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Dealer site price stack: Retail $21,995 + Dealer Prep Fee $699 = Your Price $22,694. The price is $21,995 and the fee $699, so the total shown matches the ad.",
+  "expect": {
+    "year": 2019,
+    "make": "Mazda",
+    "model": "CX-5",
+    "price": 21995,
+    "docFee": 699,
+    "miles": 52118,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

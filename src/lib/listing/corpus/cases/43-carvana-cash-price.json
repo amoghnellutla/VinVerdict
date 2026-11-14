@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Carvana: '36k miles', 'Cash price' and a monthly estimate; colour label with the value after it.",
+  "expect": {
+    "year": 2022,
+    "make": "Kia",
+    "model": "Forte",
+    "price": 17590,
+    "miles": 36000,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

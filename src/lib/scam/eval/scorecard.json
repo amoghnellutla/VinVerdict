@@ -1,29 +1,29 @@
 {
-  "generated": "2026-11-13",
+  "generated": "2026-11-14",
   "definition": "Flagged = VinVerdict says 'Stop: serious warning' because of the listing or the payment. Baseline = flags any ad mentioning a payment app, shipping, a deposit, a wire, escrow or the seller being away.",
   "vinverdict": {
-    "cases": 97,
+    "cases": 133,
     "scams": 38,
-    "legit": 59,
+    "legit": 95,
     "tp": 38,
     "fp": 0,
     "fn": 0,
-    "tn": 59,
+    "tn": 95,
     "precision": 1,
     "recall": 1,
     "falseAlarmRate": 0
   },
   "baseline": {
-    "cases": 97,
+    "cases": 133,
     "scams": 38,
-    "legit": 59,
+    "legit": 95,
     "tp": 33,
     "fp": 29,
     "fn": 5,
-    "tn": 30,
+    "tn": 66,
     "precision": 0.532,
     "recall": 0.868,
-    "falseAlarmRate": 0.492
+    "falseAlarmRate": 0.305
   },
   "byOrigin": {
     "real": {
@@ -39,13 +39,13 @@
       "falseAlarmRate": 0
     },
     "synthetic": {
-      "cases": 88,
+      "cases": 124,
       "scams": 38,
-      "legit": 50,
+      "legit": 86,
       "tp": 38,
       "fp": 0,
       "fn": 0,
-      "tn": 50,
+      "tn": 86,
       "precision": 1,
       "recall": 1,
       "falseAlarmRate": 0
@@ -88,42 +88,42 @@
     "falseAlarmRate": 0.538
   },
   "learned": {
-    "trainedOn": 97,
+    "trainedOn": 133,
     "crossValidated": {
-      "cases": 97,
+      "cases": 133,
       "scams": 38,
-      "legit": 59,
-      "tp": 26,
-      "fp": 4,
-      "fn": 12,
-      "tn": 55,
-      "precision": 0.867,
-      "recall": 0.684,
-      "falseAlarmRate": 0.068
+      "legit": 95,
+      "tp": 38,
+      "fp": 18,
+      "fn": 0,
+      "tn": 77,
+      "precision": 0.679,
+      "recall": 1,
+      "falseAlarmRate": 0.189
     },
     "heldOut": {
       "cases": 25,
       "scams": 12,
       "legit": 13,
       "tp": 12,
-      "fp": 0,
+      "fp": 7,
       "fn": 0,
-      "tn": 13,
-      "precision": 1,
+      "tn": 6,
+      "precision": 0.632,
       "recall": 1,
-      "falseAlarmRate": 0
+      "falseAlarmRate": 0.538
     },
     "replies": {
       "cases": 25,
       "scams": 12,
       "legit": 13,
-      "tp": 10,
-      "fp": 0,
-      "fn": 2,
-      "tn": 13,
-      "precision": 1,
-      "recall": 0.833,
-      "falseAlarmRate": 0
+      "tp": 11,
+      "fp": 5,
+      "fn": 1,
+      "tn": 8,
+      "precision": 0.688,
+      "recall": 0.917,
+      "falseAlarmRate": 0.385
     },
     "topFeatures": [
       "to you",

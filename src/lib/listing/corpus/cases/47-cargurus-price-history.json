@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). CarGurus with a price history: the older $18,000 is explained by 'Price dropped $550'.",
+  "expect": {
+    "year": 2018,
+    "make": "Toyota",
+    "model": "Camry",
+    "price": 17450,
+    "miles": 62300,
+    "exteriorColor": "silver"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

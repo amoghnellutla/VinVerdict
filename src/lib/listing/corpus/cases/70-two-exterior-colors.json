@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Two different exterior colours: 'not sure'.",
+  "expect": {
+    "price": 15200,
+    "miles": 59000,
+    "exteriorColor": null
+  },
+  "unsure": [
+    "exteriorColor"
+  ],
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

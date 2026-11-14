@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Craigslist: 'was asking $7,000, now $6,200' and 'Paid $2,000 for a new transmission'.",
+  "expect": {
+    "year": 2011,
+    "make": "Toyota",
+    "model": "Corolla",
+    "price": 6200,
+    "miles": 143000,
+    "exteriorColor": "silver"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

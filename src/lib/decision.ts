@@ -153,6 +153,8 @@ export type DecisionInput = {
   kind: "text" | "vin" | "url";
   hasVin: boolean;
   hasPrice: boolean;
+  /** The ad's two prices ("$11,995 or $10,995") when it doesn't say which is the asking price. */
+  priceNotSure?: string | null;
   /** NHTSA decoded the VIN. */
   decoded: boolean;
   /** Model-year recalls on record (null: not loaded). */
@@ -239,7 +241,9 @@ export function decide(d: DecisionInput): Decision {
   const tooGood = findings.find((f) => f.id === "too-good" || f.id === "too-good-plus-flags");
   const p = d.price;
   let price: AreaRow;
-  if (!d.hasPrice && d.kind !== "vin") {
+  if (!d.hasPrice && d.priceNotSure && d.kind !== "vin") {
+    price = { area: "price", status: "verify", line: `The ad shows ${d.priceNotSure}: ask the seller which is the price for this car`, unknown: [] };
+  } else if (!d.hasPrice && d.kind !== "vin") {
     price = { area: "price", status: "unchecked", line: "No asking price in the ad", unknown: [] };
   } else if (p?.unpriced) {
     price = { area: "price", status: "verify", line: "Can't be priced from listing data: needs an in-person appraisal", unknown: [] };
@@ -313,7 +317,7 @@ export function decide(d: DecisionInput): Decision {
       : scamStops.length
       ? "This ad shows a known scam pattern. Don't send any money or deposit. See the warnings below."
       : "There's a serious problem with the car itself. See the warnings below before going any further.";
-  } else if (d.kind !== "vin" && !d.hasVin && !d.hasPrice) {
+  } else if (d.kind !== "vin" && !d.hasVin && !d.hasPrice && !d.priceNotSure) {
     // Checked before "verify": a missing VIN and price aren't warnings, just nothing to go on.
     level = "thin";
     title = "Not enough information";

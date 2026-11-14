@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Dealer site: the old price is shown crossed out above the sale price, and the discount explains the difference.",
+  "expect": {
+    "year": 2021,
+    "make": "Toyota",
+    "model": "RAV4",
+    "price": 27995,
+    "miles": 31450,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

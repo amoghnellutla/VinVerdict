@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Dealer site: 'Market Value' and 'You Save' around the internet price.",
+  "expect": {
+    "year": 2017,
+    "make": "Lexus",
+    "model": "RX",
+    "price": 24995,
+    "miles": 74320,
+    "exteriorColor": "silver",
+    "sellerType": "dealer"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

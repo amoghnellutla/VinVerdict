@@ -31,6 +31,7 @@ Listing corpus scorecard (26 cases)
 
 - `expect`: any field of `ParsedListing` in `../parse.ts`: `kind` (`text`/`url`/`vin`), `vin`, `year`, `make`, `model`, `price`, `docFee`, `miles`, `transmission`, `titleStatus`, `accident` (`none`/`reported`/`unknown`), `exteriorColor`, `ownerCount`, `sellerType`, `usage` (`personal`/`fleet`/`rental`/`unknown`), `zip`, `distanceMiles`, `sourceHost`.
 - `verdict`: `hide`, `verify`, `caution` or `clear`.
+- `unsure`: fields the ad gives two answers for, such as `["price"]` when it shows two prices and nothing says which one. The reader must say "not sure" for these (the field null), and must not say "not sure" for any other field.
 - `mustHit` / `mustNotHit`: rule ids from `../../scam/rules.ts` and `../../verdict.ts` (for example `accident-reported`, `no-price`, `vin-only`, `lien`, `shipping-only`, `high-miles`, `fleet`, `curbstoning`).
 
 ## Privacy
@@ -40,3 +41,9 @@ Listings are public, but remove phone numbers, emails and personal names before 
 ## Scam labels
 
 Every listing case also says `"scam": true | false` (does the ad show a known scam pattern a buyer should stop at?) and `"origin": "real" | "synthetic"`. These feed the scam scorecard (`src/lib/scam/eval/`, shown on /accuracy). Leave `scam` out for VIN-only and link-only cases. After adding or relabelling a case, refresh the published scorecard: `UPDATE_SCORECARD=1 npx vitest run src/lib/scam/eval`.
+
+## Stress set and re-pastes
+
+Cases 35 and up are a stress set: layouts written from other sites' formats (TrueCar, Edmunds, KBB, eBay Motors, OfferUp, Vroom, dealer sites), labelled `origin: "synthetic"`. They carry the traps that break readers: other cars' prices, crossed-out prices, fee stacks, payments shown first, interior colors, km and service-history miles.
+
+`mutations.test.ts` re-pastes every case six other ways: lines joined, Windows line ends, blank lines, similar cars after, car cards after, and recently viewed before. A fact may become "not sure", never a different value. The scorecard counts right, not sure and wrong separately, and wrong must stay 0.

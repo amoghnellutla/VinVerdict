@@ -48,7 +48,16 @@ export type ParsedListing = {
   phones: string[];
   /** The dealer's name when the page shows it above its opening hours ("DCH Wappingers Falls Toyota / Open Today|9:00 AM"). */
   dealerName?: string | null;
+  /**
+   * Facts the ad gives two different answers for ("$29,995" and "$27,995" with nothing saying which is the
+   * price). The field itself is then null: VinVerdict shows "not sure" and the ad's choices, never a guess.
+   * Only present when there is at least one.
+   */
+  unsure?: Unsure[];
 };
+
+export type UnsureField = "price" | "miles" | "year" | "make" | "model" | "exteriorColor";
+export type Unsure = { field: UnsureField; values: (number | string)[] };
 
 // Brands in scope first (PLAN.md §1), then common others so text still parses.
 const MODELS: Record<string, string[]> = {
@@ -229,6 +238,55 @@ function findYear(text: string, makeAt: number): number | null {
   return years[0].y;
 }
 
+// Fees a dealer charges itself (not the state's title, tag, registration or tax).
+const DEALER_FEE_WORDS = String.raw`(?:dealer|doc(?:ument(?:ation|ary)?)?\.?|prep(?:aration)?|processing|service|reconditioning|recon|admin(?:istrative)?|handling|electronic(?: filing)?|e-?filing|filing|delivery|certification|cpo|etch(?:ing)?|dealer-installed|protection|appearance)`;
+const STATE_FEE_WORDS = String.raw`(?:title|tags?|temp tag|registration|licen[cs]e|plates?|state|dmv|inspection|tire|government|tax(?:es)?)`;
+
+/**
+ * Amounts the ad adds to or takes off a price: dealer and state fees ("Doc Fee + $398", "$699 prep fee") and
+ * discounts ("Dealer Discount $2,000", "$500 off", "Price drop $600"). Used to tell a price stack
+ * (list price, discount, sale price, fees, total) from two prices that disagree.
+ */
+function priceAdjustments(text: string): { fees: { n: number; dealer: boolean }[]; discounts: number[] } {
+  const amt = String.raw`\$\s?(\d{1,2},\d{3}|\d{1,4})(?:\.\d{2})?\b`;
+  const fees: { n: number; dealer: boolean }[] = [];
+  const kinds = new RegExp(`(${DEALER_FEE_WORDS}|${STATE_FEE_WORDS})`);
+  for (const m of text.matchAll(new RegExp(String.raw`\b((?:[a-z-]+\.? ){0,3})fees?\b[^$\d]{0,15}${amt}`, "g"))) {
+    const n = parseNumber(m[2]);
+    if (n > 0 && n <= 5_000) fees.push({ n, dealer: !new RegExp(`\\b${STATE_FEE_WORDS}\\b`).test(m[1]) && (kinds.test(m[1]) || m[1].trim() === "") });
+  }
+  // "$699 prep fee", but not "$599 / Electronic Filing Fee $89" (the next line's label, with its own amount).
+  for (const m of text.matchAll(new RegExp(`${amt}\\s*((?:${DEALER_FEE_WORDS}|${STATE_FEE_WORDS})(?: ${DEALER_FEE_WORDS}){0,2}) fees?\\b(?![^$\\d]{0,12}\\$?\\s?\\d)`, "g"))) {
+    const n = parseNumber(m[1]);
+    if (n > 0 && n <= 5_000) fees.push({ n, dealer: !new RegExp(`\\b${STATE_FEE_WORDS}\\b`).test(m[2]) });
+  }
+  const discounts: number[] = [];
+  for (const m of text.matchAll(/\b(?:discount|savings?|you save|save|rebate|price (?:drop|cut|reduction)(?:ped)?|dropped|reduced(?: by)?|dealer cash|incentives?|bonus cash|markdown)\b[^$\d]{0,12}-?\$\s?(\d{1,3}(?:,\d{3})+|\d+)/g)) {
+    discounts.push(parseNumber(m[1]));
+  }
+  for (const m of text.matchAll(/\$\s?(\d{1,3}(?:,\d{3})+|\d+)\s*(?:off|price (?:drop|cut)|discount|savings|rebate|markdown)\b/g)) {
+    discounts.push(parseNumber(m[1]));
+  }
+  return { fees, discounts };
+}
+
+/**
+ * The dealer's fees when the ad states a total and its fees add up to it exactly: "Sale Price $21,450 /
+ * Documentation Fee $599 / Electronic Filing Fee $89 / Total Price $22,138" is $688 of dealer fees, so the
+ * page's total matches the ad's. State fees in the stack are left to the out-the-door estimate. Null otherwise.
+ */
+function feesToTotal(text: string, price: number | null): number | null {
+  if (price == null) return null;
+  const totals = [...text.matchAll(/\btotal(?: price)?:? \$\s?(\d{1,3}(?:,\d{3})+)/g)].map((m) => parseNumber(m[1]));
+  const { fees } = priceAdjustments(text);
+  const dealer = fees.filter((f) => f.dealer).reduce((s, f) => s + f.n, 0);
+  const all = fees.reduce((s, f) => s + f.n, 0);
+  for (const t of totals) {
+    if (dealer > 0 && (t - price === dealer || t - price === all)) return dealer;
+  }
+  return null;
+}
+
 function findDocFee(text: string): number | null {
   const ok = (n: number) => n > 0 && n <= 3_000;
   // Autotrader's price box lists each fee between the listing price and the total:
@@ -244,9 +302,12 @@ function findDocFee(text: string): number | null {
       return ok(sum) ? sum : null;
     }
   }
+  // "Doc fee $499", "Dealer Prep Fee $699", "plus a $599 documentation fee", "$899 dealer documentation fee".
+  // Not "Dealer fees ($439) included": Autotrader's total of every fee, which can include the state's.
+  const name = String.raw`(?:dealer )?(?:doc(?:ument(?:ation|ary))?\.?|prep(?:aration)?|processing|admin(?:istrative)?|reconditioning|electronic filing)(?: service)?`;
   const m =
-    text.match(/\bdoc(?:ument(?:ation|ary))?\.? fees?\b[^$\d]{0,12}\$?\s?(\d{1,4}(?:\.\d{2})?)\b/) ??
-    text.match(/\$\s?(\d{1,4}(?:\.\d{2})?)\s+doc(?:ument(?:ation|ary))?\.? fees?\b/);
+    text.match(new RegExp(String.raw`\b(?:(?:${name}) fees?|dealer fee(?!s))\b[^$\d]{0,12}\$?\s?(\d{1,4}(?:\.\d{2})?)\b`)) ??
+    text.match(new RegExp(String.raw`\$\s?(\d{1,4}(?:\.\d{2})?)\s+(?:${name}) fees?\b`));
   if (!m) return null;
   const n = Number(m[1]);
   return ok(n) && n <= 2_000 ? n : null;
@@ -255,64 +316,139 @@ function findDocFee(text: string): number | null {
 // Amounts that are about the price but aren't the asking price:
 // "MSRP $31,450", "IMV of $20,009", "was $16,000", "save $1,500".
 // A minus glued to the dollar sign ("-$1,500") is a discount; "EX-L - $11,900" is not.
-const NOT_ASKING_BEFORE = /(?:\b(?:msrp|retail|original|list|market (?:value|price|average|avg)|kbb(?: value)?|book value|trade-in value|imv of|imv|was|reduced from|originally|save|savings|discount|rebate|owe|owe about|payoff)\s*:?\s*|-)$/;
-// "$460 below market", "$1,200 price drop", "$150/mo", "$500 deposit", "$199 processing fee".
-const NOT_ASKING_AFTER = /^\s*\*?\s*(?:\/|per\b|a month|monthly|down|deposit|fee|doc|processing|below|under|above|over|off|less|price drop|drop|savings|to the bank|in (?:repairs|work)|refundable)/;
+// "paid $18k for it", "KBB says it's worth $15k", "Edmunds suggested price", "total of all payments", "amount financed".
+const NOT_ASKING_BEFORE = /(?:\b(?:msrp|retail|original|list|market (?:value|price|average|avg)|kbb(?: value)?|book value|trade-in value|trade-in|imv of|imv|was|was asking|reduced from|originally|previously|save|savings|discount|rebate|owe|owe about|payoff|paid|bought (?:it )?(?:for|at)|worth|valued at|appraised at|suggested(?: price)?|fair (?:market|purchase) (?:price|value)|true market value|tmv|(?:est\.?|estimated) value|average|avg|total of (?:all )?payments|amount financed|financed|down payment|with (?:est\.?|estimated) (?:taxes and )?fees|monthly payment|payment|up to)\s*:?\s*|-)$/;
+// "$460 below market", "$1,200 price drop", "$150/mo", "$500 deposit", "$199 processing fee", "$17,937 amount financed", "$969 delivery fee".
+const NOT_ASKING_AFTER = new RegExp(
+  // A fee name with no amount of its own after it names this amount ("$969 Delivery Fee"); "$21,995 Dealer Prep Fee $699" doesn't.
+  String.raw`^\s*\*?\s*(?:(?:${DEALER_FEE_WORDS}|${STATE_FEE_WORDS})(?: [a-z-]+)? fees?\b(?![^$\d]{0,12}\$?\s?\d)|` +
+    /(?:\/|per\b|a month|monthly|down|deposit|fee|doc|processing|below|under|above|over|off|less|(?:price )?drop(?:ped)?\b(?![^$\d]{0,20}\$\s?\d)|savings|in savings|to the bank|in (?:repairs|work|upgrades|mods|parts)|refundable|amount financed|financed|total of|invested|market value|value\b|trade|est(?:imated)?\.? (?:value|payment))/.source +
+    ")",
+);
 
-function findPrice(text: string): number | null {
+type PriceRead = { price: number | null; docFee?: number; unsure?: number[] };
+
+/**
+ * The asking price, and whether the ad agrees with itself. Every amount that could be the price is collected,
+ * not just the first. A price stack is fine: "$29,995 / Dealer Discount $2,000 / $27,995" (the price is
+ * $27,995) or "Retail $21,995 / Prep Fee $699 / Your Price $22,694" (price $21,995 plus a $699 dealer fee).
+ * Two prices that nothing in the ad explains make the price unsure: the page asks instead of guessing.
+ */
+function readPrice(text: string, docFee: number | null, checkText: string, mixed: boolean): PriceRead {
+  const all = priceCandidates(text);
+  if (!all.length) return { price: null };
+  const top = all[0].n;
+  return reconcilePrice(top, priceCandidates(checkText), text, docFee, mixed);
+}
+
+/** Amounts that could be the asking price, in order of trust: labelled, then a bare number with a price word, then any dollar amount. */
+function priceCandidates(text: string): { n: number; labelled: boolean }[] {
   // Up to $1M (the same limit as the price check): exotic cars are real listings, and a cap that's too low makes an option's
   // price ("$630") win instead (case 28, a $435,640 Porsche).
   const ok = (n: number) => n >= 500 && n <= 1_000_000;
   const num = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b`;
+  const all: { n: number; labelled: boolean }[] = [];
+  const take = (n: number, labelled: boolean) => {
+    if (ok(n)) all.push({ n, labelled });
+  };
   // 1) Labelled: "asking $9,000", "price: 9500", "internet price $25,495", "$9k obo"
   const labelRe = new RegExp(String.raw`\b(asking|price|priced at|selling for|for sale for)\b[:\s]*\$?\s*${num}`, "g");
   for (const m of text.matchAll(labelRe)) {
-    const before = text.slice(Math.max(0, m.index - 20), m.index);
-    if (/\b(msrp|retail|original|list|market|was)\s*$/.test(before)) continue;
-    const n = parseNumber(m[2], m[3]);
-    if (ok(n)) return n;
+    const before = text.slice(Math.max(0, m.index - 25), m.index);
+    if (/\b(msrp|retail|original|list|market|was|was asking|suggested|fair purchase|fair market|kbb|edmunds|book|purchase|paid)\s*$/.test(before)) continue;
+    take(parseNumber(m[2], m[3]), true);
   }
   // 2) A bare number with a price word after it: "4500 cash", "7,800 obo", "9k firm".
-  const bare = text.match(/(?<![\d,.$])(\d{1,3}(?:,\d{3})+|\d{3,6}|\d{1,3}(?:\.\d)?(?=\s*k\b))\s*(k)?\s*(?:cash|obo|or best offer|firm|negotiable|or trade)\b/);
-  if (bare) {
-    const n = parseNumber(bare[1], bare[2]);
-    if (ok(n)) return n;
+  for (const m of text.matchAll(/(?<![\d,.$])(\d{1,3}(?:,\d{3})+|\d{3,6}|\d{1,3}(?:\.\d)?(?=\s*k\b))\s*(k)?\s*(?:cash|obo|or best offer|firm|negotiable|or trade)\b/g)) {
+    take(parseNumber(m[1], m[2]), true);
   }
-  // 3) First dollar amount that isn't a payment, deposit, fee, saving or reference price.
+  // 3) Dollar amounts that aren't a payment, deposit, fee, saving or reference price.
   for (const m of text.matchAll(new RegExp(String.raw`\$\s?${num}`, "g"))) {
-    const before = text.slice(Math.max(0, m.index - 20), m.index);
+    const before = text.slice(Math.max(0, m.index - 25), m.index);
     const after = text.slice(m.index + m[0].length, m.index + m[0].length + 25);
-    if (NOT_ASKING_BEFORE.test(before) || NOT_ASKING_AFTER.test(after)) continue;
-    const n = parseNumber(m[1], m[2]);
-    if (ok(n)) return n;
+    // "$15,200$16,000": Facebook's new price glued to the crossed-out old one.
+    if (NOT_ASKING_BEFORE.test(before) || NOT_ASKING_AFTER.test(after) || /\$[\d,]+(?:\.\d+)?$/.test(before)) continue;
+    take(parseNumber(m[1], m[2]), false);
   }
-  return null;
+  return all;
+}
+
+function reconcilePrice(top: number, all: { n: number; labelled: boolean }[], text: string, docFee: number | null, mixed: boolean): PriceRead {
+  // Same-size amounts must be explained by the ad's own fees or discounts; a labelled price far above the one
+  // read (a "$1,500" headline that is really the down payment of a "Total price $18,990") must be too.
+  const { fees, discounts } = priceAdjustments(text);
+  const steps = [...new Set([...fees.map((f) => f.n), ...discounts, ...(docFee ? [docFee] : [])])];
+  const sums = [fees.reduce((s, f) => s + f.n, 0), fees.filter((f) => f.dealer).reduce((s, f) => s + f.n, 0)].filter((n) => n > 0);
+  const explains = (d: number) => steps.includes(d) || sums.includes(d);
+  const toCheck = [...new Set(all.filter(({ n, labelled }) => n !== top && (mixed || (n >= top / 2 && n <= top * 2) || (labelled && n > top * 2))).map((x) => x.n))];
+  const known = new Set([top]);
+  let left = toCheck;
+  for (let changed = true; changed && left.length; ) {
+    changed = false;
+    left = left.filter((v) => {
+      if ([...known].some((k) => explains(Math.abs(v - k)))) {
+        known.add(v);
+        changed = true;
+        return false;
+      }
+      return true;
+    });
+  }
+  if (left.length) return { price: null, unsure: [top, ...left] };
+
+  // The first amount read was a total or a pre-discount price: the price is the one a fee or discount below it.
+  const below = toCheck.filter((v) => v < top && explains(top - v)).sort((a, b) => b - a)[0];
+  if (below === undefined) return { price: top };
+  const d = top - below;
+  const asFee = fees.find((f) => f.n === d) ?? (sums[1] === d ? { n: d, dealer: true } : undefined);
+  if (asFee && !discounts.includes(d)) return { price: below, ...(asFee.dealer && !docFee ? { docFee: d } : {}) };
+  return { price: below };
 }
 
 // Mileage that isn't the odometer: service history ("new tires at 140k miles",
 // "oil every 5,000 miles", "brakes 2k miles ago"), distance ("969 mi away"),
 // warranties ("100,000 miles powertrain").
-const MILES_NOT_ODO_BEFORE = /\b(?:at|every|each|by|until|before|after|within|up to|over|for|next|last|from|in)\s*$|[-/]$/;
-const MILES_NOT_ODO_AFTER = /^\.?\s*(?:away|from|radius|range|per\b|\/|ago|of (?:warranty|coverage|range)|warranty|powertrain|limited|bumper|return|buy-?back|guarantee|coverage|on (?:the )?(?:new |current )?(?:tires|brakes|battery|engine|motor|transmission|trans|rebuild|pads)|later|left|interval|service)/;
+const MILES_NOT_ODO_BEFORE = /\b(?:at|every|each|by|until|before|after|within|up to|over|for|next|last|from|in|asking|price)\s*$|[-/$]$/;
+const MILES_NOT_ODO_AFTER = /^\.?\s*(?:away|from|radius|range|per\b|\/|ago|of (?:warranty|coverage|range)|warranty|powertrain|limited|bumper|return|buy-?back|guarantee|coverage|on (?:the )?(?:new |current )?(?:tires|brakes|battery|engine|motor|transmission|trans|rebuild|pads)|later|left|interval|service|or (?:less|fewer|under|below))/;
 
-function findMiles(text: string): number | null {
+/** Two odometer readings that are the same reading ("36k miles" and "36,412 miles"). */
+const sameMiles = (a: number, b: number) => Math.abs(a - b) <= Math.max(1_000, Math.max(a, b) * 0.02);
+
+/**
+ * The odometer reading. Every labelled or "N miles" reading is collected: two that disagree
+ * ("Mileage: 48,211" and "61,020 mi" from another car) make the miles unsure instead of a guess.
+ */
+function readMiles(text: string): { miles: number | null; unsure?: number[] } {
   const ok = (n: number) => n >= 0 && n <= 600_000;
   const num = String.raw`(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?`;
+  const seen: number[] = [];
   // 1) Labelled: "mileage: 31,200", "odometer: 112000", "Mileage 183,086", "miles: 40000", "driven 98,450 miles".
   const labelled = new RegExp(String.raw`\b(?:mileage|odometer|odo|miles:|driven)\s*:?\s*${num}\b`, "g");
   for (const m of text.matchAll(labelled)) {
+    // "Odometer: 84,000 km (52,195 miles)": kilometres aren't miles; the miles are read below.
+    if (/^\s*(?:km|kms|kilomet)/.test(text.slice(m.index + m[0].length, m.index + m[0].length + 10))) continue;
     const n = parseNumber(m[1], m[2]);
-    if (ok(n) && n > 0) return n;
+    if (ok(n) && n > 0) seen.push(n);
   }
-  // 2) "183,086 mi", "150k miles", "4,100 original miles", "42k on it" - first one that isn't service history.
-  const free = new RegExp(String.raw`(?<![\d,.$])${num}\s*(?:(?:original|actual|true|highway|hwy|total)\s+)?(?:miles\b|mi\b|mileage\b|on (?:it|the clock|the odometer)\b)`, "g");
+  // 2) "183,086 mi", "150k miles", "4,100 original miles", "42k on it" - ones that aren't service history.
+  const free = new RegExp(String.raw`(?<![\d,.$])${num}\s*(?:(?:original|actual|true|highway|hwy|total)\s+)?(?:miles\b|mi\b|mileage\b(?!:?\s*\d)|on (?:it|the clock|the odometer)\b)`, "g");
   for (const m of text.matchAll(free)) {
     const before = text.slice(Math.max(0, m.index - 25), m.index);
     const after = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
     if (MILES_NOT_ODO_BEFORE.test(before) || MILES_NOT_ODO_AFTER.test(after)) continue;
     const n = parseNumber(m[1], m[2]);
-    if (ok(n)) return n;
+    if (ok(n)) seen.push(n);
   }
+  if (seen.length) {
+    // Small numbers ("250 miles of range", "5 miles from downtown") aren't a second odometer reading.
+    const others = seen.filter((n) => n >= 1_000 && seen[0] >= 1_000 && !sameMiles(n, seen[0]));
+    const distinct = others.filter((n, i) => others.findIndex((o) => sameMiles(o, n)) === i);
+    return distinct.length ? { miles: null, unsure: [seen[0], ...distinct] } : { miles: seen[0] };
+  }
+  return { miles: findShortMiles(text) };
+}
+
+function findShortMiles(text: string): number | null {
   // 3) Short texts: a bare "165k" that isn't money ("$9k", "9k cash/obo/firm/down") or service history.
   for (const m of text.matchAll(/(?<![\d,.$])(\d{2,3}(?:\.\d)?)\s*k\b(?!\s*(?:cash|obo|firm|down|or best|negotiable|\$))/g)) {
     const before = text.slice(Math.max(0, m.index - 25), m.index);
@@ -344,8 +480,8 @@ function findTitle(text: string): TitleStatus {
   // Craigslist's "title status: parts only" is a junk-type brand: the car can't be registered for the road.
   if (hasUnnegated(text, /\bbranded title\b|\b(junk|non-?repairable) title\b|\btitle (status:? )?(is )?(junk|non-?repairable|parts only)\b/)) return "branded";
   // "clean title", "title is clean", Craigslist's "title status: clean", "clean NJ title",
-  // "clean blue title", "clean and clear title". ("Clear title" alone means no lien, not no brand.)
-  if (/\bclean (and clear |blue |[a-z]{2} )?(title|carfax|autocheck)\b|title (status:? )?(is )?clean\b/.test(text)) return "clean";
+  // "clean blue title", "clean and clear title", eBay's "Vehicle Title: Clean". ("Clear title" alone means no lien, not no brand.)
+  if (/\bclean (and clear |blue |[a-z]{2} )?(title|carfax|autocheck)\b|title:? (status:? )?(is )?clean\b/.test(text)) return "clean";
   return "unknown";
 }
 
@@ -386,7 +522,49 @@ const PAINT: Record<string, string> = {
   "blueprint": "blue", "cavalry blue": "blue", "still night": "blue", "obsidian blue": "blue", "aegean": "blue", "canyon river": "blue", "nautical blue": "blue",
   "galactic aqua": "blue", "deep crystal blue": "blue", "soul red": "red", "supersonic red": "red", "ruby flare": "red", "radiant red": "red", "barcelona red": "red",
   "san marino red": "red", "rallye red": "red", "army green": "green", "cement": "gray", "quicksand": "beige",
+  // Nissan, Ford, Chevrolet, Kia and Hyundai paints without a plain colour word.
+  "gun metallic": "gray", "magnetic metallic": "gray", "carbonized": "gray",
+  "snow white": "white", "aurora black": "black", "mosaic black": "black", "phantom black": "black", "quartz white": "white",
 };
+
+const PAINT_NAMES = Object.keys(PAINT).sort((a, b) => b.length - a.length); // "obsidian blue" before "obsidian"
+const CAR_PART = String.raw`(?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|tailpipes?|exhaust|surround|badg\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet|windows?|calipers?|lights?)`;
+
+/** The colour in a label's value: "Lunar Silver Metallic" → silver, "Black · Interior color: Gray" → black, "Black Grille" → null. */
+function colorIn(value: string): string | null {
+  const v = normalizeText(value).split(/\s*(?:[·|,;(]| \/ | - |\binterior\b)\s*/)[0];
+  const head = v.split(" ").slice(0, 5).join(" ");
+  if (!head) return null;
+  const paint = PAINT_NAMES.find((n) => new RegExp(`(?:^| )${n}(?: |$)`).test(head));
+  if (paint) return PAINT[paint];
+  const m = head.match(new RegExp(`\\b(${COLORS.join("|")})\\b(?!(?: [a-z/-]+){0,2} ${CAR_PART}\\b)`));
+  if (!m) return null;
+  return m[1] === "grey" ? "gray" : m[1];
+}
+
+/**
+ * The exterior colour, read line by line so the label and its value stay together: "Exterior Color Gravity Gray"
+ * (label first), "Sterling Gray Metallic Exterior" (value first, Autotrader), "Exterior" with the value on the
+ * next line, "paint color: grey" (Craigslist). Two different colours make it unsure. Text without line breaks
+ * falls back to reading the whole text.
+ */
+function readColor(raw: string, text: string): { color: string | null; unsure?: string[] } {
+  const lines = raw.split(/\r?\n/).map((l) => l.trim());
+  const found: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.length > 120) continue;
+    const labelFirst = line.match(/^(?:exterior|ext\.?)(?: colou?r)?\s*[:\-–]?\s*(.*)$/i) ?? line.match(/^(?:paint(?: colou?r)?|colou?r)\s*[:\-–]\s*(.+)$/i);
+    const valueFirst = labelFirst ? null : line.match(/^(.{2,60}?)\s+exterior(?: colou?r)?$/i);
+    const value = labelFirst ? (labelFirst[1] || (lines[i + 1] ?? "")) : valueFirst?.[1];
+    const c = value ? colorIn(value) : null;
+    if (c) found.push(c);
+  }
+  const distinct = [...new Set(found)];
+  if (distinct.length > 1) return { color: null, unsure: distinct };
+  if (distinct.length === 1) return { color: distinct[0] };
+  return { color: findColor(text) };
+}
 
 function findColor(text: string): string | null {
   // "Ext. Color: Wind Chill Pearl" (toyota.com): the maker's paint name, labelled as the exterior.
@@ -401,7 +579,7 @@ function findColor(text: string): string | null {
     // "Exterior color: Black", "Exterior color Magnetic Gray Metallic" (up to 2 words before the color)
     // Not a part's colour ("Exterior: Black Grille", "black side windows trim") or the next
     // line's interior ("Gravity Grey Exterior / Black Interior" reads "exterior black interior").
-    text.match(new RegExp(`(?:exterior|\\bext\\.?)(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b${notInterior}(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|interior|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
+    text.match(new RegExp(`(?:exterior|\\bext\\.?)(?: colou?r)?[:\\s-]*(?:[a-z]+ ){0,2}?(${list})\\b${notInterior}(?!(?: [a-z/-]+)? (?:grille|trim|mirrors?|accents?|bumpers?|wheels?|rims?|roof|rub|tailpipes?|exhaust|surround|badg\\w*|stripes?|handles?|leather|cloth|seats?|upholstery|headliner|carpet)\\b|(?: [a-z/-]+)? (?:leather|cloth|seats?)\\b)`)) ??
     text.match(new RegExp(`(?<!(?:interior|\\bint\\.?) )\\b(?:paint )?colou?r[:\\s-]*(${list})\\b`)) ??
     // "Midnight Black Metallic exterior", "white paint", "black on tan"
     text.match(new RegExp(`\\b(${list})\\b(?=(?: [a-z]+){0,2} (exterior|paint)\\b| on (black|gray|grey|tan|beige)\\b)`));
@@ -441,7 +619,7 @@ function findSellerType(text: string, host: string | null): SellerType {
   }
   // "serviced at the dealer" or "bought it from the dealer" is a private seller talking.
   const t = text.replace(/\b(?:at|from|by|through) (?:the|a|my) (?:honda |toyota |local )?dealer(?:ship)?\b|\bdealer[- ](?:maintained|serviced|service records?|records)\b/g, " ");
-  if (/\b(dealer(?:ship)?|we finance|financing available|doc(?:umentation)? fee|stock ?(?:#|number|no\b)|certified pre-?owned|cpo|our inventory|warranty available|carmax|carvana|enterprise car sales|hertz car sales|echopark|autonation|processing fee|no-haggle price)\b/.test(t) || /\bstock ?#/.test(t)) {
+  if (/\b(dealer(?:ship)?|we finance|financing available|doc(?:umentation)? fee|stock ?(?:#|number|no\b)|certified pre-?owned|cpo|our inventory|warranty available|carmax|carvana|enterprise car sales|hertz car sales|echopark|autonation|processing fee|no-haggle price|internet price|e-price)\b/.test(t) || /\bstock ?#|\bstock(?: number)?: [a-z0-9-]*\d/.test(t)) {
     return "dealer";
   }
   if (host && DEALER_ONLY_HOSTS.test(host)) return "dealer";
@@ -506,19 +684,112 @@ function isOnlyVin(raw: string, vin: string): boolean {
   return rest.length === 0;
 }
 
+// Headings that start a list of other cars on a listing page ("Similar Vehicles", "You may also like",
+// "SPONSORED"). What follows them is about other cars. (Autotrader's "More from the seller" is this car's description.)
+const OTHER_CARS_HEADING = /^(?:similar (?:vehicles|cars|listings|inventory)|you (?:may|might) also like|recommended(?: for you| vehicles| cars| listings)?|recently viewed(?: vehicles| cars)?|sponsored(?: listings?| vehicles| results)?|compare (?:to )?similar(?: vehicles| cars)?|other (?:listings|vehicles|cars)(?: you may like)?|people also (?:viewed|looked at)|shoppers also viewed|related (?:listings|vehicles|cars)|more like this|more (?:vehicles|cars|inventory) (?:from|at|like) .{0,40}|check out similar .{0,40}|accessible carousel)$/i;
+
+// A car card in a list of other cars: a short "2016 MAZDA CX-5" line with a lone "85K mi" or "$14,995" line just below.
+const CARD_TITLE = /^(?:(?:used|new|certified|cpo|pre-owned)\s+)?(?:19[89]\d|20[0-4]\d)\s+[A-Za-z][\w-]*(?:\s+\S+){0,6}$/i;
+const CARD_FACT = /^(?:\$\s?\d{1,3}(?:,\d{3})+|\d{1,3}(?:,\d{3})*(?:\.\d)?k?\s*(?:mi|miles)\.?)$/i;
+
+/**
+ * The part of a pasted page about this car: everything before the first other-cars heading or list of car
+ * cards, when this car's facts come first. A "Recently viewed" strip at the top doesn't count: then the whole
+ * page is read, and two cars' facts make those facts unsure instead of mixing them.
+ */
+export function thisCarPart(raw: string): { raw: string; mixed: boolean } {
+  const lines = raw.split(/\r?\n/);
+  const at: number[] = [];
+  let chars = 0;
+  for (const l of lines) {
+    at.push(chars);
+    chars += l.length + 1;
+  }
+  let i = lines.findIndex((l) => l.trim().length <= 60 && OTHER_CARS_HEADING.test(l.trim()));
+  // Card lists without a heading: only in the later part of the page (this car's own title and miles come first).
+  const card = lines.findIndex((l, k) => at[k] >= chars * 0.4 && l.trim().length <= 60 && CARD_TITLE.test(l.trim()) &&
+    lines.slice(k + 1, k + 5).some((n) => CARD_FACT.test(n.trim())));
+  if (card > 0 && (i < 0 || card < i)) i = /^(?:used|new|certified|cpo|pre-owned)$/i.test(lines[card - 1].trim()) ? card - 1 : card;
+  if (i < 0) return { raw, mixed: false };
+  const head = lines.slice(0, i).join("\n");
+  // Other cars come first ("Recently viewed" at the top): read everything, but treat every amount as a possible
+  // other car's, so a price that isn't clearly this car's is "not sure".
+  return i > 0 && /\$\s?\d|\b(?:19[89]\d|20[0-4]\d)\b/.test(head) ? { raw: head, mixed: false } : { raw, mixed: true };
+}
+
+/** Lines that list many prices at once (a window sticker's options, a payment breakdown): never the asking price. */
+const withoutPriceLists = (raw: string) => raw.split(/\r?\n/).filter((l) => (l.match(/\$\s?\d/g) ?? []).length < 4).join("\n");
+
+/**
+ * Every "2019 Honda CR-V" title line (a short line of its own, not a sentence), to notice a page that names two
+ * different cars. A seller's description that mentions another car is left to the model-conflict rule.
+ */
+function carTitles(raw: string): { year: number; make: string; model: string | null }[] {
+  const text = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length <= 90 && /^(?:(?:used|certified|new|pre-owned|cpo)\s+)?(?:19|20)\d\d\s/i.test(l))
+    .map((l) => normalizeText(l))
+    .join("\n");
+  const names = [...Object.keys(MODELS), ...Object.keys(MAKE_ALIASES)].sort((a, b) => b.length - a.length);
+  const re = new RegExp(String.raw`\b(19[89]\d|20[0-4]\d) (?:(?:used|certified|new|pre-owned|cpo) )?(${names.map((n) => n.toLowerCase().replace(/-/g, "[- ]?")).join("|")})\b ?(.{0,30})`, "g");
+  const max = new Date().getFullYear() + 1;
+  return [...text.matchAll(re)]
+    .filter((m) => Number(m[1]) <= max)
+    .map((m) => {
+      const said = m[2].replace(/ /g, "-");
+      const make = MAKE_ALIASES[said] ?? Object.keys(MODELS).find((k) => k.toLowerCase() === said || squash(k) === squash(said)) ?? said;
+      return { year: Number(m[1]), make, model: modelNamed(make, m[3]) };
+    });
+}
+
 export function parseListing(input: string): ParsedListing {
   const raw = input.slice(0, MAX_LISTING_CHARS);
   const { url, host } = findUrl(raw);
-  const { vin, typed: vinTyped } = findVin(raw);
+  // This car's facts come from its own part of the page, not the "Similar vehicles" below it.
+  const { raw: carRaw, mixed } = thisCarPart(raw);
+  const own = findVin(carRaw);
+  const { vin, typed: vinTyped } = own.vin ? own : findVin(raw);
   // Facts come from the text without its links: a search link's
   // "makeCode=TOYOTA&startYear=2018" are filters, not this car.
-  const text = normalizeText(raw.replace(URL_RE, " "));
+  const text = normalizeText(carRaw.replace(URL_RE, " "));
 
   const onlyUrl = url !== null && raw.trim().split(/\s+/).length === 1;
   // A dealer link with the VIN in it ("…-1hgcv1f35la054321.htm") is a VIN lookup.
   const kind = vin && (isOnlyVin(raw, vinTyped ?? vin) || onlyUrl) ? "vin" : onlyUrl ? "url" : "text";
 
-  const { make, model, at } = findMakeModel(text);
+  const unsure: Unsure[] = [];
+  const found = findMakeModel(text);
+  let { make, model } = found;
+  let year = findYear(text, found.at);
+  // Two different cars named ("2019 Honda CR-V EX" and "2018 Toyota Corolla LE"): don't pick one.
+  const titles = carTitles(carRaw);
+  const years = [...new Set(titles.map((t) => t.year))];
+  const makes = [...new Set(titles.map((t) => t.make))];
+  const models = [...new Set(titles.flatMap((t) => (t.model ? [t.model] : [])))];
+  if (years.length > 1) {
+    unsure.push({ field: "year", values: years });
+    year = null;
+  }
+  if (makes.length > 1) {
+    unsure.push({ field: "make", values: makes });
+    make = null;
+    model = null;
+  } else if (models.length > 1) {
+    unsure.push({ field: "model", values: models });
+    model = null;
+  }
+
+  const docFeeSaid = findDocFee(text);
+  const priced = readPrice(text, docFeeSaid, normalizeText(withoutPriceLists(carRaw).replace(URL_RE, " ")), mixed);
+  if (priced.unsure) unsure.push({ field: "price", values: priced.unsure });
+  // With the price not sure, the fees on top of it aren't either (which stack do they belong to?).
+  const docFee = priced.unsure ? null : feesToTotal(text, priced.price) ?? docFeeSaid ?? priced.docFee ?? null;
+  const odo = readMiles(text);
+  if (odo.unsure) unsure.push({ field: "miles", values: odo.unsure });
+  const painted = readColor(carRaw, text);
+  if (painted.unsure) unsure.push({ field: "exteriorColor", values: painted.unsure });
+
   return {
     kind,
     url,
@@ -526,24 +797,25 @@ export function parseListing(input: string): ParsedListing {
     vin,
     // Typed with O/I/Q or spaces: what was typed (shown as "read as"). Only when it differs.
     ...(vinTyped && vinTyped !== vin ? { vinTyped } : {}),
-    year: findYear(text, at),
+    year,
     make,
     model,
-    price: findPrice(text),
-    docFee: findDocFee(text),
-    miles: findMiles(text),
+    price: priced.price,
+    docFee,
+    miles: odo.miles,
     transmission: findTransmission(text),
     // A business named "Salvage Reseller" (an auction broker) isn't a salvage title.
     titleStatus: findTitle(text.replace(/\bsalvage ?reseller(\.com)?\b/g, " ")),
     accident: findAccident(text),
-    exteriorColor: findColor(text),
+    exteriorColor: painted.color,
     ownerCount: findOwners(text),
     sellerType: findSellerType(text, host),
     usage: findUsage(text),
-    zip: findZip(raw.replace(URL_RE, " ")),
+    zip: findZip(carRaw.replace(URL_RE, " ")),
     distanceMiles: findDistance(text),
     phones: findPhones(raw.replace(URL_RE, " ")),
-    dealerName: findDealerName(raw),
+    dealerName: findDealerName(carRaw),
+    ...(unsure.length ? { unsure } : {}),
   };
 }
 

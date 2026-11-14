@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Dealer site stack: Sale Price $21,450 + Documentation Fee $599 + Electronic Filing Fee $89 = Total Price $22,138. Dealer fees are $688, so the total shown matches the ad.",
+  "expect": {
+    "year": 2021,
+    "make": "Hyundai",
+    "model": "Tucson",
+    "price": 21450,
+    "docFee": 688,
+    "miles": 39812,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

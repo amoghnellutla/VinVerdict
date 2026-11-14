@@ -48,6 +48,14 @@ describe("decide: the next step", () => {
     expect(d.level).toBe("thin");
   });
 
+  it("an ad with two prices has a price, it just isn't clear which: ask, don't say 'no price'", () => {
+    const d = run({ hasVin: false, hasPrice: false, priceNotSure: "$11,995 or $10,995", decoded: false, hits: [hit("no-vin", "hide")] });
+    expect(d.level).not.toBe("thin");
+    const price = d.areas.find((a) => a.area === "price")!;
+    expect(price.status).toBe("verify");
+    expect(price.line).toBe("The ad shows $11,995 or $10,995: ask the seller which is the price for this car");
+  });
+
   it("a manual gearbox is a note, not a deal-breaker", () => {
     expect(run({ hits: [hit("manual", "hide")] }).level).toBe("investigate");
   });

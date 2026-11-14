@@ -1,0 +1,15 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Dealer site: MSRP when new and a conditional rebate around the dealer's price.",
+  "expect": {
+    "year": 2022,
+    "make": "Honda",
+    "model": "HR-V",
+    "price": 23450,
+    "miles": 18220
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

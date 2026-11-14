@@ -115,6 +115,12 @@ const SAID_STRONG = new RegExp(String.raw`${WHO}\b(?:said|says|told me|tells me|
 /** "they want…", "he'd…": a seller's request, but a plain price ("they want 14,500") stays a fact. */
 const SAID_WEAK = new RegExp(String.raw`${WHO}\b(?:wants?|is asking|would|will|'d|'ll)\b`, "i");
 
+/** How many of a listing's key facts a paste has. A price or miles the ad states twice ("not sure") still counts. */
+function listingSignals(l: ParsedListing): number {
+  const has = (f: "price" | "miles") => l[f] != null || !!l.unsure?.some((u) => u.field === f);
+  return [l.vin, has("price"), has("miles"), l.year && l.model].filter(Boolean).length;
+}
+
 export function routeMessage(raw: string, carVin: string | null): Route {
   const text = raw.trim();
   if (!text) return { kind: "small-talk" };
@@ -157,7 +163,7 @@ export function routeMessage(raw: string, carVin: string | null): Route {
 
   // A conversation with the seller (before the listing check: a chat mentions the price and the car too).
   const pre = text.length >= 80 ? parseListing(text) : null;
-  const preSignals = pre ? [pre.vin, pre.price, pre.miles, pre.year && pre.model].filter(Boolean).length : 0;
+  const preSignals = pre ? listingSignals(pre) : 0;
   if (isChat(text, preSignals)) {
     const seller = sellerSide(text);
     // The seller's own claims and prices; a ZIP or "dealer/private" in a chat isn't reliable.
@@ -166,7 +172,7 @@ export function routeMessage(raw: string, carVin: string | null): Route {
 
   if (text.length >= 80) {
     const listing = parseListing(text);
-    const signals = [listing.vin, listing.price, listing.miles, listing.year && listing.model].filter(Boolean).length;
+    const signals = listingSignals(listing);
     // A short paste needs more to count as a listing ("2018 Camry $14,995 126,360 mi VIN …").
     if (signals >= (text.length >= 150 ? 2 : 3)) {
       if (listing.vin && carVin && listing.vin !== carVin) return { kind: "other-car", vin: listing.vin };

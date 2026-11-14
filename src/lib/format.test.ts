@@ -25,3 +25,15 @@ describe("priceWithFee (real case 34: Autotrader's $21,298 + $799 dealer fee = $
     expect(dealerFee({ docFee: 799, sellerType: "unknown" })).toBe(0);
   });
 });
+
+describe("notSure: an ad that gives two answers is shown as two answers, never one", () => {
+  it("lists the ad's choices for the field, and nothing for a field it's sure of", async () => {
+    const { adSays, notSure } = await import("./format");
+    const l = { unsure: [{ field: "price" as const, values: [15990, 14990] }, { field: "miles" as const, values: [86000, 68000] }, { field: "exteriorColor" as const, values: ["silver", "black"] }] };
+    expect(notSure(l, "price")).toBe("Not sure: the ad shows $15,990 or $14,990");
+    expect(adSays(l, "miles")).toBe("86,000 mi or 68,000 mi");
+    expect(adSays(l, "exteriorColor")).toBe("silver or black");
+    expect(notSure(l, "year")).toBeNull();
+    expect(notSure({}, "price")).toBeNull();
+  });
+});

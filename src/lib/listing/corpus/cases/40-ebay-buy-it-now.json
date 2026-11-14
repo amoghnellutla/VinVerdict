@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). eBay Motors fixed-price listing with 'US $' amounts and 'Vehicle Title: Clean'.",
+  "expect": {
+    "year": 2015,
+    "make": "Toyota",
+    "model": "Tacoma",
+    "price": 24900,
+    "miles": 112340,
+    "exteriorColor": "white",
+    "titleStatus": "clean"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

@@ -1,0 +1,17 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). CarGurus: the monthly estimate comes before the price; 'below market' is not a price.",
+  "expect": {
+    "year": 2018,
+    "make": "Toyota",
+    "model": "Camry",
+    "price": 18995,
+    "miles": 71402,
+    "exteriorColor": "silver",
+    "sellerType": "dealer"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

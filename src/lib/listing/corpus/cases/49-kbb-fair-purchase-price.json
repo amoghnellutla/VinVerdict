@@ -1,0 +1,16 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). KBB listing: the Fair Purchase Price is a guide, not the asking price.",
+  "expect": {
+    "year": 2020,
+    "make": "Honda",
+    "model": "Civic",
+    "price": 20450,
+    "miles": 33900,
+    "exteriorColor": "gray"
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

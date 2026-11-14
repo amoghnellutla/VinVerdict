@@ -1,0 +1,18 @@
+{
+  "note": "Stress set (written by VinVerdict from the site's layout, not a real ad). Autotrader private seller; 'new tires at 105k miles' is service history.",
+  "expect": {
+    "year": 2016,
+    "make": "Toyota",
+    "model": "Tacoma",
+    "price": 27500,
+    "miles": 112400,
+    "exteriorColor": "gray",
+    "sellerType": "private",
+    "ownerCount": 1
+  },
+  "mustNotHit": [
+    "no-price"
+  ],
+  "scam": false,
+  "origin": "synthetic"
+}

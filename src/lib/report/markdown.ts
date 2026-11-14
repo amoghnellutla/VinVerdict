@@ -15,7 +15,7 @@ import type { OtdInput, OtdResult } from "@/lib/costs/outTheDoor";
 import type { Ownership } from "@/lib/costs/ownership";
 import { AREA_LABEL, EVIDENCE_LABEL, SEVERITY_LABEL, STATUS_WORD, type Decision } from "@/lib/decision";
 import { STATES, type StateCode } from "@/lib/geo/zip";
-import { dealerFee, priceWithFee } from "@/lib/format";
+import { dealerFee, notSure, priceWithFee } from "@/lib/format";
 import { DAMAGE_LABEL, TITLE_LABEL, type ReportAnswers } from "@/lib/history-report";
 import type { HistorySummary } from "@/lib/history/summary";
 import type { Checklist as Inspection } from "@/lib/inspection";
@@ -175,7 +175,8 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   const verifies = r.decision.findings.filter((f) => f.severity === "verify");
   const unknowns = r.decision.areas.flatMap((x) => x.unknown);
   // "$22,097 ($21,298 + $799 dealer fee)": the ad's total; the estimate compares the price before the fee.
-  const asked = priceWithFee(l) ?? money(l.price);
+  // Two prices in the ad and nothing says which: say so, never pick one.
+  const asked = priceWithFee(l) ?? notSure(l, "price") ?? money(l.price);
   const priceLine = v0
     ? `${asked}: ${v0.label ? `${DEAL_TEXT[v0.label]}, ` : ""}estimate ${money(v0.low)}–${money(v0.high)} (${v0.confidence} confidence)${dealerFee(l) ? `, compared using ${money(l.price)}, the price before the dealer fee` : ""}`
     : r.valuation?.unpriced
@@ -191,7 +192,7 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
         ["Verdict", `${r.decision.title}: ${r.decision.text}`],
         ["Car", `${r.name}${vin ? ` (VIN ${vin})` : l.vin ? ` (VIN ${l.vin} has an invalid check digit)` : " (no VIN given)"}`],
         ["Price", priceLine],
-        ["Miles", miles(l.miles)],
+        ["Miles", notSure(l, "miles") ?? miles(l.miles)],
         ["Seller", sellerLine],
         ["Out the door", r.otd ? `${cents(r.otd.result.total)} registering in ${STATES[r.otd.input.state]}${r.otd.fromPage || r.stateSaved ? "" : " (the default state: no ZIP entered)"}${inspectionNote(r.otd.result)}` : "not worked out (no price)"],
         ["Do this first", open.find(([done]) => !done)?.[1] ?? "Everything on the list is done"],

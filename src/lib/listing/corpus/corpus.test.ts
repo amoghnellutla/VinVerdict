@@ -20,6 +20,8 @@ type CaseSpec = {
   verdict?: Verdict;
   mustHit?: string[];
   mustNotHit?: string[];
+  /** Fields the ad gives two answers for: the reader must say "not sure" (the field null and listed in `unsure`). */
+  unsure?: string[];
   /** Set by `npm run add-case` until the answers have been filled in from the page by hand. */
   todo?: string;
 };
@@ -41,6 +43,8 @@ const cases = readdirSync(DIR)
   });
 
 const score = new Map<string, { ok: number; total: number }>();
+// Every expected fact is right, "not sure" (null, with the ad's choices listed) or wrong. Wrong must stay 0.
+const facts = { right: 0, notSure: 0, wrong: 0 };
 const tally = (field: string, ok: boolean) => {
   const s = score.get(field) ?? { ok: 0, total: 0 };
   s.total++;
@@ -59,11 +63,23 @@ describe("listing corpus", () => {
       const ids = result.hits.map((h) => h.id);
       const problems: string[] = [];
 
+      const unsure = new Set((listing.unsure ?? []).map((u) => u.field as string));
       for (const [field, want] of Object.entries(c.spec.expect ?? {})) {
         const got = listing[field as keyof ParsedListing];
         const ok = got === want;
         tally(field, ok);
+        if (ok) facts.right++;
+        else if ((got === null || got === "unknown") && unsure.has(field)) facts.notSure++;
+        else if (!(got === null || got === "unknown")) facts.wrong++;
         if (!ok) problems.push(`${field}: expected ${JSON.stringify(want)}, got ${JSON.stringify(got)}`);
+      }
+      for (const field of c.spec.unsure ?? []) {
+        const ok = unsure.has(field);
+        tally("not sure when the ad disagrees", ok);
+        if (!ok) problems.push(`${field}: should be "not sure" (the ad gives two answers) [unsure: ${[...unsure].join(", ") || "none"}]`);
+      }
+      for (const field of unsure) {
+        if (!(c.spec.unsure ?? []).includes(field)) problems.push(`${field}: "not sure" but the ad is clear [${JSON.stringify(listing.unsure)}]`);
       }
       if (c.spec.verdict) {
         const ok = result.verdict === c.spec.verdict;
@@ -89,6 +105,6 @@ describe("listing corpus", () => {
     const rows = [...score.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([field, s]) => `  ${field.padEnd(22)} ${String(s.ok).padStart(3)}/${s.total}${s.ok < s.total ? "  <-- misses" : ""}`);
-    console.log(`\nListing corpus scorecard (${cases.length} cases)\n${rows.join("\n")}\n`);
+    console.log(`\nListing corpus scorecard (${cases.length} cases)\n${rows.join("\n")}\n  facts: ${facts.right} right, ${facts.notSure} not sure, ${facts.wrong} wrong\n`);
   });
 });
