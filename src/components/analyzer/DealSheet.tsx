@@ -63,6 +63,7 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
   const [aiMsg, setAiMsg] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [aiOpen, setAiOpen] = useState(false);
 
   async function readFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -297,10 +298,17 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
                 service (GLM by Z.ai, or Gemini by Google, or Groq), reads the paper&apos;s text with your details already taken out, and must quote the paper for
                 every line. Lines both readers agree on are confirmed; any difference is shown for you to compare. Google&apos;s free tier may keep what&apos;s sent.
               </p>
-              {guest && <Turnstile key={attempt} action="ai" onToken={setToken} />}
-              <button type="button" className="btn btn-secondary mt-2" disabled={aiBusy || (guest && !token)} onClick={() => void askAi()}>
-                {aiBusy ? "Reading…" : "Double-check with free AI"}
-              </button>
+              {/* Nothing is contacted until the buyer asks: the "I'm human" check (Cloudflare) loads only after this tap. */}
+              {guest && !aiOpen ? (
+                <button type="button" className="btn btn-secondary mt-2" onClick={() => setAiOpen(true)}>Double-check with free AI</button>
+              ) : (
+                <>
+                  {guest && <Turnstile key={attempt} action="ai" onToken={setToken} />}
+                  <button type="button" className="btn btn-secondary mt-2" disabled={aiBusy || (guest && !token)} onClick={() => void askAi()}>
+                    {aiBusy ? "Reading…" : guest ? "Send to the free AI" : "Double-check with free AI"}
+                  </button>
+                </>
+              )}
               {aiMsg && <p role="status" className="mt-2">{aiMsg}</p>}
             </div>
           )}
