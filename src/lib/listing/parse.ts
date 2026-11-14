@@ -570,6 +570,13 @@ function readColor(raw: string, text: string): { color: string | null; unsure?: 
   const distinct = [...new Set(found)];
   if (distinct.length > 1) return { color: null, unsure: distinct };
   if (distinct.length === 1) return { color: distinct[0] };
+  // No line breaks (pasted on a phone): two "Exterior: …" labels with different colours are still two answers.
+  const said = new Set<string>();
+  for (const m of text.matchAll(/\b(?:exterior|ext\.?)(?: colou?r)?\s*[:\-–]\s*/g)) {
+    const c = colorIn(text.slice(m.index + m[0].length, m.index + m[0].length + 60));
+    if (c) said.add(c);
+  }
+  if (said.size > 1) return { color: null, unsure: [...said] };
   return { color: findColor(text) };
 }
 
@@ -721,7 +728,9 @@ export function thisCarPart(raw: string): { raw: string; mixed: boolean } {
   const head = lines.slice(0, i).join("\n");
   // Other cars come first ("Recently viewed" at the top): read everything, but treat every amount as a possible
   // other car's, so a price that isn't clearly this car's is "not sure".
-  return i > 0 && /\$\s?\d|\b(?:19[89]\d|20[0-4]\d)\b/.test(head) ? { raw: head, mixed: false } : { raw, mixed: true };
+  // This car comes first when the part before the heading has a price, a year or a mileage ("4500 cash", "165k").
+  const hasFacts = /\$\s?\d|\b(?:19[89]\d|20[0-4]\d)\b|\b\d{1,3}(?:,\d{3})+\b|\b\d{2,3}k\b|\b\d{3,6}\s*(?:cash|obo|firm)\b/i.test(head);
+  return i > 0 && hasFacts ? { raw: head, mixed: false } : { raw, mixed: true };
 }
 
 /** Lines that list many prices at once (a window sticker's options, a payment breakdown): never the asking price. */
@@ -750,8 +759,29 @@ function carTitles(raw: string): { year: number; make: string; model: string | n
     });
 }
 
+/**
+ * Screenshot text (OCR) often reads a thousands comma as a period: "$21.298", "48.211 mi". A price or mileage
+ * never has three decimals, so next to "$", a price or miles label, or "mi"/"miles", "21.298" is 21,298.
+ */
+export function ocrThousands(raw: string): string {
+  // OCR also reads 0 as the letter O and 1 as l or I inside an amount: "$1O,995", "48,2l1 mi". Only in a
+  // dollar amount or a number right before "mi"/"miles", and only with at least two real digits.
+  const digits = (s: string) => s.replace(/[Oo]/g, "0").replace(/[lI]/g, "1");
+  const fixed = raw
+    .replace(/\$\s?[\dOolI][\dOolI,.]*[\dOolI]/g, (m) => ((m.match(/\d/g) ?? []).length >= 2 ? digits(m) : m))
+    .replace(/(?<![\w,.$])[\dOolI][\dOolI,]*[\dOolI](?=\s?(?:mi\b|miles\b))/g, (m) => ((m.match(/\d/g) ?? []).length >= 2 && /\d/.test(m[0]) ? digits(m) : m));
+  return fixed.replace(/(?<![\d.,])(\d{1,3})\.(\d{3})(?![\d.,]|\s?(?:l\b|liters?\b|litres?\b))/gi, (m, a: string, b: string, at: number, s: string) => {
+    const before = s.slice(Math.max(0, at - 22), at);
+    const after = s.slice(at + m.length, at + m.length + 22);
+    const money = /\$\s?$|\bUS\s?\$\s?$/i.test(before) || /\b(?:price|asking|selling for|priced at)\b[:\s]*\$?\s?$/i.test(before);
+    const miles = /\b(?:mileage|odometer|odo|miles|driven)\b[:\s]*$/i.test(before) ||
+      /^\s?(?:(?:original|actual|true|total|highway|hwy)\s+)?(?:k?\s?mi\b|miles|mileage|km\b|obo|cash|firm)/i.test(after);
+    return money || miles ? `${a},${b}` : m;
+  });
+}
+
 export function parseListing(input: string): ParsedListing {
-  const raw = input.slice(0, MAX_LISTING_CHARS);
+  const raw = ocrThousands(input.slice(0, MAX_LISTING_CHARS));
   const { url, host } = findUrl(raw);
   // This car's facts come from its own part of the page, not the "Similar vehicles" below it.
   const { raw: carRaw, mixed } = thisCarPart(raw);

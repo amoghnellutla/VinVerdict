@@ -12,7 +12,7 @@
  */
 
 import type { DecodedVin } from "@/lib/nhtsa/parse";
-import { modelNamed, type ParsedListing } from "@/lib/listing/parse";
+import { modelNamed, thisCarPart, type ParsedListing } from "@/lib/listing/parse";
 import { hasUnnegated, normalizeText } from "@/lib/listing/text";
 import { checkVin } from "@/lib/vin";
 
@@ -83,7 +83,9 @@ function expandShorthand(t: string): string {
 
 export function evaluateScamRules(input: ScamInput): ScamResult {
   const { listing: l, decoded, checklist: c = {} } = input;
-  const t = expandShorthand(normalizeText(input.text));
+  // Only this car's part of the page: another car's "Current bid", "Lien reported" or "TMU" badge in a
+  // "Similar vehicles" list isn't about this one (the facts are read from the same part, `parseListing`).
+  const t = expandShorthand(normalizeText(thisCarPart(input.text).raw));
   const hits: RuleHit[] = [];
   const add = (id: string, action: RuleAction, title: string, reason: string) => hits.push({ id, action, title, reason });
 

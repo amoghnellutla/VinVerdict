@@ -159,7 +159,7 @@ A keyword filter catches most scams but warns on half the honest ads. VinVerdict
 > [!NOTE]
 > Most test ads are written from published scam patterns. The real listings collected so far are all honest, and none got a false alarm. Real-world numbers will be lower, and they're reported separately as real listings are added. A trained model (naive Bayes) is scored next to the rules on every change ([`learned.ts`](src/lib/scam/eval/learned.ts)); it misses 12 of the 38 tuning scams, so it changes no answer.
 
-**Listing parser:** 70 listing pages are tested field by field in [`listing/corpus/`](src/lib/listing/corpus/): 34 pasted pages, plus 36 stress-test layouts written from other sites' formats (TrueCar, Edmunds, KBB, eBay Motors, OfferUp, Vroom, dealer sites) with the traps that break readers: other cars' prices, crossed-out prices, fee stacks, payments shown first. They're marked as written, not real ads. When an ad gives two answers (two prices nothing explains), the reader says "not sure" and shows both instead of picking one. Every page is also pasted six other ways, with its lines joined, other cars listed before or after it, and so on ([`mutations.test.ts`](src/lib/listing/corpus/mutations.test.ts)): a fact may become "not sure", never a different value. From the `npm test` output:
+**Listing parser:** 70 listing pages are tested field by field in [`listing/corpus/`](src/lib/listing/corpus/): 34 pasted pages, plus 36 stress-test layouts written from other sites' formats (TrueCar, Edmunds, KBB, eBay Motors, OfferUp, Vroom, dealer sites) with the traps that break readers: other cars' prices, crossed-out prices, fee stacks, payments shown first. They're marked as written, not real ads. When an ad gives two answers (two prices nothing explains), the reader says "not sure" and shows both instead of picking one. Every page is also pasted ten other ways ([`mutations.test.ts`](src/lib/listing/corpus/mutations.test.ts)): with its lines joined, with other cars listed before or after it (including their own "1 accident reported" and "Salvage title" badges), and as screenshot text that misreads "48,211" as "48.211" or "$10,995" as "$1O,995". A fact may become "not sure", never a different value, and another car's badges never add a warning to this one ([`warnings-stable.test.ts`](src/lib/listing/corpus/warnings-stable.test.ts)). From the `npm test` output:
 
 ```
 Listing corpus scorecard (70 cases)
@@ -171,7 +171,8 @@ Listing corpus scorecard (70 cases)
   not sure when the ad disagrees  5/5
   false alarms avoided  225/225
   facts: 552 right, 0 not sure, 0 wrong
-Pasted differently (67 cases x 6 ways): 2135 same, 379 not sure, 0 wrong
+Pasted differently (67 cases x 10 ways): 4456 same, 374 not sure, 0 wrong
+Warnings with other cars on the page: 0 added; lines joined: 0 serious lost
 ```
 
 **The assistant:** 170+ labelled messages and every real listing page must route correctly ([`eval.test.ts`](src/lib/assistant/eval.test.ts)). **The dataset:** all 186 labelled rows are in [`dataset/vinverdict-labelled.jsonl`](dataset/), with a [description](dataset/README.md) of how they were labelled.

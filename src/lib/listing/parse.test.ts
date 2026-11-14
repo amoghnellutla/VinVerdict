@@ -336,3 +336,32 @@ describe("exterior paint vs the next line's interior, and the dealer's blurb (re
     expect(parseListing("Honda Civic located in Edison").dealerName).toBeNull();
   });
 });
+
+describe("screenshot text (OCR) misreads", () => {
+  it("reads a thousands comma read as a period as thousands, only for prices and miles", async () => {
+    const { ocrThousands } = await import("./parse");
+    expect(parseListing("2019 Honda Civic\n$21.298\n48.211 mi").price).toBe(21298);
+    expect(parseListing("2019 Honda Civic\n$21.298\n48.211 mi").miles).toBe(48211);
+    expect(parseListing("2012 Honda Civic, only 4.100 original miles! $8,900 firm").miles).toBe(4100);
+    // Not an engine size, a version or cents.
+    expect(ocrThousands("2.5L engine, $22.50 car wash, version 1.234")).toBe("2.5L engine, $22.50 car wash, version 1.234");
+  });
+
+  it("reads O as 0 and l as 1 inside a dollar amount or a mileage", () => {
+    const l = parseListing("2016 Nissan Altima\nCash Price $11,995\nFinance Price $1O,995\nMiles: 98,1OO");
+    expect(l.price).toBeNull();
+    expect(l.unsure).toEqual([{ field: "price", values: [11995, 10995] }]);
+    expect(parseListing("2017 Toyota Camry $13,4OO 86,2l1 miles").miles).toBe(86211);
+  });
+});
+
+describe("warnings come from this car's part of the page", () => {
+  it("another car's 'Current bid' or 'Lien reported' badge doesn't flag this one", async () => {
+    const { buildVerdict } = await import("@/lib/verdict");
+    const ad = "2019 Toyota Corolla LE\n$15,995\n34,600 mi.\nClean title\n\nSimilar vehicles\n2017 Chevrolet Malibu LT\n$8,990\nCurrent bid: $4,100\nLien reported\nTMU";
+    const ids = buildVerdict({ text: ad, listing: parseListing(ad), decoded: null }, {}, new Date("2026-11-09")).hits.map((h) => h.id);
+    expect(ids).not.toContain("auction-broker");
+    expect(ids).not.toContain("lien");
+    expect(ids).not.toContain("odometer-unknown");
+  });
+});
