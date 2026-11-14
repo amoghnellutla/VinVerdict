@@ -97,6 +97,29 @@ export async function readEachScreenshot(files: File[], onProgress: (p: OcrProgr
   }
 }
 
+/** Read already-drawn pages (a scanned PDF's pages, rendered on the device); one text per page. */
+export async function readCanvases(pages: HTMLCanvasElement[], onProgress: (p: OcrProgress) => void): Promise<string[]> {
+  const { createWorker } = await import("tesseract.js");
+  let current = 0;
+  const worker = await createWorker("eng", 1, {
+    workerPath: "/ocr/worker.min.js",
+    corePath: "/ocr/core",
+    langPath: `${window.location.origin}/ocr/lang`,
+    workerBlobURL: false,
+    logger: (m) => onProgress({ image: current + 1, of: pages.length, pct: Math.round((m.progress ?? 0) * 100), loading: m.status !== "recognizing text" }),
+  });
+  try {
+    const texts: string[] = [];
+    for (let i = 0; i < pages.length; i++) {
+      current = i;
+      texts.push((await worker.recognize(pages[i])).data.text);
+    }
+    return texts;
+  } finally {
+    await worker.terminate();
+  }
+}
+
 export async function readScreenshots(files: File[], onProgress: (p: OcrProgress) => void): Promise<string> {
   return cleanOcrText((await readEachScreenshot(files, onProgress)).join("\n\n"));
 }

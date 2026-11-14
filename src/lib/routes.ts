@@ -5,6 +5,7 @@
 export const NAV_ROUTES = [
   { href: "/", label: "Check a car" },
   { href: "/shortlist", label: "Shortlist" },
+  { href: "/deal", label: "Deal check" },
   { href: "/search", label: "Search" },
   { href: "/checked", label: "My cars" },
   { href: "/compare", label: "Compare" },
@@ -20,5 +21,6 @@ export const GUEST_ROUTES = [
   { href: "/", label: "Check a car" },
   { href: "/mine", label: "My list" },
   { href: "/shortlist", label: "Shortlist" },
+  { href: "/deal", label: "Deal check" },
   { href: "/why", label: "Why not Google?" },
 ] as const;

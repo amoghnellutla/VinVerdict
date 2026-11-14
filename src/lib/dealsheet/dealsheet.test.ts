@@ -94,3 +94,37 @@ describe("the negotiation plan", () => {
     expect(plan.message).toContain("plus tax");
   });
 });
+
+describe("PDF text back into lines", async () => {
+  const { linesFromPieces } = await import("./pdf-lines");
+  it("joins pieces at the same height, left to right, with a gap between columns", () => {
+    const lines = linesFromPieces([
+      { str: "$799.00", x: 400, y: 680, width: 40, height: 10 },
+      { str: "Doc", x: 50, y: 680.5, width: 18, height: 10 },
+      { str: "Fee", x: 70, y: 680, width: 16, height: 10 },
+      { str: "Vehicle Price", x: 50, y: 700, width: 60, height: 10 },
+      { str: "$21,998.00", x: 400, y: 700.4, width: 50, height: 10 },
+    ]);
+    expect(lines).toEqual(["Vehicle Price    $21,998.00", "Doc Fee    $799.00"]);
+    const sheet = parseDealSheet(lines.join("\n"));
+    expect(sheet.lines.map((l) => [l.kind, l.amount])).toEqual([["price", 21998], ["docFee", 799]]);
+  });
+});
+
+describe("a misread payment is never stated as fact", () => {
+  it("when the payment and the paper's total of payments disagree, the loan is 'check this', with both numbers", () => {
+    const paper = "Vehicle Price $21,998.00\nTotal Price $21,998.00\nAmount Financed $21,998.00\nAnnual Percentage Rate 7.90%\nTerm 72 months\nMonthly Payment $450.00\nTotal of Payments $32,414.40";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: null, modelYear: 2021 });
+    expect(c.loan?.verdict).toBe("check");
+    expect(c.loan?.note).toContain("$450.00");
+    expect(c.loan?.note).toContain("$450.20 a month");
+    expect(c.hidden.some((h) => h.what.startsWith("Payment"))).toBe(false);
+  });
+});
+
+describe("OCR repairs on dealer papers", () => {
+  it("reads '$26 635.71' and '$21.998.00' as thousands", () => {
+    const s = parseDealSheet("Total Price $26 635.71\nVehicle Price $21.998.00");
+    expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["total", 26635.71], ["price", 21998]]);
+  });
+});

@@ -71,6 +71,7 @@ import { PhotoCheck } from "./PhotoCheck";
 import { carId as listCarId } from "@/lib/workspace/local";
 import { Assistant } from "./Assistant";
 import { ReadPanel } from "./ReadPanel";
+import { DealSheet } from "./DealSheet";
 import { KnowsPanel } from "./KnowsPanel";
 import { DealerCheck } from "./DealerCheck";
 import { DealerCheckAi } from "./DealerCheckAi";
@@ -689,6 +690,10 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
               { id: "running", label: "Fuel and upkeep", content: <RunningCost a={m} /> },
             ]}
           />
+          {/* The dealer's paperwork: only dealers have a buyer's order. */}
+          {m.listing.sellerType !== "private" && (
+            <DealSheet ad={{ price: m.listing.price, docFee: m.listing.docFee, sellerType: m.listing.sellerType }} car={carName(m)} modelYear={m.decoded?.year ?? m.listing.year} />
+          )}
           <Safety a={m} />
           <SectionTabs
             id="before-you-buy"

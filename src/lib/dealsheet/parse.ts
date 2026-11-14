@@ -131,7 +131,9 @@ const isLabel = (s: string) => /[a-z]{2}/i.test(s) && s.length <= 70;
 export function parseDealSheet(input: string): DealSheet {
   // OCR reads "$21,998.00" as "$21.998.00": two periods, the first one three digits before the cents, is a comma.
   const text = ocrThousands(input.replace(/\r\n?/g, "\n").replace(/[OoIl]/g, (c, at: number, s: string) => (/[\d$]/.test(s[at - 1] ?? "") && /[\d.,]/.test(s[at + 1] ?? "") ? (/[Oo]/.test(c) ? "0" : "1") : c)))
-    .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3");
+    .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3")
+    // …and the comma as a space: "$26 635.71" (only after "$" and with cents, where nothing else fits).
+    .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3");
   const lines: DealLine[] = [];
   const queue: string[] = [];
   const push = (label: string, value: number, wholeLine: string) => {

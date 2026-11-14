@@ -9,7 +9,7 @@
 import { STATE_TAX, vehicleTax } from "@/lib/costs/stateTax";
 import { STATES, type StateCode } from "@/lib/geo/zip";
 import { REF, type SourceRef } from "@/lib/sources";
-import { checkPayment, monthlyPayment, savingAtRate, totalInterest, type LoanCheck } from "./loan";
+import { checkPayment, monthlyPayment, PAYMENT_TOLERANCE as PAYMENT_GAP, savingAtRate, totalInterest, type LoanCheck } from "./loan";
 import type { DealLine, DealSheet } from "./parse";
 import { reconcile, type Reconcile } from "./reconcile";
 
@@ -168,11 +168,16 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   const plausible = !!principal && principal >= 1_000 && L.payment != null && L.payment >= 25 && L.months != null && L.payment * L.months >= principal * 0.9;
   if (plausible && principal && L.aprPct != null && L.months && L.payment) {
     const c = checkPayment(principal, L.aprPct, L.months, L.payment);
-    // Second check for the loan numbers: the paper's own total of payments (payment × months).
-    const tilaOk = L.totalOfPayments != null && Math.abs(L.totalOfPayments - L.payment * L.months) <= L.months;
+    // Second check for the loan numbers: the paper's own total of payments (payment × months, a final payment a
+    // few cents different). When they disagree, one of them was misread (a photo's "$450.20" read as "$450.00").
+    const tilaOk = L.totalOfPayments != null && Math.abs(L.totalOfPayments - L.payment * L.months) <= 2;
+    const tilaDisagrees = L.totalOfPayments != null && !tilaOk;
     let verdict: Verdict = "right";
     let note = `The payment matches ${cents(principal)} at ${L.aprPct}% for ${L.months} months (${cents(c.expected)}).`;
-    if (!c.ok && c.diff > 0) {
+    if (tilaDisagrees) {
+      verdict = "check";
+      note = `The payment reads as ${cents(L.payment)}, but the paper's total of payments (${cents(L.totalOfPayments!)}) is ${cents(L.totalOfPayments! / L.months)} a month. Check both on the paper. The loan math for ${cents(principal)} at ${L.aprPct}% for ${L.months} months is ${cents(c.expected)}${c.diff > PAYMENT_GAP ? ": anything above that is something not shown" : ""}.`;
+    } else if (!c.ok && c.diff > 0) {
       verdict = tilaOk ? "wrong" : "check";
       note = `${cents(principal)} at ${L.aprPct}% for ${L.months} months is ${cents(c.expected)} a month; the paper says ${cents(L.payment)}. That's ${cents(c.diff)} a month (${usd(c.overLoan)} over the loan) for something not shown. Ask for every product in the payment.`;
       if (verdict === "wrong") hidden.push({ what: "Payment above the loan math", amount: c.overLoan, why: note });

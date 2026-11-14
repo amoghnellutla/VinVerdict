@@ -18,7 +18,7 @@ export function isPublicPath(pathname: string): boolean {
  * else (My cars, Compare, Search, Settings, car pages) needs the owner's
  * two-step login.
  */
-export const DEMO_PATHS = ["/", "/mine", "/shortlist", "/security", "/share", "/why", "/accuracy", "/scam-signs"] as const;
+export const DEMO_PATHS = ["/", "/mine", "/shortlist", "/security", "/share", "/why", "/accuracy", "/scam-signs", "/deal"] as const;
 
 /** The Car guide is public too: /cars, /cars/<make> and /cars/<make>/<model> (not the owner's /car/[id]). */
 const CAR_GUIDE = /^\/cars(?:\/[a-z0-9-]+){0,2}\/?$/;
