@@ -182,6 +182,28 @@ function amountsIn(line: string): Hit[] {
   return out;
 }
 
+// Tick boxes on a contract ("GAP [X] Accept [ ] Decline", "( ) Yes (X) No", "Yes [X] No [ ]"): the ticked one decides,
+// not the words. A form puts its boxes either before or after its words; which one is read from the order they come in.
+const BOX = /\[\s*[xX✓✔]?\s*\]|\(\s*[xX✓✔]?\s*\)|[☒☑☐✓✔]|\b(accept(?:ed)?|yes|purchased?|si|sí|decline[ds]?|no|waived?|reject(?:ed)?)\b/gi;
+function tickedChoice(line: string): "yes" | "no" | null {
+  const seq = [...line.matchAll(BOX)].map((m) => (m[1] ? { word: /^(?:accept|yes|purchase|si|sí)/i.test(m[1]) ? "yes" : "no" } : { ticked: /[xX✓✔☒☑]/.test(m[0]) }));
+  if (!seq.some((t) => "ticked" in t)) return null;
+  // A lone tick with one word ("✓ Purchased"): that word.
+  const boxFirst = "ticked" in seq[0];
+  let choice: "yes" | "no" | null = null;
+  for (let i = 0; i + 1 < seq.length; i++) {
+    const [a, b] = [seq[i], seq[i + 1]];
+    const box = boxFirst ? a : b;
+    const word = boxFirst ? b : a;
+    if (!("ticked" in box) || !("word" in word)) continue;
+    if (box.ticked) {
+      if (choice && choice !== word.word) return null;
+      choice = word.word as "yes" | "no";
+    }
+    i++;
+  }
+  return choice;
+}
 const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out|declinado|rechazado|no incluido|ninguno|no aplica)\b/i;
 const cleanLabel = (s: string) =>
   s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.,;\-–—|/>=+]+|[\s:.\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
@@ -214,7 +236,8 @@ export function parseDealSheet(input: string): DealSheet {
   const push = (label: string, value: number, wholeLine: string) => {
     const { kind, name } = classify(label);
     const feeInPrice = kind === "price" && /\b(?:incl\.?|including|includes|with|w\/)\s.*\b(?:doc|documentary|documentation|processing|dealer|admin|conveyance)\b/i.test(toEnglish(label));
-    const declined = NOT_CHARGED.test(wholeLine) || value === 0;
+    const choice = tickedChoice(wholeLine);
+    const declined = value === 0 || (choice ? choice === "no" : NOT_CHARGED.test(wholeLine));
     // A balance keeps its sign: "Amount Due $-1,051.46" means the dealer owes the buyer. A total price, subtotal or
     // amount financed is never below zero ("Total -$11,479.46" is a dash with its gap lost). Charges and credits are
     // amounts; their kind says which way they go.

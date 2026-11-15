@@ -426,6 +426,25 @@ describe("what each line is", () => {
     expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["Grabado del VIN", "addOn", 399], ["GAP Policy", "loanProduct", 895]]);
   });
 
+  it("a tick box decides whether a product was taken, not the words beside it", () => {
+    const declined = (t: string) => parseDealSheet(t).lines[0].declined;
+    expect(declined("GAP Protection  [X] Accept  [ ] Decline  $895.00")).toBe(false);
+    expect(declined("GAP Protection  [ ] Accept  [X] Decline  $895.00")).toBe(true);
+    expect(declined("Service Contract  ☒ Accept  ☐ Decline  $2,895.00")).toBe(false);
+    expect(declined("Service Contract  ☐ Accept  ☒ Decline  $2,895.00")).toBe(true);
+    expect(declined("Optional GAP: (X) Yes ( ) No $895.00")).toBe(false);
+    expect(declined("Optional GAP: ( ) Yes (X) No $895.00")).toBe(true);
+    expect(declined("Credit Life Insurance  Yes [X]  No [ ]  $412.00")).toBe(false);
+    expect(declined("Service Contract ✓ Purchased $2,895.00")).toBe(false);
+    // Without boxes, the words still decide.
+    expect(declined("VIN Etch DECLINED $399.00")).toBe(true);
+    expect(declined("Paint Protection $795.00 - declined by customer")).toBe(true);
+    // An accepted product is something to refuse; a declined one isn't charged.
+    const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nGAP Protection  [X] Accept  [ ] Decline  $895.00\nService Contract  [ ] Accept  [X] Decline  $2,895.00"), ad: null, state: null, modelYear: 2021 });
+    expect(c.rows.map((r) => r.verdict)).toEqual(["info", "remove", "right"]);
+    expect(c.hiddenTotal).toBe(895);
+  });
+
   it("doesn't take a mileage, a monthly figure or a year for money", () => {
     const s = parseDealSheet("YEAR 2019 MILES 41,233\nPayments around $512/mo for 72 months\nSelling Price $18,495.00");
     expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["price", 18495]]);
