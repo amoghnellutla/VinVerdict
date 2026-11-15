@@ -127,6 +127,12 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
     const pct = r2(RATE[state]! * 100);
     body[at] = pick([`${rows[at][0]} ${pct}% of ${m(taxable)}    ${m(tax)}`, `${rows[at][0]} (${pct}% x ${m(taxable)})    ${m(tax)}`, `${rows[at][0]} @ ${pct}% on ${m(taxable)}    ${m(tax)}`]);
   }
+  // A note in brackets with its own amount: a former price, or the payoff beside the trade-in.
+  if (hard && layout !== "pairs" && layout !== "columns" && chance(0.3)) {
+    body[0] = `${body[0]} (was ${m(listed + pick([500, 1000, 1500]))})`;
+    const t = rows.findIndex((r) => r[1] === trade && trade > 0);
+    if (t >= 0 && payoff) body[t] = body[t].replace(/(\$[\d,.]+)\s*$/, `(payoff ${m(payoff)}) $1`);
+  }
   // A declined add-on printed on the paper (not charged).
   if (chance(0.3) && layout !== "columns") {
     const [l] = pick(WORDS.addOn);

@@ -154,7 +154,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\btotal\b|\bout[- ]the[- ]door\b|\botd\b|\bgrand total\b/, l)) return { kind: "total" };
   // "MSRP" on a deal sheet is the starting price that discounts come off; a market or book value is only a reference.
   if (has(/\bmarket value\b|\bkbb\b|\bbook value\b|\bretail value\b|\bnada\b|\bblack book\b/, l)) return { kind: "reference" };
-  if (has(/\bprice\b|\bmsrp\b|\bsticker\b|\bvehicle\b|\bcash price\b|\bselling\b|\bsale amount\b|\bagreed\b|\bused car\b|\bnew car\b|\bunit\b/, l)) return { kind: "price" };
+  if (has(/\bprice\b|\bmsrp\b|\bsticker\b|\bvehicle\b|\bcash price\b|\bselling\b|\bsale amount\b|\bagreed\b|\bused car\b|\bnew car\b|\bunit\b|^(?:sale|internet|special|e-?price|our price|now)$/, l)) return { kind: "price" };
   return { kind: "other" };
 }
 
@@ -256,6 +256,15 @@ export function parseDealSheet(input: string): DealSheet {
       line = line.replace(included[0], " ");
       subtotalHere = true;
     }
+    // A note in brackets with words and an amount ("(payoff $5,000.00)", "(was $23,500.00)", "(VIN etch $299, nitrogen
+    // $199)") explains the line; when the line has its own amount outside the brackets, that's the line's amount.
+    {
+      const notes = [...line.matchAll(/\([^()]*[A-Za-z][^()]*\$\s?\d[^()]*\)/g)];
+      if (notes.length) {
+        const outside = notes.reduce((t, m) => t.replace(m[0], " "), line);
+        if (amountsIn(outside).length) line = outside;
+      }
+    }
     // A quote written as a sentence ("we can do 17,900 plus 699 doc and 450 dealer prep… out the door 20,382").
     const prose = proseQuote(line);
     if (prose) {
@@ -310,6 +319,12 @@ export function parseDealSheet(input: string): DealSheet {
   const prices = lines.filter((l) => l.kind === "price" && !l.declined);
   const msrpLike = (l: DealLine) => /\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(toEnglish(l.label));
   if (prices.length >= 2) for (const l of prices) if (msrpLike(l) && prices.some((o) => o !== l && !msrpLike(o))) l.kind = "reference";
+  // A "was", "regular", "retail", "original" or "asking" price, or a plain "Price", beside a lower sale, internet or
+  // special price on the same paper is what it's marked down from.
+  const sale = (l: DealLine) => /\b(?:sale|internet|special|e-?price|our|now|discounted|your)\b/i.test(toEnglish(l.label));
+  const before = (l: DealLine) => /\b(?:was|regular|retail|original|asking|compare|list)\b|^(?:vehicle )?price$/i.test(toEnglish(l.label).trim());
+  const live = lines.filter((l) => l.kind === "price" && !l.declined);
+  for (const l of live) if (!sale(l) && before(l) && live.some((o) => o !== l && sale(o) && o.amount < l.amount)) l.kind = "reference";
   const options = paymentOptions(en);
   return {
     lines: lines.filter((l) => l.kind !== "loan"),

@@ -260,6 +260,25 @@ describe("what each line is", () => {
     expect(over.rows.find((r) => r.line.kind === "price")?.note).toContain("$300 more than the ad's price");
   });
 
+  it("a note in brackets explains a line; the line's own amount is the one outside", () => {
+    const one = (t: string) => parseDealSheet(t).lines.map((l) => [l.kind, l.amount]);
+    expect(one("Trade-In Allowance (payoff $5,000.00) $8,000.00")).toEqual([["tradeIn", 8000]]);
+    expect(one("Protection Package (VIN etch $299, nitrogen $199, wheel locks $89) $587.00")).toEqual([["addOn", 587]]);
+    expect(one("Vehicle Price $21,998.00 (was $23,500.00)")).toEqual([["price", 21998]]);
+    expect(one("Down Payment (cash $2,000 + rebate $1,000) $3,000.00")).toEqual([["downPayment", 3000]]);
+    expect(one("Sales Tax (on $23,000.00) $1,523.75")).toEqual([["tax", 1523.75]]);
+    expect(one("Doc Fee (max allowed by law $85) $85.00")).toEqual([["docFee", 85]]);
+    // A negative amount in brackets is still an amount, and a note with no amount outside stays as it was.
+    expect(one("Rebate ($1,000.00)")).toEqual([["rebate", 1000]]);
+  });
+
+  it("a was, list or plain price beside a lower sale price is what it's marked down from", () => {
+    const c = checkDealSheet({ sheet: parseDealSheet("Price: $21,998.00   Sale: $20,998.00\nDoc Fee $499.00\nTotal $21,497.00"), ad: { price: 20998, docFee: 499, sellerType: "dealer" }, state: null, modelYear: 2021 });
+    expect(c.rows.find((r) => r.line.label === "Price")?.line.kind).toBe("reference");
+    expect(c.rows.find((r) => r.line.label === "Sale")?.verdict).toBe("right");
+    expect(c.confirmed).toBe(true);
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);
