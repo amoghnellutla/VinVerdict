@@ -172,9 +172,22 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   };
 
-  for (const rawLine of text.split("\n")) {
-    const line = rawLine.replace(/\t/g, "  ").trim();
+  const allLines = text.split("\n");
+  const box = tilaBox(allLines);
+  for (const [n, rawLine] of allLines.entries()) {
+    if (box.skip.has(n)) continue;
+    let line = rawLine.replace(/\t/g, "  ").trim();
     if (!line) continue;
+    // "1. Cash Price (including $1,510.30 sales tax)  $24,307.30": the tax inside the brackets is a line of its own
+    // (it's in the cash price, which is then a subtotal), never the label of the amount after it.
+    const included = /\((?:including|incl\.?)\s[^)]*?\$\s?([\d,]+\.\d{2})[^)]*\)|\((?:including|incl\.?)\s[^)]*?\btax(?:es)? of\s\$\s?([\d,]+\.\d{2})\)/i.exec(line);
+    let subtotalHere = false;
+    if (included && /tax/i.test(included[0])) {
+      flush();
+      push("Sales tax (included in the cash price)", Number((included[1] ?? included[2]).replace(/,/g, "")), line);
+      line = line.replace(included[0], " ");
+      subtotalHere = true;
+    }
     // A quote written as a sentence ("we can do 17,900 plus 699 doc and 450 dealer prep… out the door 20,382").
     const prose = proseQuote(line);
     if (prose) {
@@ -208,16 +221,77 @@ export function parseDealSheet(input: string): DealSheet {
     hits.forEach((h, i) => {
       if (isLabel(own[i])) push(own[i], h.value, line);
     });
+    // The amount whose bracketed tax was taken out is that line's subtotal (the cash price including tax).
+    if (subtotalHere && lines.length) lines[lines.length - 1].kind = "subtotal";
     queue.length = 0;
   }
   flush();
   const options = paymentOptions(text);
   return {
     lines: lines.filter((l) => l.kind !== "loan"),
-    loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : readLoan(text, lines),
+    loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : { ...readLoan(text, lines), ...box.loan },
     ...(LEASE_WORDS.test(text) ? { lease: true, leaseTerms: leaseTerms(text, lines) } : {}),
     ...(options.length >= 2 ? { paymentOptions: options } : {}),
   };
+}
+
+const TILA_HEADS: [keyof LoanTerms | "totalSalePrice", RegExp][] = [
+  ["aprPct", /annual percentage rate/i],
+  ["financeCharge", /finance charge/i],
+  ["amountFinanced", /amount financed/i],
+  ["totalOfPayments", /total of payments/i],
+  ["totalSalePrice", /total sale price/i],
+];
+
+/**
+ * The federal Truth-in-Lending box on a finance contract: a row of headings (Annual Percentage Rate, Finance
+ * Charge, Amount Financed, Total of Payments, Total Sale Price), a row of explanations, then a row of values, in
+ * the same order. And the payment schedule: "Number of Payments / Amount of Payments" over "72 / $450.20".
+ * Returns the loan terms read from them, and the lines they take up (skipped when reading line items).
+ */
+export function tilaBox(lines: string[]): { loan: Partial<LoanTerms>; skip: Set<number> } {
+  const skip = new Set<number>();
+  const loan: Partial<LoanTerms> = {};
+  const money = (s: string) => Number(s.replace(/[$,\s]/g, ""));
+  for (let h = 0; h < lines.length; h++) {
+    const heads = TILA_HEADS.map(([k, re]) => ({ k, at: lines[h].search(re) })).filter((x) => x.at >= 0).sort((a, b) => a.at - b.at);
+    if (heads.length >= 3) {
+      for (let v = h + 1; v <= Math.min(h + 10, lines.length - 1); v++) { // explanations can wrap over several lines
+        const tokens = [...lines[v].matchAll(/(\d{1,2}(?:\.\d{1,3})?)\s?%|\$\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g)];
+        if (tokens.length < Math.min(3, heads.length)) continue;
+        // The values come in the headings' order: the rate is the one with "%", the rest are dollar amounts.
+        const dollars = tokens.filter((t) => t[2] != null).map((t) => money(t[2]));
+        const pct = tokens.find((t) => t[1] != null);
+        let d = 0;
+        for (const { k } of heads) {
+          if (k === "aprPct") {
+            if (pct) loan.aprPct = Number(pct[1]);
+          } else {
+            const val = dollars[d++];
+            if (val != null && k !== "totalSalePrice") loan[k] = val;
+          }
+        }
+        // The box has one percentage, the rate, even when its heading wrapped onto the next line in a PDF
+        // ("ANNUAL" / "PERCENTAGE RATE") and isn't in the headings row.
+        if (loan.aprPct == null && pct) loan.aprPct = Number(pct[1]);
+        for (let x = h; x <= v; x++) skip.add(x);
+        break;
+      }
+    }
+    if (/number of payments/i.test(lines[h]) && /amount of (?:each )?payments?/i.test(lines[h])) {
+      const next = lines[h + 1] ?? "";
+      const n = /^\s*(\d{2,3})\b/.exec(next);
+      const pay = /\$\s?(\d{1,3}(?:,\d{3})*\.\d{2})/.exec(next);
+      if (n && pay) {
+        loan.months = Number(n[1]);
+        loan.payment = money(pay[1]);
+        skip.add(h);
+        skip.add(h + 1);
+        if (/payment schedule/i.test(lines[h - 1] ?? "")) skip.add(h - 1);
+      }
+    }
+  }
+  return { loan, skip };
 }
 
 /**

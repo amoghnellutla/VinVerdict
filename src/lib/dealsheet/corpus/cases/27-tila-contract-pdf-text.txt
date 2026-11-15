@@ -1,0 +1,20 @@
+RETAIL INSTALLMENT SALE CONTRACT - SIMPLE FINANCE CHARGE
+Seller-Creditor: Example Motors
+ANNUAL    FINANCE CHARGE Amount Financed    Total of Payments    Total Sale Price
+PERCENTAGE RATE
+The cost of your The dollar    The amount of    The amount you will    The total cost of your
+credit as a    amount the    credit provided to have paid after you have purchase on credit,
+yearly rate.    credit will cost you or on your    made all payments as    including your down
+you.    behalf.    scheduled.    payment of $3,000.00
+7.90 %    $ 5,596.54    $ 21,617.30    $ 27,213.84    $ 30,213.84
+Your Payment Schedule Will Be:
+Number of Payments    Amount of Payments    When Payments Are Due
+72    $ 377.97    Monthly beginning 12/15/2026
+ITEMIZATION OF THE AMOUNT FINANCED
+1. Cash Price (including $1,510.30 sales tax)    $ 24,307.30
+Vehicle    $ 21,998.00
+Documentary Fee    $ 799.00
+2. Total Downpayment    $ 3,000.00
+3. Unpaid Balance of Cash Price    $ 21,307.30
+4. Government Title and Registration Fees    $ 310.00
+5. Amount Financed    $ 21,617.30

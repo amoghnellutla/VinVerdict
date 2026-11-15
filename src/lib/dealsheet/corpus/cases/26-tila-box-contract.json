@@ -1,0 +1,28 @@
+{
+  "note": "Round 4 (written before the change, run first). A real-format Truth-in-Lending box: headings row, explanations row, values row ('7.90 %', '$ 8,778.69' with a space after $), and the payment schedule as a small table. Every number is right: nothing may be called wrong.",
+  "state": "NJ",
+  "ad": {
+    "price": 21998,
+    "docFee": 799,
+    "sellerType": "dealer"
+  },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      {
+        "label": "Vehicle",
+        "kind": "price",
+        "amount": 21998.0
+      },
+      {
+        "label": "Documentary Fee",
+        "kind": "docFee",
+        "amount": 799.0
+      }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}

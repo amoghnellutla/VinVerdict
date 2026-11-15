@@ -174,3 +174,28 @@ describe("the example paper on /deal", () => {
     expect(Math.round(c.hiddenTotal)).toBe(5253);
   });
 });
+
+describe("the Truth-in-Lending box on a finance contract", () => {
+  it("pairs the headings with the values row, in order, and reads the payment schedule table", async () => {
+    const { tilaBox } = await import("./parse");
+    const lines = [
+      "ANNUAL PERCENTAGE RATE  FINANCE CHARGE  Amount Financed  Total of Payments  Total Sale Price",
+      "The cost of your credit as a yearly rate.  The dollar amount the credit will cost you.  (and so on)",
+      "7.90%  $8,778.69  $23,635.71  $32,414.40  $35,414.40",
+      "Your Payment Schedule Will Be:",
+      "Number of Payments  Amount of Payments  When Payments Are Due",
+      "72  $450.20  Monthly beginning 12/15/2026",
+      "Vehicle  $21,998.00",
+    ];
+    const box = tilaBox(lines);
+    expect(box.loan).toEqual({ aprPct: 7.9, financeCharge: 8778.69, amountFinanced: 23635.71, totalOfPayments: 32414.4, months: 72, payment: 450.2 });
+    expect([...box.skip].sort()).toEqual([0, 1, 2, 3, 4, 5]);
+    // The item lines are still read.
+    expect(parseDealSheet(lines.join("\n")).lines.map((l) => [l.kind, l.amount])).toEqual([["price", 21998]]);
+  });
+
+  it("a tax included in the cash price in brackets is its own line, and the cash price is a subtotal", () => {
+    const s = parseDealSheet("1. Cash Price (including $1,510.30 sales tax)  $24,307.30\n   Vehicle  $21,998.00\n   Documentary Fee  $799.00");
+    expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["tax", 1510.3], ["subtotal", 24307.3], ["price", 21998], ["docFee", 799]]);
+  });
+});

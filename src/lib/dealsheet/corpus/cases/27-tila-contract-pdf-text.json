@@ -1,0 +1,17 @@
+{
+  "note": "Written for the tests (synthetic numbers). The exact text pdf.js extracted from a contract PDF laid out like a real retail installment contract: the Truth-in-Lending box as a table whose 'ANNUAL PERCENTAGE RATE' heading and explanations wrap over several lines, the payment schedule table, and an itemization with the tax inside the cash price in brackets. Every number is right: nothing may be flagged, and the loan must be read and checked.",
+  "state": "NJ",
+  "ad": { "price": 21998, "docFee": 799, "sellerType": "dealer" },
+  "modelYear": 2021,
+  "myAprPct": null,
+  "clean": true,
+  "expect": {
+    "lines": [
+      { "label": "Vehicle", "kind": "price", "amount": 21998 },
+      { "label": "Documentary Fee", "kind": "docFee", "amount": 799 },
+      { "label": "Sales tax", "kind": "tax", "amount": 1510.3 }
+    ],
+    "confirmed": true,
+    "loan": "right"
+  }
+}
