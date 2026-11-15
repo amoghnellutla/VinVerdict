@@ -139,7 +139,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?<![\w.,$])(\()?(-)?\s?(\$)?\s?(-)?\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
+const AMOUNT = /(?<![\w.,$])(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 const NOT_MONEY_BEFORE = /\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|#)\s*(?:no\.?|number|#)?\s*[:#]?\s*$/i;
 
@@ -160,7 +160,12 @@ function amountsIn(line: string): Hit[] {
 }
 
 const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out)\b/i;
-const cleanLabel = (s: string) => s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|]+|[\s:.\-–—|$]+$/g, "").replace(/\s+/g, " ").trim();
+const cleanLabel = (s: string) =>
+  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|]+|[\s:.\-–—−|$]+$/g, "").replace(/\s+/g, " ").trim()
+    .replace(/^(?:\d{1,2}[.)]|[A-Za-z][.)]|\([a-z0-9]\))\s+(?=[A-Za-z(])/, "").replace(/\s+usd$/i, "").trim();
+// A label that ends with a base ("Sales Tax 6.625% of", "Tax (6.625% x"): the amount after it is what the line is
+// worked out on, and the line's own amount is the next one.
+const BASE_END = /\s*(?:\bof|\bon|\bx|\btimes|[@×*])\s*[($]*$/i;
 const isLabel = (s: string) => /[a-z]{2}/i.test(s) && s.length <= 70;
 
 /** Reads the paper's lines, pairing each amount with its label. */
@@ -169,7 +174,8 @@ export function parseDealSheet(input: string): DealSheet {
   const text = ocrThousands(input.replace(/\r\n?/g, "\n").replace(/[OoIl]/g, (c, at: number, s: string) => (/[\d$]/.test(s[at - 1] ?? "") && /[\d.,]/.test(s[at + 1] ?? "") ? (/[Oo]/.test(c) ? "0" : "1") : c)))
     .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3")
     // …and the comma as a space: "$26 635.71" (only after "$" and with cents, where nothing else fits).
-    .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3");
+    .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3")
+    .replace(/[−‒–](?=\$?\d)/g, "-");
   const lines: DealLine[] = [];
   const queue: string[] = [];
   const push = (label: string, value: number, wholeLine: string) => {
@@ -243,7 +249,9 @@ export function parseDealSheet(input: string): DealSheet {
     }
     flush();
     hits.forEach((h, i) => {
-      if (isLabel(own[i])) push(own[i], h.value, line);
+      if (!isLabel(own[i])) return;
+      if (BASE_END.test(own[i]) && i + 1 < hits.length && !isLabel(own[i + 1])) push(own[i].replace(BASE_END, "").replace(/[\s(]+$/, ""), hits[i + 1].value, line);
+      else push(own[i], h.value, line);
     });
     // The amount whose bracketed tax was taken out is that line's subtotal (the cash price including tax).
     if (subtotalHere && lines.length) lines[lines.length - 1].kind = "subtotal";

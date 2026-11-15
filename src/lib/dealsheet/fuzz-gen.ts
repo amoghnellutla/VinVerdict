@@ -94,13 +94,19 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Whole-dollar amounts print without cents on some papers.
   const noCents = chance(0.2);
   const m = (a: number) => money(a, !(noCents && Number.isInteger(a)));
-  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
-  const fmt = ([l, a]: [string, number]) => (layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : `${l}    ${m(a)}`);
+  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
+  const fmt = ([l, a]: [string, number]) => (layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : layout === "dash" ? `${l} - ${m(a)}` : `${l}    ${m(a)}`);
   const body = layout === "pairs"
     ? rows.reduce<string[]>((acc, r, i) => (i % 2 ? (acc[acc.length - 1] += `    ${r[0]} ${m(r[1])}`, acc) : [...acc, `${r[0]} ${m(r[1])}`]), [])
     : layout === "columns"
       ? ["ITEMIZATION", ...rows.map((r) => r[0]), ...rows.map((r) => m(r[1]))]
       : rows.map(fmt);
+  // The tax line with what it's worked out on: "Sales Tax 6.625% of $23,000.00   $1,523.75".
+  if (hard && layout !== "pairs" && layout !== "columns" && chance(0.3)) {
+    const at = rows.findIndex((r) => r[1] === tax);
+    const pct = r2(RATE[state]! * 100);
+    body[at] = pick([`${rows[at][0]} ${pct}% of ${m(taxable)}    ${m(tax)}`, `${rows[at][0]} (${pct}% x ${m(taxable)})    ${m(tax)}`, `${rows[at][0]} @ ${pct}% on ${m(taxable)}    ${m(tax)}`]);
+  }
   // A declined add-on printed on the paper (not charged).
   if (chance(0.3) && layout !== "columns") {
     const [l] = pick(WORDS.addOn);

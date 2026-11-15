@@ -101,6 +101,27 @@ describe("what each line is", () => {
     expect(plan.message).toContain("Dealer Prep");
   });
 
+  it("a tax line that shows its base gives the tax, not the base", () => {
+    for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
+      const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);
+      expect(s.lines.find((l) => l.kind === "tax")).toMatchObject({ amount: 1523.75, label: expect.stringMatching(/^Sales Tax/) });
+      const c = checkDealSheet({ sheet: s, ad: { price: 23000, docFee: null, sellerType: "dealer" }, state: "NJ", modelYear: 2021 });
+      expect(c.confirmed).toBe(true);
+    }
+  });
+
+  it("a dash between the label and the amount isn't a minus; a minus sign touching it is", () => {
+    const s = parseDealSheet("Vehicle Price - $23,000.00\nDoc Fee \u2013 $799.00\nTotal - $23,799.00");
+    expect(s.lines.map((l) => l.amount)).toEqual([23000, 799, 23799]);
+    expect(parseDealSheet("Amount Due \u2212$1,051.46").lines[0].amount).toBe(-1051.46);
+    expect(parseDealSheet("Amount Due -$1,051.46").lines[0].amount).toBe(-1051.46);
+    expect(parseDealSheet("Dealer Discount \u2212$1,000.00").lines[0].label).toBe("Dealer Discount");
+  });
+
+  it("list numbering and a currency word aren't part of the label", () => {
+    expect(parseDealSheet("1. Vehicle Price $23,000.00\nB. Doc Fee $799.00\n(c) Title Fee $60.00\nTotal USD 23,859.00").lines.map((l) => l.label)).toEqual(["Vehicle Price", "Doc Fee", "Title Fee", "Total"]);
+  });
+
   it("doesn't take a mileage, a monthly figure or a year for money", () => {
     const s = parseDealSheet("YEAR 2019 MILES 41,233\nPayments around $512/mo for 72 months\nSelling Price $18,495.00");
     expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["price", 18495]]);
