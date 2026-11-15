@@ -185,9 +185,22 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Loan terms as printed: a term and payment, or a schedule with a final payment a few cents different.
   const finalStyle = hasLoan && chance(0.3);
   const finalPay = r2(payment + Math.round(rand() * 60) / 100);
+  // A finance contract's Truth-in-Lending box: headings, their explanations, then the values, and the payment schedule.
+  const tilaStyle = hasLoan && !finalStyle && chance(0.3);
+  const totalOfPayments = r2(payment * months);
+  const tila = [
+    "ANNUAL PERCENTAGE RATE    FINANCE CHARGE    Amount Financed    Total of Payments    Total Sale Price",
+    "The cost of your credit as a yearly rate.    The dollar amount the credit will cost you.    The amount of credit provided to you or on your behalf.    The amount you will have paid after you have made all payments as scheduled.    The total cost of your purchase on credit, including your down payment of " + money(down + trade),
+    `${apr} %    ${money(r2(totalOfPayments - balance))}    ${money(balance)}    ${money(totalOfPayments)}    ${money(r2(totalOfPayments + down + trade))}`,
+    "Your payment schedule will be:",
+    "Number of Payments    Amount of Payments    When Payments Are Due",
+    `${months}    ${money(payment)}    Monthly beginning 12/15/2026`,
+  ];
   const loanLines = !hasLoan
     ? []
-    : finalStyle
+    : tilaStyle
+      ? tila
+      : finalStyle
       ? [`Annual Percentage Rate ${apr}%`, `Your payment schedule: ${months - 1} payments of ${money(payment)} monthly and 1 final payment of ${money(finalPay)}`]
       : es
         ? [`Tasa de porcentaje anual ${apr}%`, `Plazo ${months} meses`, `Pago mensual ${money(payment)}`, ...(rand() < 0.7 ? [`Total de pagos ${money(r2(payment * months))}`] : [])]
@@ -220,7 +233,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // …or "$" read as "S", or the gap before "$" lost (PDF text).
   else if (chance(0.15)) text = text.replace(/\$(\d{1,3}(?:,\d{3})*\.\d{2})/g, "S$1");
   else if (chance(0.15)) text = text.replace(/(?<! ) \$/g, "$$");
-  const printed = new Set([...rows.map((r) => r[1]), payment, r2(payment * months), apr, 0].map((n) => n.toFixed(2)));
+  const printed = new Set([...rows.map((r) => r[1]), payment, r2(payment * months), apr, 0, ...(tilaStyle ? [r2(totalOfPayments - balance), r2(totalOfPayments + down + trade), down + trade] : [])].map((n) => n.toFixed(2)));
   // A used car's ad shows its price and the dealer's fee; a new car's sticker shows the price with destination, no dealer fee.
   const ad = rand() < 0.8 ? (condition === "new" ? { price: price + destination, docFee: null, sellerType: "dealer" as const } : { price, docFee: doc, sellerType: "dealer" as const }) : null;
   // A packed payment needs a loan: with none (the trade-in and down payment cover it all) the paper is a clean one.
