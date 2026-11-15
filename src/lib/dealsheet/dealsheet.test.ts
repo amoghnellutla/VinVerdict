@@ -272,6 +272,19 @@ describe("what each line is", () => {
     expect(one("Rebate ($1,000.00)")).toEqual([["rebate", 1000]]);
   });
 
+  it("a worked line gives its result; equity beside a trade-in and payoff isn't a second credit; stray marks leave labels", () => {
+    const one = (t: string) => parseDealSheet(t).lines.map((l) => [l.label, l.kind, l.amount]);
+    expect(one("Vehicle Price $23,500.00 - $1,500.00 discount = $22,000.00")).toEqual([["Vehicle Price", "price", 22000]]);
+    expect(one("Sales Tax 6.625% x $23,000.00 = $1,523.75")).toEqual([["Sales Tax 6.625%", "tax", 1523.75]]);
+    expect(one("2 x Floor Mats @ $99.00 = $198.00")).toEqual([["2 x Floor Mats", "addOn", 198]]);
+    expect(one("Trade-In: $8,000.00   Payoff: $5,000.00   Equity: $3,000.00")).toEqual([["Trade-In", "tradeIn", 8000], ["Payoff", "payoff", 5000], ["Equity", "subtotal", 3000]]);
+    // "Net Trade" on its own is the credit.
+    expect(one("Net Trade-In $3,000.00")).toEqual([["Net Trade-In", "tradeIn", 3000]]);
+    expect(one("Rebate $1,000.00 / Loyalty $500.00").map((l) => l[0])).toEqual(["Rebate", "Loyalty"]);
+    expect(one("Selling Price $22,000.00 -> Total $23,523.75").map((l) => l[0])).toEqual(["Selling Price", "Total"]);
+    expect(one("Total Price = $23,523.75")).toEqual([["Total Price", "total", 23523.75]]);
+  });
+
   it("a was, list or plain price beside a lower sale price is what it's marked down from", () => {
     const c = checkDealSheet({ sheet: parseDealSheet("Price: $21,998.00   Sale: $20,998.00\nDoc Fee $499.00\nTotal $21,497.00"), ad: { price: 20998, docFee: 499, sellerType: "dealer" }, state: null, modelYear: 2021 });
     expect(c.rows.find((r) => r.line.label === "Price")?.line.kind).toBe("reference");

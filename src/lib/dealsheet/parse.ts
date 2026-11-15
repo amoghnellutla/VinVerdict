@@ -124,7 +124,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b|\bprior (?:credit|lease) (?:or lease )?balance\b/, l)) return { kind: "payoff" };
   // "Trade Difference" (Texas) is the price less the trade-in: a subtotal, not a credit.
   if (has(/\b(?:trade|cash) difference\b/, l)) return { kind: "subtotal" };
-  if (has(/\btrade[- ]?in\b|\btrade (?:allowance|value|credit|equity)\b|\ballowance\b/, l)) return { kind: "tradeIn" };
+  if (has(/\btrade[- ]?in\b|\btrade (?:allowance|value|credit|equity)\b|\ballowance\b|^(?:net )?equity$/, l)) return { kind: "tradeIn" };
   for (const [name, re] of LOAN_PRODUCTS) if (has(re, l)) return { kind: "loanProduct", name };
   // A package of several ("Pro Pack (wheel locks, tint, door guards)") keeps its own name.
   const addOns = ADD_ONS.filter(([, re]) => has(re, l));
@@ -182,7 +182,7 @@ function amountsIn(line: string): Hit[] {
 
 const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out|declinado|rechazado|no incluido|ninguno|no aplica)\b/i;
 const cleanLabel = (s: string) =>
-  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|]+|[\s:.\-–—−|$]+$/g, "").replace(/\s+/g, " ").trim()
+  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|/>=+]+|[\s:.\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
     .replace(/^(?:\d{1,2}[.)]|[A-Za-z][.)]|\([a-z0-9]\))\s+(?=[A-Za-z(])/, "").replace(/\s+usd$/i, "").trim();
 // A label that ends with a base ("Sales Tax 6.625% of", "Tax (6.625% x"): the amount after it is what the line is
 // worked out on, and the line's own amount is the next one.
@@ -273,7 +273,17 @@ export function parseDealSheet(input: string): DealSheet {
       queue.length = 0;
       continue;
     }
-    const hits = amountsIn(line);
+    let hits = amountsIn(line);
+    const eq = /=\s*[-(]?\$?\s?[\d,]+(?:\.\d{2})?\)?\s*$/.exec(line);
+    if (eq && hits.length >= 2 && hits[hits.length - 1].at >= eq.index) {
+      // The words before the first amount name the line; the operands in between are its working.
+      const head = line.slice(0, hits[0].at).replace(BASE_END, "");
+      if (isLabel(cleanLabel(head))) {
+        const last = hits[hits.length - 1];
+        line = `${head} ${line.slice(last.at)}`;
+        hits = amountsIn(line);
+      }
+    }
     const own = hits.map((h, i) => cleanLabel(line.slice(i ? hits[i - 1].end : 0, h.at)));
     if (!hits.length) {
       flush();
@@ -307,6 +317,13 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   }
   flush();
+  // "Trade-In $8,000 / Payoff $5,000 / Equity $3,000": the equity line repeats the other two, so it isn't a second credit.
+  for (const l of lines) {
+    if (l.kind !== "tradeIn" || !/\bnet\b|\bequity\b/i.test(toEnglish(l.label))) continue;
+    const others = lines.filter((o) => o !== l && o.kind === "tradeIn" && !o.declined);
+    const payoffs = lines.filter((o) => o.kind === "payoff" && !o.declined);
+    if (others.some((o) => payoffs.some((p) => Math.abs(o.amount - p.amount - l.amount) <= 1))) l.kind = "subtotal";
+  }
   // A negative balance that the paper's own arithmetic gives as positive was a dash, not a minus ("Amount Due -$6,479.46"
   // with the gap after the dash lost): the lines decide.
   const sumKinds = (kinds: readonly LineKind[]) => lines.filter((l) => !l.declined && kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
