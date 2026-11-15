@@ -92,7 +92,7 @@ export function makePaper(seed: number, hard = false): Paper {
   const m = (a: number) => money(a, !(noCents && Number.isInteger(a)));
   const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
   const fmt = ([l, a]: [string, number]) => (layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : `${l}    ${m(a)}`);
-  let body = layout === "pairs"
+  const body = layout === "pairs"
     ? rows.reduce<string[]>((acc, r, i) => (i % 2 ? (acc[acc.length - 1] += `    ${r[0]} ${m(r[1])}`, acc) : [...acc, `${r[0]} ${m(r[1])}`]), [])
     : layout === "columns"
       ? ["ITEMIZATION", ...rows.map((r) => r[0]), ...rows.map((r) => m(r[1]))]
