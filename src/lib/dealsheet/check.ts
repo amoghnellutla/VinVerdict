@@ -172,6 +172,15 @@ function impliedLocal(lines: DealLine[], state: StateCode, modelYear: number | n
   return pick ? { pct: Math.round(pick.pct * 1000) / 1000, base: pick.base } : null;
 }
 
+// No state sales tax on a car (the state's own rule in costs/stateTax.ts; Oregon's is for used cars only).
+const NO_TAX: readonly StateCode[] = ["MT", "NH", "OR"];
+// States that tax a value rather than the price (costs/stateTax.ts notes): the paper's tax may differ for that reason.
+const VALUE_TAX: Partial<Record<StateCode, string>> = {
+  GA: "Georgia's title tax (TAVT) is 7% of the state's own value for the car, not the price you pay.",
+  KY: "Kentucky's usage tax may use the car's book (NADA) value instead of the price.",
+  DE: "Delaware's document fee is on the price or the book value, whichever is higher.",
+};
+
 export function checkDealSheet(input: CheckInput): DealCheck {
   const { sheet, ad, state } = input;
   const now = input.now ?? new Date();
@@ -330,6 +339,10 @@ export function checkDealSheet(input: CheckInput): DealCheck {
           }
           return { line, verdict: "check", note: `${STATES[state]}'s ${STATE_TAX[state].summary} on these lines gives ${cands.length ? cents(low) : "a different amount"} before any local tax. Ask how they worked it out.` };
         }
+        // A state with no sales tax on cars: a "tax" line there is worth asking about directly.
+        if (NO_TAX.includes(state) && !(state === "OR" && isNew)) return { line, verdict: "check", note: `${STATES[state]} has no sales tax on ${state === "OR" ? "used cars" : "cars"}. Ask what this charge is and who it's paid to.` };
+        // A state that taxes a value, not the price: a different amount isn't a sign of anything by itself.
+        if (VALUE_TAX[state]) return { line, verdict: "check", note: `${VALUE_TAX[state]} On the price it would be ${cands.length ? cents(low) : "a different amount"}: ask which value they used.` };
         return { line, verdict: "check", note: `${STATES[state]}'s ${STATE_TAX[state].summary} on these lines gives ${cands.length ? cents(low) : "a different amount"}. Ask how they worked it out.` };
       }
       case "stateFee":

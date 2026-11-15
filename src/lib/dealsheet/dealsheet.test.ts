@@ -313,6 +313,18 @@ describe("what each line is", () => {
     expect(c.confirmed).toBe(true);
   });
 
+  it("tax in a state that taxes a value, or has no sales tax, gets the reason instead of a bare mismatch", () => {
+    const tax = (state: "GA" | "OR", amount: string) =>
+      checkDealSheet({ sheet: parseDealSheet(`Vehicle Price $20,000.00\nSales Tax $${amount}`), ad: null, state, modelYear: 2021 }).rows.find((r) => r.line.kind === "tax")!;
+    expect(tax("GA", "1,400.00").verdict).toBe("right");
+    const ga = tax("GA", "1,512.00");
+    expect(ga.verdict).toBe("check");
+    expect(ga.note).toContain("the state's own value for the car");
+    const or = tax("OR", "1,200.00");
+    expect(or.verdict).toBe("check");
+    expect(or.note).toContain("Oregon has no sales tax on used cars");
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);
