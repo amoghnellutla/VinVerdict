@@ -40,6 +40,25 @@ const WORDS = {
   // Dealer charges on top of the price.
   padding: [["Dealer Prep", 499], ["Reconditioning Fee", 895], ["Pre-Delivery Inspection", 299], ["Delivery Fee", 349], ["PDI", 199], ["Dealer Inspection Fee", 249]] as [string, number][],
 };
+// The same papers in Spanish (California requires the contract in Spanish when the deal was negotiated in Spanish).
+const WORDS_ES: typeof WORDS = {
+  price: ["Precio del vehículo", "Precio de venta", "Precio de contado del vehículo", "Precio de contado"],
+  doc: ["Cargo por documentación", "Cargo por procesamiento de documentos", "Cargo de documentos"],
+  gov: ["Tasas de licencia", "Cuotas de registro", "Título y registro", "Placas y registro"],
+  tax: ["Impuesto sobre las ventas", "Impuesto de venta", "Impuesto"],
+  total: ["Total", "Precio total de contado", "Total a pagar"],
+  down: ["Pago inicial", "Enganche"],
+  trade: ["Valor de intercambio", "Crédito por intercambio"],
+  payoff: ["Saldo del intercambio", "Liquidación del intercambio"],
+  balance: ["Saldo adeudado", "Saldo a pagar"],
+  financed: ["Importe financiado", "Monto financiado"],
+  discount: ["Descuento del concesionario", "Descuento"],
+  rebate: ["Reembolso del fabricante", "Rebaja"],
+  addOn: [["Grabado del VIN", 399], ["Nitrógeno", 199], ["Protección de pintura", 1295], ["Polarizado", 499], ["Ajuste de mercado", 2000]],
+  product: [["Contrato de servicio", 2895], ["Protección GAP", 895], ["Garantía extendida", 1595]],
+  padding: [["Preparación del concesionario", 499], ["Preparación", 349]],
+};
+
 const RATE: Partial<Record<StateCode, number>> = { NJ: 0.06625, PA: 0.06, TX: 0.0625, VA: 0.0415, IN: 0.07, CA: 0.0725, MD: 0.065, MN: 0.06875 };
 // The doc-fee caps confirmed in check.ts, for the states above that have one.
 const CAP: Partial<Record<StateCode, number>> = { CA: 85, MD: 800, MN: 350 };
@@ -52,6 +71,9 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
   const chance = (p: number) => hard && rand() < p;
   const state = pick(Object.keys(RATE) as StateCode[]);
+  // Some hard papers are in Spanish.
+  const es = chance(0.15);
+  const W = es ? WORDS_ES : WORDS;
   const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap", "padding"]);
   // A doc fee over the legal cap needs a state with one.
   const problem: Problem = drawn === "docOverCap" && !CAP[state] ? "none" : drawn;
@@ -61,16 +83,16 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Within the cap, except for a planted fee over it.
   const doc = cap == null ? drawnDoc : problem === "docOverCap" ? cap + pick([15, 50, 114, 250]) : Math.min(drawnDoc, cap);
   const gov = r2(30 + rand() * 300);
-  const extra: [string, number][] = problem === "addOn" ? [pick(WORDS.addOn)] : problem === "product" ? [pick(WORDS.product)] : problem === "padding" ? [pick(WORDS.padding)] : [];
+  const extra: [string, number][] = problem === "addOn" ? [pick(W.addOn)] : problem === "product" ? [pick(W.product)] : problem === "padding" ? [pick(W.padding)] : [];
   // A discount or rebate printed under a higher listed price: the net is still the ad's price.
   const credit = chance(0.3) ? Math.round(300 + rand() * 1500) : 0;
   const creditIsRebate = rand() >= 0.5;
-  const creditRow: [string, number][] = credit ? [[pick(creditIsRebate ? WORDS.rebate : WORDS.discount), credit]] : [];
+  const creditRow: [string, number][] = credit ? [[pick(creditIsRebate ? W.rebate : W.discount), credit]] : [];
   const netPrice = problem === "overAd" ? price + Math.round(300 + rand() * 1500) : price;
   const listed = netPrice + credit;
   // A new car's destination charge (on its window sticker): part of the price, taxed, in the total.
   const destination = condition === "new" ? pick([995, 1095, 1295, 1395, 1595, 1695]) : 0;
-  const destRow: [string, number][] = destination ? [[pick(["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
+  const destRow: [string, number][] = destination ? [[pick(es ? ["Cargo de destino", "Flete"] : ["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
   const hasTrade = rand() < 0.3;
   const trade = hasTrade ? Math.round(2000 + rand() * 8000) : 0;
   // How the state works out the tax: most take off the trade-in; some tax the price before a maker's rebate.
@@ -95,23 +117,23 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const risc = hard && problem === "product" && hasLoan && chance(0.5);
   const productCost = risc ? extra[0][1] : 0;
   const rows: [string, number][] = [
-    [pick(WORDS.price), listed],
+    [pick(W.price), listed],
     ...destRow,
     ...creditRow,
     // A summary that repeats the credit ("Total Savings").
     ...(creditRow.length && hard && rand() < 0.3 ? [[pick(["Total Savings", "You Save", "Total Discounts"]), credit] as [string, number]] : []),
-    ...(doc ? [[pick(WORDS.doc), doc] as [string, number]] : []),
+    ...(doc ? [[pick(W.doc), doc] as [string, number]] : []),
     ...(risc ? [] : extra),
-    [pick(WORDS.gov), gov],
-    [pick(WORDS.tax), tax],
-    [pick(WORDS.total), r2(total - productCost)],
-    ...(trade ? [[pick(WORDS.trade), trade] as [string, number]] : []),
-    ...(payoff ? [[pick(WORDS.payoff), payoff] as [string, number]] : []),
-    ...(down ? [[pick(WORDS.down), down] as [string, number]] : []),
+    [pick(W.gov), gov],
+    [pick(W.tax), tax],
+    [pick(W.total), r2(total - productCost)],
+    ...(trade ? [[pick(W.trade), trade] as [string, number]] : []),
+    ...(payoff ? [[pick(W.payoff), payoff] as [string, number]] : []),
+    ...(down ? [[pick(W.down), down] as [string, number]] : []),
     ...(risc
       ? [[pick(["Unpaid Balance of Cash Price", "Unpaid Balance", "Unpaid Cash Balance"]), r2(balance - productCost)] as [string, number], ...extra]
-      : trade || down || payoff ? [[pick(WORDS.balance), balance] as [string, number]] : []),
-    ...(hasLoan ? [[pick(WORDS.financed), balance] as [string, number]] : []),
+      : trade || down || payoff ? [[pick(W.balance), balance] as [string, number]] : []),
+    ...(hasLoan ? [[pick(W.financed), balance] as [string, number]] : []),
   ];
   // Whole-dollar amounts print without cents on some papers.
   const noCents = chance(0.2);
@@ -148,7 +170,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   }
   // A declined add-on printed on the paper (not charged).
   if (chance(0.3) && layout !== "columns" && !prose) {
-    const [l] = pick(WORDS.addOn);
+    const [l] = pick(W.addOn);
     body.splice(2, 0, rand() < 0.5 ? `${l} .......... DECLINED` : `${l} $0.00`);
   }
   // A page break with the form's header repeated.
@@ -160,11 +182,15 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
     ? []
     : finalStyle
       ? [`Annual Percentage Rate ${apr}%`, `Your payment schedule: ${months - 1} payments of ${money(payment)} monthly and 1 final payment of ${money(finalPay)}`]
-      : [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])];
+      : es
+        ? [`Tasa de porcentaje anual ${apr}%`, `Plazo ${months} meses`, `Pago mensual ${money(payment)}`, ...(rand() < 0.7 ? [`Total de pagos ${money(r2(payment * months))}`] : [])]
+        : [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])];
   // The buyer's details, as different forms print them.
   const street = `${Math.round(rand() * 900 + 10)} Sample Rd`;
   const stock = `Stock # ${Math.round(rand() * 90000 + 10000)}`;
-  const who = hard
+  const who = es
+    ? pick([[`Comprador: ${name}`, `Dirección: ${street}, Anytown, CA 90001`, stock], ["VENDIDO A:", name.toUpperCase(), `${street}, Anytown`, stock]])
+    : hard
     ? pick([
         [`Buyer: ${name}`, `Address: ${street}, Anytown`, stock],
         [`${stock}      Buyer: ${name}`, `Date: 11/15/2026\tAddress: ${street}`],
