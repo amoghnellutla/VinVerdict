@@ -10,6 +10,7 @@
  *   7. only then: a free AI model (an open question, or a sentence the patterns can't read)
  */
 
+import { toEnglish } from "@/lib/dealsheet/spanish";
 import { readProof, type ProofSource } from "@/lib/evidence/parse";
 import { parseListing, type ParsedListing } from "@/lib/listing/parse";
 import { parseAuctionRecord, type AuctionRecord } from "@/lib/listing/auction";
@@ -123,7 +124,7 @@ const SAID_WEAK = new RegExp(String.raw`${WHO}\b(?:wants?|is asking|would|will|'
  * fees itemized with amounts (listing pages say "Taxes & fees" without numbers), plus deal-paper words.
  */
 export function isDealSheet(text: string): boolean {
-  if (!/buyer'?s order|out[- ]the[- ]door|doc(?:ument\w*)? fee|total (?:cash )?price|amount financed|retail installment|purchase agreement|worksheet|balance due|lease agreement|capitali[sz]ed cost|residual value|money factor/i.test(text)) return false;
+  if (!/buyer'?s order|out[- ]the[- ]door|doc(?:ument\w*)? fee|total (?:cash )?price|amount financed|retail installment|purchase agreement|worksheet|balance due|lease agreement|capitali[sz]ed cost|residual value|money factor/i.test(toEnglish(text))) return false;
   const sheet = parseDealSheet(text);
   const lines = sheet.lines.filter((l) => !l.declined);
   const has = (k: string) => lines.some((l) => l.kind === k);

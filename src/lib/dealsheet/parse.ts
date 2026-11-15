@@ -8,6 +8,7 @@
  * Nothing is guessed: a line it can't place is kept as "other", with its words, for the buyer to ask about.
  */
 
+import { toEnglish } from "./spanish";
 import { ocrThousands } from "@/lib/listing/parse";
 
 export type LineKind =
@@ -106,7 +107,7 @@ const has = (re: RegExp, s: string) => re.test(s);
 
 /** What a line is, from its label (lowercased, with spaces collapsed). */
 export function classify(rawLabel: string): { kind: LineKind; name?: string } {
-  const l = rawLabel.toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
+  const l = toEnglish(rawLabel).toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
   // Lease terms are information, not charges: the cap cost, residual, money factor, the amount due at signing.
   if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b|\bdepreciation\b|\brent charge\b|\bbase monthly payments?\b/, l)) return { kind: "leaseTerm" };
   // The leasing company's own fees (often marked up by the dealer): asked about, not refused.
@@ -173,7 +174,7 @@ function amountsIn(line: string): Hit[] {
   return out;
 }
 
-const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out)\b/i;
+const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out|declinado|rechazado|no incluido|ninguno|no aplica)\b/i;
 const cleanLabel = (s: string) =>
   s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|]+|[\s:.\-–—−|$]+$/g, "").replace(/\s+/g, " ").trim()
     .replace(/^(?:\d{1,2}[.)]|[A-Za-z][.)]|\([a-z0-9]\))\s+(?=[A-Za-z(])/, "").replace(/\s+usd$/i, "").trim();
@@ -225,7 +226,9 @@ export function parseDealSheet(input: string): DealSheet {
   };
 
   const allLines = text.split("\n");
-  const box = tilaBox(allLines);
+  // A Spanish paper's words in English, for the rules that read the whole text (same lines, same numbers).
+  const en = toEnglish(text);
+  const box = tilaBox(en.split("\n"));
   for (const [n, rawLine] of allLines.entries()) {
     if (box.skip.has(n)) continue;
     let line = rawLine.replace(/\t/g, "  ").trim();
@@ -292,14 +295,15 @@ export function parseDealSheet(input: string): DealSheet {
   }
   // "MSRP $32,900 / Selling Price $31,400": with another price on the paper, the MSRP or sticker line is a reference.
   const prices = lines.filter((l) => l.kind === "price" && !l.declined);
-  if (prices.length >= 2) for (const l of prices) if (/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(l.label) && prices.some((o) => o !== l && !/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(o.label))) l.kind = "reference";
-  const options = paymentOptions(text);
+  const msrpLike = (l: DealLine) => /\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(toEnglish(l.label));
+  if (prices.length >= 2) for (const l of prices) if (msrpLike(l) && prices.some((o) => o !== l && !msrpLike(o))) l.kind = "reference";
+  const options = paymentOptions(en);
   return {
     lines: lines.filter((l) => l.kind !== "loan"),
-    loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : { ...readLoan(text, lines), ...box.loan },
-    ...(LEASE_WORDS.test(text) ? { lease: true, leaseTerms: leaseTerms(text, lines) } : {}),
+    loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : { ...readLoan(en, lines), ...box.loan },
+    ...(LEASE_WORDS.test(en) ? { lease: true, leaseTerms: leaseTerms(en, lines) } : {}),
     ...(options.length >= 2 ? { paymentOptions: options } : {}),
-    ...(LOOKS_NEW.test(text) && !LOOKS_USED.test(text) ? { looksNew: true } : {}),
+    ...(LOOKS_NEW.test(en) && !LOOKS_USED.test(en) ? { looksNew: true } : {}),
   };
 }
 
@@ -391,7 +395,7 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
 
 /** The lease's numbers: the adjusted cap cost (or gross less the cap cost reduction), the residual and the money factor. */
 function leaseTerms(text: string, lines: DealLine[]): NonNullable<DealSheet["leaseTerms"]> {
-  const find = (re: RegExp) => lines.find((l) => l.kind === "leaseTerm" && re.test(l.label.toLowerCase()))?.amount ?? null;
+  const find = (re: RegExp) => lines.find((l) => l.kind === "leaseTerm" && re.test(toEnglish(l.label).toLowerCase()))?.amount ?? null;
   const adjusted = find(/\badjusted cap|\bnet cap/);
   const gross = find(/\bgross cap|\bcapitali[sz]ed cost\b(?! reduction)/);
   const reduction = find(/cap(?:italized)? cost reduction/);
@@ -458,7 +462,11 @@ function readLoan(text: string, lines: DealLine[]): LoanTerms {
   // "Term 6 years": in months.
   const termYears = rows.map((r) => /\bterm\b[^\d]{0,12}(\d{1,2})\s?(?:years?|yrs?)\b/.exec(r)).find(Boolean);
   const months = monthsAt != null ? [monthsAt, monthsAt] : monthsLoose ?? (termYears ? [termYears[0], String(Number(termYears[1]) * 12)] : null);
-  const amountFinanced = lines.find((l) => l.kind === "amountFinanced")?.amount ?? near("amount financed|unpaid balance|amount to (?:be )?financ(?:e|ed)|to be financed|loan amount");
+  // The loan's principal is the line that says "Amount Financed", not an "Unpaid balance of cash price" printed
+  // before the other charges are added (taking that one made a right payment look $46 a month too high).
+  const financedLines = lines.filter((l) => l.kind === "amountFinanced" && !l.declined);
+  const named = financedLines.filter((l) => /\bamount (?:financed|to (?:be )?financ)|\btotal (?:amount )?financed\b|\bloan amount\b/i.test(toEnglish(l.label)));
+  const amountFinanced = (named.at(-1) ?? financedLines.filter((l) => !/\bunpaid balance\b/i.test(toEnglish(l.label))).at(-1) ?? financedLines.at(-1))?.amount ?? near("amount financed|unpaid balance|amount to (?:be )?financ(?:e|ed)|to be financed|loan amount");
   let m = months ? Number(months[1]) : null;
   // "71 payments of $468.51 and 1 final payment of $469.10": the count printed with the regular payment leaves the
   // final one out (a term in months already includes it).

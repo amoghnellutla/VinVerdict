@@ -1,0 +1,20 @@
+CONTRATO DE COMPRAVENTA A PLAZOS - VEHÍCULO USADO
+Comprador: María Ejemplo
+Dirección: 45 Sample Ave, Fresno, CA 93701
+Teléfono: (559) 555-0144
+2019 Honda Accord LX
+Precio de contado del vehículo $19,995.00
+Cargo por procesamiento de documentos $85.00
+Grabado del VIN $299.00
+Impuesto sobre las ventas $1,885.06
+Tasas de licencia $135.00
+Cuotas de registro $68.00
+Total $22,467.06
+Pago inicial $3,000.00
+Saldo no pagado $19,467.06
+Contrato de servicio $2,195.00
+Importe financiado $21,662.06
+Tasa de porcentaje anual 9.49%
+Plazo 60 meses
+Pago mensual $454.84
+Total de pagos $27,290.40

@@ -1,0 +1,32 @@
+{
+  "note": "Written for the tests (synthetic). A used-car installment contract in Spanish, as California requires when the deal was negotiated in Spanish: every line, the loan and the add-ons read from the Spanish words; the buyer's name, address and phone removed.",
+  "state": "CA",
+  "ad": { "price": 19995, "docFee": 85, "sellerType": "dealer" },
+  "modelYear": 2019,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      { "label": "Precio de contado del vehículo", "kind": "price", "amount": 19995 },
+      { "label": "Cargo por procesamiento de documentos", "kind": "docFee", "amount": 85 },
+      { "label": "Grabado del VIN", "kind": "addOn", "amount": 299 },
+      { "label": "Impuesto sobre las ventas", "kind": "tax", "amount": 1885.06 },
+      { "label": "Tasas de licencia", "kind": "stateFee", "amount": 135 },
+      { "label": "Cuotas de registro", "kind": "stateFee", "amount": 68 },
+      { "label": "Total", "kind": "total", "amount": 22467.06 },
+      { "label": "Pago inicial", "kind": "downPayment", "amount": 3000 },
+      { "label": "Contrato de servicio", "kind": "loanProduct", "amount": 2195 },
+      { "label": "Importe financiado", "kind": "amountFinanced", "amount": 21662.06 }
+    ],
+    "confirmed": true,
+    "loan": "right",
+    "verdicts": {
+      "Precio de contado": "right",
+      "Cargo por procesamiento": "right",
+      "Grabado del VIN": "remove",
+      "Contrato de servicio": "remove",
+      "Importe financiado": "right"
+    },
+    "hiddenTotal": 2494
+  }
+}

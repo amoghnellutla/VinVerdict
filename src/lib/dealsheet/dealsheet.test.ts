@@ -49,6 +49,27 @@ describe("the buyer's details come out first", () => {
     expect(out).toContain("Vehicle Price $21,998.00");
   });
 
+  it("takes out personal details on a Spanish paper (accents or not), and keeps its money lines", () => {
+    const paper = [
+      "Comprador: María Ejemplo",
+      "Co-comprador:     José Muestra",
+      "Dirección: 45 Sample Ave, Fresno, CA 93701",
+      "Teléfono: (559) 555-0144",
+      "Correo electrónico: maria@example.com",
+      "Licencia de conducir: D1234567",
+      "Fecha de nacimiento: 02/03/1985",
+      "Empleador: Ejemplo Farms",
+      "VENDIDO A:",
+      "ANA EJEMPLO",
+      "Precio de contado del vehículo $19,995.00",
+      "Pago inicial $3,000.00",
+    ].join("\n");
+    const out = redactDealSheet(paper).text;
+    for (const secret of ["María", "Ejemplo", "José Muestra", "45 Sample Ave", "555-0144", "maria@example.com", "D1234567", "02/03/1985", "ANA EJEMPLO"]) expect(out, secret).not.toContain(secret);
+    expect(out).toContain("Precio de contado del vehículo $19,995.00");
+    expect(out).toContain("Pago inicial $3,000.00");
+  });
+
   it("takes out personal details in columns, under headings, and in other forms' words", () => {
     const paper = [
       "Stock # 24689      Buyer: Pat Example",
@@ -205,6 +226,13 @@ describe("what each line is", () => {
     const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "TX", modelYear: 2026, condition: "new", now: new Date("2026-11-15") });
     expect(c.rows.find((r) => r.line.label === "Trade Difference")?.verdict).toBe("right");
     expect(c.rows.find((r) => r.line.label === "Subtotal")?.verdict).toBe("right");
+  });
+
+  it("the loan's principal is the Amount Financed line, never an unpaid balance printed before other charges", () => {
+    const paper = "Cash Price $19,995.00\nDoc Fee $85.00\nTotal $20,080.00\nDown Payment $3,000.00\nUnpaid Balance $17,080.00\nService Contract $2,195.00\nAmount Financed $19,275.00\nAPR 9.49%\nTerm 60 months\nMonthly Payment $404.73";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: null, modelYear: 2019 });
+    expect(c.loan?.principal).toBe(19275);
+    expect(c.loan?.verdict).toBe("right");
   });
 
   it("a tax line that shows its base gives the tax, not the base", () => {

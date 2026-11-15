@@ -11,7 +11,8 @@
 
 import { redact as redactContacts } from "@/lib/report/redact";
 
-const WHO = String.raw`(?:buyer|co-?buyer|purchaser|co-?purchaser|customer|owner|applicant|borrower|co-?borrower|co-?signer|cosigner|guarantor|spouse)(?:\(s\)|'s|s)?`;
+// English and Spanish (papers are matched without accents: "Dirección" as "Direccion").
+const WHO = String.raw`(?:buyer|co-?buyer|purchaser|co-?purchaser|customer|owner|applicant|borrower|co-?borrower|co-?signer|cosigner|guarantor|spouse|comprador|co-?comprador|compradora|cliente|propietario|solicitante|deudor|co-?deudor|codeudor|fiador|conyuge)(?:\(s\)|\(es\)|'s|s|es)?`;
 const LABEL = new RegExp(
   String.raw`^(?:` +
     [
@@ -29,12 +30,19 @@ const LABEL = new RegExp(
       String.raw`(?:bank\s+)?account\s+(?:no\.?|number|#)|acct\.?\s*(?:no\.?|number|#)?|routing\s+(?:no\.?|number|#)?|aba\s+(?:no\.?|number|#)?`,
       String.raw`(?:insurance\s+)?policy\s+(?:no\.?|number|#)|insurance\s+agent`,
       String.raw`signature|signed`,
+      String.raw`nombre(?:\s+completo)?(?:\s+y\s+direccion)?(?:\s+del\s+${WHO})?|direccion|domicilio|vendido\s+a`,
+      String.raw`ciudad\s*(?:,|\/)\s*estado(?:\s*(?:,|\/)\s*codigo\s+postal)?|codigo\s+postal`,
+      String.raw`(?:numero\s+de\s+)?telefono|celular|correo(?:\s+electronico)?`,
+      String.raw`licencia\s+de\s+conducir|(?:numero\s+de\s+)?licencia(?:\s+de\s+conducir)?\s+(?:no\.?|numero|#)`,
+      String.raw`(?:numero\s+de\s+)?seguro\s+social|fecha\s+de\s+nacimiento`,
+      String.raw`empleador|patron|ocupacion|firma(?:\s+del\s+${WHO})?`,
+      String.raw`(?:numero\s+de\s+)?cuenta(?:\s+bancaria)?(?:\s+(?:no\.?|#))?|numero\s+de\s+ruta|(?:numero\s+de\s+)?poliza`,
     ].join("|") +
     String.raw`)\s*(?::|#|no\.?:?)\s*`,
   "i",
 );
 // A heading with nothing after it ("BUYER", "Sold To:", "Co-Buyer Information").
-const HEADING = new RegExp(String.raw`^(?:${WHO}(?:\s+(?:name|information|info|name\s+(?:and|&)\s+address))?|sold\s+to|bill\s+to|name\s+(?:and|&)\s+address)\s*:?$`, "i");
+const HEADING = new RegExp(String.raw`^(?:${WHO}(?:\s+(?:name|information|info|name\s+(?:and|&)\s+address))?|sold\s+to|bill\s+to|name\s+(?:and|&)\s+address|vendido\s+a|nombre\s+y\s+direccion)\s*:?$`, "i");
 const STREET = /\b\d{1,6}\s+(?:[NSEW]\.?\s+)?[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}\s+(?:st|street|rd|road|ave|avenue|blvd|boulevard|dr|drive|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|ter|terrace|trl|trail)\b\.?(?:,?\s+(?:apt|unit|suite|ste|#)\.?\s*[\w-]+)?/gi;
 const CITY_STATE_ZIP = /\b[A-Za-z][A-Za-z .'-]{1,30},\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g;
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/g;
@@ -54,7 +62,8 @@ export function redactDealSheet(text: string): { text: string; removed: number }
     const parts = line.split(/(\t+|\s*\|\s*|\s{3,})/);
     let changed = false;
     for (let i = 0; i < parts.length; i += 2) {
-      const col = parts[i].trim();
+      // Accents off for matching ("Dirección", "Teléfono"); the same length for ordinary (composed) text.
+      const col = parts[i].trim().normalize("NFC").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (!col) continue;
       const m = LABEL.exec(col);
       if (m) {
