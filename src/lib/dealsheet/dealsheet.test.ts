@@ -208,6 +208,25 @@ describe("what each line is", () => {
     expect(parseDealSheet("Dealer Discount \u2212$1,000.00").lines[0].label).toBe("Dealer Discount");
   });
 
+  it("money OCR and PDFs mangle is still read: no space before $, $ read as S, a doubled $, a comma for the cents point", () => {
+    for (const t of [
+      "Vehicle Price$21,998.00\nDoc Fee$799.00\nTotal$22,797.00",
+      "Vehicle Price S21,998.00\nDoc Fee S799.00\nTotal S22,797.00",
+      "Vehicle Price $$21,998.00\nDoc Fee $$799.00\nTotal $$22,797.00",
+      "Vehicle Price $21,998,00\nDoc Fee $799,00\nTotal $22,797,00",
+      "Vehicle Price: $21,998.00\nDoc Fee:$799.00\nTotal Price (OTD)$22,797.00",
+    ]) expect(parseDealSheet(t).lines.map((l) => l.amount), t).toEqual([21998, 799, 22797]);
+    // Words and plain numbers are untouched: "STOCK S1234", "Plan S2" and "$1,000" stay as they are.
+    expect(parseDealSheet("Stock S1234\nPlan S2 $1,000.00").lines.map((l) => l.amount)).toEqual([1000]);
+  });
+
+  it("a dash whose gap was lost isn't a minus on a total; on a balance the paper's arithmetic decides", () => {
+    const s = parseDealSheet("Vehicle Price - $21,998.00\nDoc Fee - $799.00\nTotal Cash Price -$22,797.00\nDown Payment - $2,000.00\nAmount Due -$20,797.00\nAmount Financed -$20,797.00");
+    expect(s.lines.map((l) => l.amount)).toEqual([21998, 799, 22797, 2000, 20797, 20797]);
+    // A real negative balance (the down payment was more than the price) stays negative.
+    expect(parseDealSheet("Vehicle Price $1,000.00\nDown Payment $2,051.46\nAmount Due -$1,051.46").lines.at(-1)?.amount).toBe(-1051.46);
+  });
+
   it("list numbering and a currency word aren't part of the label", () => {
     expect(parseDealSheet("1. Vehicle Price $23,000.00\nB. Doc Fee $799.00\n(c) Title Fee $60.00\nTotal USD 23,859.00").lines.map((l) => l.label)).toEqual(["Vehicle Price", "Doc Fee", "Title Fee", "Total"]);
   });

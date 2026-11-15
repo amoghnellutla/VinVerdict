@@ -143,6 +143,9 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // OCR misreads: a thousands comma read as a period, or a space after "$".
   if (chance(0.25)) text = text.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2");
   else if (chance(0.2)) text = text.replace(/\$(\d)/g, "$$ $1");
+  // …or "$" read as "S", or the gap before "$" lost (PDF text).
+  else if (chance(0.15)) text = text.replace(/\$(\d{1,3}(?:,\d{3})*\.\d{2})/g, "S$1");
+  else if (chance(0.15)) text = text.replace(/(?<! ) \$/g, "$$");
   const printed = new Set([...rows.map((r) => r[1]), payment, r2(payment * months), apr, 0].map((n) => n.toFixed(2)));
   // A used car's ad shows its price and the dealer's fee; a new car's sticker shows the price with destination, no dealer fee.
   const ad = rand() < 0.8 ? (condition === "new" ? { price: price + destination, docFee: null, sellerType: "dealer" as const } : { price, docFee: doc, sellerType: "dealer" as const }) : null;

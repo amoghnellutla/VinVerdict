@@ -151,7 +151,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?<![\w.,$])(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 const NOT_MONEY_BEFORE = /\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|#)\s*(?:no\.?|number|#)?\s*[:#]?\s*$/i;
 
@@ -183,7 +183,13 @@ const isLabel = (s: string) => /[a-z]{2}/i.test(s) && s.length <= 70;
 /** Reads the paper's lines, pairing each amount with its label. */
 export function parseDealSheet(input: string): DealSheet {
   // OCR reads "$21,998.00" as "$21.998.00": two periods, the first one three digits before the cents, is a comma.
-  const text = ocrThousands(input.replace(/\r\n?/g, "\n").replace(/[OoIl]/g, (c, at: number, s: string) => (/[\d$]/.test(s[at - 1] ?? "") && /[\d.,]/.test(s[at + 1] ?? "") ? (/[Oo]/.test(c) ? "0" : "1") : c)))
+  // More OCR misreads of money: "$" read as "S" ("S21,998.00") or doubled ("$$"), and the cents point read as a
+  // comma ("$21,998,00"). Each only where cents follow, so words and plain numbers are untouched.
+  const ocrMoney = (s: string) =>
+    s.replace(/\${2,}/g, "$")
+      .replace(/(?<![A-Za-z0-9$])S(?=\d{1,3}(?:,\d{3})*\.\d{2}(?!\d))/g, "$")
+      .replace(/\$(\s?)(\d{1,3}(?:,\d{3})*),(\d{2})(?![\d,.])/g, "$$$1$2.$3");
+  const text = ocrThousands(ocrMoney(input.replace(/\r\n?/g, "\n")).replace(/[OoIl]/g, (c, at: number, s: string) => (/[\d$]/.test(s[at - 1] ?? "") && /[\d.,]/.test(s[at + 1] ?? "") ? (/[Oo]/.test(c) ? "0" : "1") : c)))
     .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3")
     // …and the comma as a space: "$26 635.71" (only after "$" and with cents, where nothing else fits).
     .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3")
@@ -193,9 +199,10 @@ export function parseDealSheet(input: string): DealSheet {
   const push = (label: string, value: number, wholeLine: string) => {
     const { kind, name } = classify(label);
     const declined = NOT_CHARGED.test(wholeLine) || value === 0;
-    // Totals and balances keep their sign: "Amount Due $-1,051.46" means the dealer owes the buyer. Charges and
-    // credits are amounts; their kind says which way they go.
-    const signed = kind === "total" || kind === "balanceDue" || kind === "subtotal" || kind === "amountFinanced";
+    // A balance keeps its sign: "Amount Due $-1,051.46" means the dealer owes the buyer. A total price, subtotal or
+    // amount financed is never below zero ("Total -$11,479.46" is a dash with its gap lost). Charges and credits are
+    // amounts; their kind says which way they go.
+    const signed = kind === "balanceDue";
     lines.push({ label, amount: signed ? value : Math.abs(value), kind, declined, ...(name ? { name } : {}) });
   };
 
@@ -271,6 +278,14 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   }
   flush();
+  // A negative balance that the paper's own arithmetic gives as positive was a dash, not a minus ("Amount Due -$6,479.46"
+  // with the gap after the dash lost): the lines decide.
+  const sumKinds = (kinds: readonly LineKind[]) => lines.filter((l) => !l.declined && kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
+  const owed = sumKinds(CHARGE_KINDS) - sumKinds(["discount", "rebate"]);
+  const due = [owed, owed - sumKinds(["tradeIn"]), owed - sumKinds(["downPayment"]), owed - sumKinds(["tradeIn", "downPayment"]), owed - sumKinds(["tradeIn", "downPayment"]) + sumKinds(["payoff"])];
+  for (const l of lines) {
+    if (l.kind === "balanceDue" && l.amount < 0 && due.some((d) => Math.abs(d + l.amount) <= 1.01) && !due.some((d) => Math.abs(d - l.amount) <= 1.01)) l.amount = -l.amount;
+  }
   // "MSRP $32,900 / Selling Price $31,400": with another price on the paper, the MSRP or sticker line is a reference.
   const prices = lines.filter((l) => l.kind === "price" && !l.declined);
   if (prices.length >= 2) for (const l of prices) if (/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(l.label) && prices.some((o) => o !== l && !/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(o.label))) l.kind = "reference";
