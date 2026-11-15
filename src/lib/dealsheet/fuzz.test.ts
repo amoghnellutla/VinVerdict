@@ -12,7 +12,7 @@
 
 import { afterAll, describe, expect, it } from "vitest";
 import { checkDealSheet, type DealCheck } from "./check";
-import { makeLease, makePaper, type Paper } from "./fuzz-gen";
+import { makeLease, makeOptions, makePaper, type Paper } from "./fuzz-gen";
 import { parseDealSheet } from "./parse";
 import { redactDealSheet } from "./redact";
 
@@ -98,6 +98,25 @@ describe("generated leases (seeded)", () => {
       // A padded base payment (no tax in it) is asked about; a padded monthly payment may be tax, so at least "info".
       const base = /base monthly payment/i.test(p.text);
       if (p.problem === "padded" ? (base ? c.leaseMath?.verdict !== "check" : !c.leaseMath || c.leaseMath.verdict === "right") : c.leaseMath?.verdict !== "right") bad.push(`#${seed} (${p.problem}): lease math ${c.leaseMath?.verdict ?? "not done"}: ${c.leaseMath?.note ?? ""}\n${p.text}`);
+    }
+    expect(bad.slice(0, 6), `${bad.length} problems\n\n${bad.slice(0, 6).join("\n\n")}`).toEqual([]);
+  });
+});
+
+describe("generated payment-options worksheets (seeded)", () => {
+  it("every option is read, no single loan is checked, nothing is wrong, and add-ons are refused", () => {
+    const bad: string[] = [];
+    for (let seed = 6001; seed <= 6300; seed++) {
+      const p = makeOptions(seed);
+      const c = checkDealSheet({ sheet: parseDealSheet(p.text), ad: p.ad, state: null, modelYear: 2021, now: new Date("2026-11-15") });
+      if (c.paymentOptions.length !== p.options) bad.push(`#${seed}: ${c.paymentOptions.length} options read of ${p.options}\n${p.text}`);
+      if (c.loan) bad.push(`#${seed}: loan-checked\n${p.text}`);
+      for (const r of c.rows) if (!p.printed.has(r.line.amount.toFixed(2))) bad.push(`#${seed}: shows ${r.line.amount} (${r.line.label}), not on the paper\n${p.text}`);
+      if (c.rows.some((r) => r.verdict === "wrong")) bad.push(`#${seed}: something called wrong\n${p.text}`);
+      const checks = c.rows.filter((r) => r.verdict === "check");
+      if (checks.length) bad.push(`#${seed}: asked about: ${checks.map((r) => `${r.line.label}: ${r.note}`).join(" | ")}\n${p.text}`);
+      const removes = c.rows.filter((r) => r.verdict === "remove").length;
+      if (p.problem === "addOn" ? removes !== 1 : removes) bad.push(`#${seed} (${p.problem}): ${removes} to remove\n${p.text}`);
     }
     expect(bad.slice(0, 6), `${bad.length} problems\n\n${bad.slice(0, 6).join("\n\n")}`).toEqual([]);
   });

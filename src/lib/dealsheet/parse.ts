@@ -376,8 +376,10 @@ export function parseDealSheet(input: string): DealSheet {
   const live = lines.filter((l) => l.kind === "price" && !l.declined);
   for (const l of live) if (!sale(l) && before(l) && live.some((o) => o !== l && sale(o) && o.amount < l.amount)) l.kind = "reference";
   const options = paymentOptions(en);
+  // "48 months: $376" on a payment-options worksheet is one of the options, not a charge.
+  const optionLine = (l: DealLine) => options.length >= 2 && /\b\d{2}\s?(?:months?|mos?\.?)\b/i.test(l.label) && options.some((o) => Math.abs(o.payment - l.amount) < 1);
   return {
-    lines: lines.filter((l) => l.kind !== "loan"),
+    lines: lines.filter((l) => l.kind !== "loan" && !optionLine(l)),
     loan: options.length >= 2 ? { aprPct: null, months: null, payment: null, amountFinanced: null, totalOfPayments: null, financeCharge: null } : { ...readLoan(en, lines), ...box.loan },
     ...(LEASE_WORDS.test(en) ? { lease: true, leaseTerms: leaseTerms(en, lines) } : {}),
     ...(options.length >= 2 ? { paymentOptions: options } : {}),

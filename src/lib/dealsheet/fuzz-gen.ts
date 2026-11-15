@@ -299,3 +299,34 @@ export function makeLease(seed: number): LeasePaper {
   const printed = new Set([price, acq, doc, gross, reduction, adjusted, residual, adjusted - residual, rent, payment, ...(addOn ? [addOn[1]] : [])].map((n) => n.toFixed(2)));
   return { text: lines.join("\n"), problem, printed, name, ad: { price, docFee: null, sellerType: "dealer" } };
 }
+
+export type OptionsPaper = { text: string; problem: "none" | "addOn"; printed: Set<string>; options: number; ad: { price: number; docFee: number; sellerType: "dealer" } };
+
+/** A payment-options worksheet ("four-square"): the price and fees, then two to four terms with a monthly payment each. */
+export function makeOptions(seed: number): OptionsPaper {
+  const rand = rng(seed);
+  const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
+  const problem = pick(["none", "none", "addOn"] as const);
+  const price = Math.round(15000 + rand() * 30000);
+  const doc = pick([299, 499, 699, 799]);
+  const addOn: [string, number] | null = problem === "addOn" ? pick([["VIN Etching", 399], ["Window Tint", 499], ["Appearance Package", 995]] as [string, number][]) : null;
+  const down = pick([0, 1000, 2000, 3000]);
+  const apr = pick([5.9, 6.9, 7.9, 9.9]);
+  const financed = price + doc + (addOn ? addOn[1] : 0) - down;
+  const terms = [...[36, 48, 60, 72, 84]].sort(() => rand() - 0.5).slice(0, pick([2, 3, 4])).sort((a, b) => a - b);
+  const m = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const pays = terms.map((t) => monthlyPayment(financed, apr, t));
+  const style = pick(["mo", "months at", "colon"]);
+  const optLines = terms.map((t, i) => (style === "mo" ? `${t} mo  $${Math.round(pays[i])}/mo` : style === "months at" ? `${t} months at $${pays[i].toFixed(2)} a month` : `${t} months: $${Math.round(pays[i])}`));
+  const lines = [
+    "DEAL WORKSHEET",
+    `Selling Price ${m(price)}`,
+    `Doc Fee ${m(doc)}`,
+    ...(addOn ? [`${addOn[0]} ${m(addOn[1])}`] : []),
+    ...(down ? [`Cash Down ${m(down)}`] : []),
+    "PAYMENT OPTIONS",
+    ...optLines,
+  ];
+  const printed = new Set([price, doc, down, ...(addOn ? [addOn[1]] : [])].map((n) => n.toFixed(2)));
+  return { text: lines.join("\n"), problem, printed, options: terms.length, ad: { price, docFee: doc, sellerType: "dealer" } };
+}
