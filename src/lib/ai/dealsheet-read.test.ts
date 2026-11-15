@@ -70,3 +70,15 @@ describe("compareReads: two readers, and 'wrong' only when both agree", () => {
     expect(ai?.loan).toEqual({ aprPct: 7.9, months: 72, payment: 450.2, amountFinanced: 23635.71 });
   });
 });
+
+describe("the AI double-check keeps what the reader found besides the lines", () => {
+  it("a lease stays a lease, payment options stay, and a final payment stays in the loan", async () => {
+    const { parseDealSheet } = await import("@/lib/dealsheet/parse");
+    const lease = parseDealSheet("Lease Worksheet\nAdjusted capitalized cost $34,450.00\nResidual value $21,870.00\nMoney Factor .00112\nTerm 36 months\nMonthly Payment $412.34");
+    const merged = compareReads(lease, { lines: [], loan: {} }).sheet;
+    expect(merged.lease).toBe(true);
+    expect(merged.leaseTerms).toEqual(lease.leaseTerms);
+    const schedule = parseDealSheet("Vehicle Price $25,000.00\nAmount Financed $25,998.58\nAPR 8.99%\n71 payments of $468.51 and 1 final payment of $469.10");
+    expect(compareReads(schedule, { lines: [], loan: {} }).sheet.loan.finalPayment).toBe(469.1);
+  });
+});

@@ -109,7 +109,9 @@ export function compareReads(sheet: DealSheet, ai: AiDealRead | null): { sheet: 
     .filter((a, k) => !used.has(k) && !sheet.lines.some((l) => Math.abs(l.amount - a.amount) < 0.01) && classify(a.label).kind !== "loan" && classify(a.label).kind !== "amountFinanced")
     .map((a) => ({ label: `${a.label} (read by the AI)`, amount: a.amount, kind: a.kind, declined: a.declined, fromAi: true }));
   const L = sheet.loan;
+  // Everything else the reader found (a lease and its terms, payment options, a final payment, "looks new") stays.
   const loan: LoanTerms = {
+    ...L,
     aprPct: L.aprPct ?? ai.loan.aprPct ?? null,
     months: L.months ?? ai.loan.months ?? null,
     payment: L.payment ?? ai.loan.payment ?? null,
@@ -117,5 +119,5 @@ export function compareReads(sheet: DealSheet, ai: AiDealRead | null): { sheet: 
     totalOfPayments: L.totalOfPayments ?? ai.loan.totalOfPayments ?? null,
     financeCharge: L.financeCharge ?? ai.loan.financeCharge ?? null,
   };
-  return { sheet: { lines: [...sheet.lines, ...extra], loan }, aiAgrees: [...aiAgrees, ...extra.map(() => false)], aiOnly: extra.length, differs };
+  return { sheet: { ...sheet, lines: [...sheet.lines, ...extra], loan }, aiAgrees: [...aiAgrees, ...extra.map(() => false)], aiOnly: extra.length, differs };
 }

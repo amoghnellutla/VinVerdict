@@ -160,7 +160,13 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
         ["BUYER", name, stock],
       ])
     : [`Buyer: ${name}`, `Address: ${street}, Anytown`, stock];
-  let text = [pick(["BUYER'S ORDER", "PURCHASE AGREEMENT", "DEAL WORKSHEET", "Retail Purchase Order"]), ...who, ...body, ...loanLines].join("\n");
+  // The paper's own reference numbers, never money.
+  const refs = hard && chance(0.5)
+    ? [pick([`Contract No. ${Math.round(rand() * 90000 + 10000).toLocaleString("en-US")}`, `Deal # ${Math.round(rand() * 90000 + 10000).toLocaleString("en-US")}`]),
+       `Odometer: ${Math.round(rand() * 120000 + 1000).toLocaleString("en-US")}`,
+       pick([`Customer # ${Math.round(rand() * 90000 + 10000).toLocaleString("en-US")}`, `Lot ${Math.round(rand() * 9000 + 1000).toLocaleString("en-US")}   Key Tag ${Math.round(rand() * 9000 + 1000).toLocaleString("en-US")}`, `Weight ${Math.round(rand() * 2000 + 2800).toLocaleString("en-US")} lbs`])]
+    : [];
+  let text = [pick(["BUYER'S ORDER", "PURCHASE AGREEMENT", "DEAL WORKSHEET", "Retail Purchase Order"]), ...who, ...refs, ...body, ...loanLines].join("\n");
   if (chance(0.25)) text = text.toUpperCase();
   // OCR misreads: a thousands comma read as a period, or a space after "$".
   if (chance(0.25)) text = text.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2");
