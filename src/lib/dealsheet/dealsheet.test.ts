@@ -63,9 +63,28 @@ describe("what each line is", () => {
     // Add-ons and loan products in the words of real addendums.
     ["Undercoating", "addOn"], ["Rustproofing", "addOn"], ["Clear Bra", "addOn"], ["Nitro-Fill", "addOn"], ["Dealer Addendum", "addOn"],
     ["Service Agreement", "loanProduct"], ["Platinum Warranty", "loanProduct"], ["Prepaid Maintenance", "loanProduct"], ["Tire Protection", "loanProduct"], ["Accident & Health", "loanProduct"],
-    ["Dealer Handling", "docFee"],
+    ["Dealer Handling", "docFee"], ["Doc & Handling", "docFee"],
+    // Real contract and addendum wording.
+    ["Prior Credit or Lease Balance paid by Seller", "payoff"], ["Paid to Public Officials", "stateFee"], ["Trade Difference", "subtotal"],
+    ["Pre-Delivery Inspection Fee", "dealerFee"], ["Dealer Inspection Fee", "dealerFee"], ["PDI", "dealerFee"], ["State Inspection Fee", "stateFee"],
+    ["Floor Mats", "addOn"], ["Remote Start", "addOn"], ["Spray-in Bedliner", "addOn"], ["Window Film", "addOn"], ["Ghost Immobilizer", "addOn"],
+    ["Roadside Assistance", "addOn"], ["Paintless Dent Repair", "addOn"], ["Lifetime Powertrain", "loanProduct"], ["Oil Change Package", "loanProduct"],
+    ["Vehicle Insurance", "loanProduct"], ["Deputy Service Fee", "dealerFee"],
   ])("%s → %s", (label, kind) => {
     expect(classify(label).kind).toBe(kind);
+  });
+
+  it("Toyota's Delivery, Processing and Handling Fee is its destination charge; a state emissions fee isn't a CPO fee", () => {
+    expect(classify("Delivery, Processing and Handling Fee")).toEqual({ kind: "dealerFee", name: "Destination charge" });
+    expect(classify("Destination & Handling")).toEqual({ kind: "dealerFee", name: "Destination charge" });
+    expect(classify("State Emissions Certification Fee")).toEqual({ kind: "dealerFee", name: "Smog or emissions" });
+    const paper = "Vehicle Price $31,000.00\nDelivery, Processing and Handling Fee $1,395.00\nAll-Weather Floor Liners $329.00\nVehicle Insurance $1,140.00\nTotal $33,864.00";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: { price: 32395, docFee: null, sellerType: "dealer" }, state: null, modelYear: 2026, condition: "new" });
+    const v = Object.fromEntries(c.rows.map((r) => [r.line.label, r.verdict]));
+    expect(v).toMatchObject({ "Vehicle Price": "right", "Delivery, Processing and Handling Fee": "check", "All-Weather Floor Liners": "check", "Vehicle Insurance": "check" });
+    expect(c.hiddenTotal).toBe(0);
+    const u = checkDealSheet({ sheet: parseDealSheet(paper), ad: { price: 31000, docFee: null, sellerType: "dealer" }, state: null, modelYear: 2021, condition: "used" });
+    expect(Object.fromEntries(u.rows.map((r) => [r.line.label, r.verdict]))).toMatchObject({ "All-Weather Floor Liners": "remove", "Vehicle Insurance": "check" });
   });
 
   it("a fee it can't place, a smog fee or an e-filing fee is asked about, never refused", () => {

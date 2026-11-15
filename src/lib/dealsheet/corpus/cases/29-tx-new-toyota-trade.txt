@@ -1,0 +1,14 @@
+NEW VEHICLE BUYER'S ORDER
+Purchaser: Lee Example
+2026 Toyota Highlander XLE   Stock N4410
+MSRP                                   $36,450.00
+Delivery, Processing and Handling Fee  $1,395.00
+All-Weather Floor Liners               $329.00
+Pre-Delivery Inspection                $299.00
+Subtotal                               $38,473.00
+Trade Allowance                        $12,000.00
+Trade Difference                       $26,473.00
+Sales Tax 6.25%                        $1,654.56
+Documentary Fee                        $225.00
+Title & Registration                   $93.00
+Total                                  $28,445.56

@@ -230,9 +230,15 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         hidden.push({ what: line.label, amount: line.amount, why: "A dealer charge on top of the car's price (preparation, reconditioning or delivery)." });
         return { line, verdict: "remove", note: "A dealer charge on top of the price. Ask them to remove it or include it in the advertised price.", source: REF.ftcAddOns };
       case "addOn":
+        if (isNew && line.name === "Accessories") {
+          return { line, verdict: "check", note: "If it's printed on the window sticker, it's a factory or port option already in the sticker price; if not, it's a dealer add-on you can refuse.", source: REF.monroney };
+        }
         hidden.push({ what: line.name ?? line.label, amount: line.amount, why: "An optional add-on." });
         return { line, verdict: "remove", note: `Optional add-on${line.name && line.name !== line.label ? ` (${line.name})` : ""}. You're saying no to it: ask them to take it off. If they say it's already installed, ask them to remove the charge anyway.`, source: REF.ftcAddOns };
       case "loanProduct":
+        if (line.name === "Car insurance") {
+          return { line, verdict: "check", note: "Insurance on the car. A lender can require you to insure it, but you choose the insurer: compare quotes before buying it here." };
+        }
         hidden.push({ what: line.name ?? line.label, amount: line.amount, why: "An optional product sold with the loan." });
         return { line, verdict: "remove", note: `Optional (${line.name ?? "a loan product"}). A lender generally can't require it to give you the loan. You're saying no to it.`, source: REF.cfpbAddOns };
       case "tax": {

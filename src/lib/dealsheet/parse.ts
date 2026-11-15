@@ -60,15 +60,18 @@ export const ADD_ONS: [string, RegExp][] = [
   ["VIN etching", /\b(?:vin )?etch(?:ing|ed)?\b|\bglass etch|\btheft[- ]?(?:etch|guard)\b/],
   ["Nitrogen tires", /\bnitrogen\b|\bn2 (?:tire|fill)|\bnitro[- ]?fill\b/],
   ["Paint and fabric protection", /\b(?:paint|fabric|interior|exterior|leather|upholstery|ceramic|clear ?coat|surface)(?: (?:and|&|\/) (?:paint|fabric|interior|exterior|leather))? (?:protection|protectant|sealant|coating|guard|package|pkg)\b|\bappearance (?:protection|package|pkg|plan)\b|\bceramic coat/],
-  ["Window tint", /\bwindow tint(?:ing)?\b|\btint(?:ed)? windows?\b|\btint\b/],
+  ["Window tint", /\bwindow tint(?:ing)?\b|\btint(?:ed)? windows?\b|\btint\b|\bwindow film\b/],
   ["Wheel locks", /\bwheel locks?\b|\blocking lug/],
-  ["Theft deterrent", /\btheft (?:deterrent|protection|prevention|system|package)\b|\banti[- ]theft\b|\blo-?jack\b|\bgps (?:tracker|tracking|locator)\b|\bstarter interrupt/],
+  ["Theft deterrent", /\btheft (?:deterrent|protection|prevention|system|package)\b|\banti[- ]theft\b|\blo-?jack\b|\bgps (?:tracker|tracking|locator)\b|\bstarter interrupt|\bimmobili[sz]er\b/],
   ["Door edge guards", /\bdoor edge guards?\b|\bdoor guards?\b/],
   ["Pinstripe", /\bpin ?strip(?:e|ing)\b/],
   ["Mud flaps or splash guards", /\bmud ?flaps?\b|\bsplash guards?\b/],
   ["Key replacement", /\bkey (?:replacement|protection|fob (?:protection|replacement)|plan)\b/],
-  ["Dent and ding protection", /\b(?:dent|ding|paintless dent)(?: and| &)?(?: ding)? (?:protection|repair plan|plan)\b/],
-  ["Windshield protection", /\bwindshield (?:protection|repair plan|plan)\b/],
+  ["Dent and ding protection", /\b(?:dent|ding|paintless dent)(?: and| &)?(?: ding)? (?:protection|repair plan|plan|repair)\b/],
+  ["Windshield protection", /\bwindshield (?:protection|repair plan|plan|repair|replacement)\b/],
+  ["Roadside assistance", /\broadside\b/],
+  // Accessories (mats, racks, hitches). On a new car they may be factory options already on the sticker.
+  ["Accessories", /\baccessor(?:y|ies)\b|\bfloor (?:mats?|liners?)\b|\ball[- ]weather (?:mats?|liners?)\b|\bcargo (?:mat|liner|tray|net|cover)\b|\bremote (?:start|starter)\b|\broof rack\b|\bcross ?bars\b|\btonneau\b|\brunning boards?\b|\bstep bars?\b|\bbed ?liner\b|\b(?:tow(?:ing)? )?hitch\b/],
   ["Undercoating or rustproofing", /\bunder ?coat(?:ing)?\b|\brust ?proof(?:ing)?\b|\brust (?:protection|inhibitor|module|guard)\b|\bsound deaden(?:er|ing)\b/],
   ["Clear bra (paint film)", /\bclear ?bra\b|\bppf\b|\bpaint protection film\b/],
   ["Dealer accessories", /\bdealer (?:add(?:ed)?[- ]?ons?|accessories|installed (?:options|accessories|equipment)|options)\b|\b(?:protection|security|convenience|value) (?:package|pkg)\b|\b(?:dealer )?addendum\b/],
@@ -76,10 +79,12 @@ export const ADD_ONS: [string, RegExp][] = [
 
 // Optional products sold with the loan (CFPB: a lender can't require them; you can buy them elsewhere or not at all).
 export const LOAN_PRODUCTS: [string, RegExp][] = [
-  ["Service contract (extended warranty)", /\bservice (?:contract|agreement)\b|\bextended (?:warranty|service|protection)\b|\bmechanical breakdown\b|\bvsc\b|\bpowertrain (?:protection|plan|warranty)\b|\bwarranty\b/],
+  ["Service contract (extended warranty)", /\bservice (?:contract|agreement)\b|\bextended (?:warranty|service|protection)\b|\bmechanical breakdown\b|\bvsc\b|\bpowertrain (?:protection|plan|warranty)\b|\bwarranty\b|\blifetime (?:powertrain|engine)\b/],
   ["GAP", /\bgap\b|\bguaranteed (?:auto|asset) protection\b|\bdebt cancellation\b/],
-  ["Maintenance plan", /\b(?:pre-?paid )?maintenance (?:plan|contract|program|agreement|package)\b|\bpre-?paid maintenance\b|\bcare ?plan\b/],
+  ["Maintenance plan", /\b(?:pre-?paid )?maintenance (?:plan|contract|program|agreement|package)\b|\bpre-?paid maintenance\b|\bcare ?plan\b|\b(?:oil change|tire rotation|service) (?:package|pkg|plan)\b/],
   ["Tire and wheel protection", /\btire (?:and|&|\/) (?:wheel|rim)\b|\btire protection\b|\bwheel protection\b|\broad hazard\b/],
+  // Insurance on the car itself: a lender can require it, but you choose the insurer (asked about, not refused).
+  ["Car insurance", /\b(?:vehicle|auto|car|physical damage|collision|comprehensive) insurance\b/],
   ["Credit life or disability insurance", /\bcredit (?:life|disability|insurance)\b|\blife insurance\b|\bdisability insurance\b|\baccident (?:and|&) health\b|\ba ?& ?h insurance\b/],
 ];
 
@@ -96,7 +101,9 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:annual percentage rate|apr|interest rate|finance charge|total of payments|total sale price|monthly payment|payment amount|amount of (?:each )?payments?|number of payments|term|first payment|payments? (?:of|due))\b/, l)) return { kind: "loan" };
   if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financ(?:e|ed)\b|\bamount financing\b|\bto be financed\b|\bloan amount\b|\bbalance to finance\b|\btotal (?:amount )?financed\b/, l)) return { kind: "amountFinanced" };
   if (has(/\bnegative equity\b/, l)) return { kind: "negativeEquity" };
-  if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b/, l)) return { kind: "payoff" };
+  if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b|\bprior (?:credit|lease) (?:or lease )?balance\b/, l)) return { kind: "payoff" };
+  // "Trade Difference" (Texas) is the price less the trade-in: a subtotal, not a credit.
+  if (has(/\b(?:trade|cash) difference\b/, l)) return { kind: "subtotal" };
   if (has(/\btrade[- ]?in\b|\btrade (?:allowance|value|credit|equity)\b|\ballowance\b/, l)) return { kind: "tradeIn" };
   for (const [name, re] of LOAN_PRODUCTS) if (has(re, l)) return { kind: "loanProduct", name };
   // A package of several ("Pro Pack (wheel locks, tint, door guards)") keeps its own name.
@@ -104,16 +111,18 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (addOns.length) return addOns.length === 1 ? { kind: "addOn", name: addOns[0][0] } : { kind: "addOn" };
   if (has(/\b(?:pro|protection|appearance|premium|value|security|dealer|accessory|accessories) ?pa(?:ck|ckage|kage)\b/, l)) return { kind: "addOn" };
   if (has(/\b(?:sales|use|state|county|city|local|excise|vehicle|privilege|highway use)? ?tax(?:es)?\b|\bhut\b/, l) && !has(/\btax(?:es)?,? (?:title|tag|license|registration)|title,? (?:tax|tag)|\bdoc(?:umentary)? stamps?\b/, l)) return { kind: "tax" };
-  if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fees?|plates?|and|&)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bbmv\b|\bmva\b|\bstate (?:fees?|inspection)\b|\b(?:state |safety )?inspection fee\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b|\b(?:reg|lic|regis)\.? ?(?:fees?|&|and|\/)|\b(?:reg|lic)\.?$|\btt ?& ?l\b|\bttl\b|\bt ?& ?l\b|\bdoc(?:umentary)? stamps?\b|\blemon law\b|\bcounty fees?\b/, l)) return { kind: "stateFee" };
-  if (has(/\bdoc(?:ument(?:ary|ation|s)?)?\.? ?(?:fee|charge|prep)\b|^docs?\.?$|\b(?:dealer )?(?:processing|admin(?:istrative|istration)?|service|conveyance|handling) (?:fee|charge)\b|\bdealer fees?\b|\bdealer handling\b/, l)) return { kind: "docFee" };
+  if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fees?|plates?|and|&)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bbmv\b|\bmva\b|\bstate (?:fees?|inspection)\b|(?<!delivery |dealer |pdi )\b(?:state |safety )?inspection fee\b|\bpublic officials?\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b|\b(?:reg|lic|regis)\.? ?(?:fees?|&|and|\/)|\b(?:reg|lic)\.?$|\btt ?& ?l\b|\bttl\b|\bt ?& ?l\b|\bdoc(?:umentary)? stamps?\b|\blemon law\b|\bcounty fees?\b/, l)) return { kind: "stateFee" };
+  if (has(/\bdelivery,? processing,? (?:and |& )?handling\b|\bdelivery (?:and|&) handling\b|\bdph\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
+  if (has(/\bsmog\b|\bemissions?\b/, l)) return { kind: "dealerFee", name: "Smog or emissions" };
+  if (has(/\bdeputy\b/, l)) return { kind: "dealerFee", name: "Other fee" };
+  if (has(/\bdoc(?:ument(?:ary|ation)?)?s? ?(?:&|and) handling\b|\bdoc(?:ument(?:ary|ation|s)?)?\.? ?(?:fee|charge|prep)\b|^docs?\.?$|\b(?:dealer )?(?:processing|admin(?:istrative|istration)?|service|conveyance|handling) (?:fee|charge)\b|\bdealer fees?\b|\bdealer handling\b/, l)) return { kind: "docFee" };
   // The maker's shipping charge: real on a new car (it's on the window sticker), padding on a used one.
   if (has(/\bdestination\b|\bfreight\b|\bdest\.? (?:&|and) (?:handling|delivery)\b|\bd ?& ?h\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
   // Certified pre-owned charges: usually part of a CPO car's price.
   if (has(/\bcertification (?:fee|charge)\b|\bcpo (?:fee|charge|certification)\b|\bcertified pre-?owned (?:fee|charge)\b/, l)) return { kind: "dealerFee", name: "Certification fee" };
-  if (has(/\bsmog\b|\bemissions?\b/, l)) return { kind: "dealerFee", name: "Smog or emissions" };
   if (has(/\belectronic (?:filing|registration|title)\b|\be-?fil(?:e|ing)\b|\bevr\b/, l)) return { kind: "dealerFee", name: "Electronic filing fee" };
   // Plain dealer padding: preparing, reconditioning or delivering a car that's for sale.
-  if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b/, l)) return { kind: "dealerFee" };
+  if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\bpdi\b|\bpre-?delivery (?:inspection|service)\b|\bdealer inspection\b/, l)) return { kind: "dealerFee" };
   // Some other fee: it could be a government one, so it's asked about rather than refused.
   if (has(/\bfee\b/, l)) return { kind: "dealerFee", name: "Other fee" };
   if (has(/\brebate\b|\bincentive\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };

@@ -20,6 +20,8 @@ type Spec = {
   state: StateCode;
   ad: AdFacts | null;
   modelYear: number;
+  /** "new" for a new car (default used). */
+  condition?: "new" | "used";
   myAprPct: number | null;
   clean: boolean;
   expect: {
@@ -48,7 +50,7 @@ const cases = readdirSync(DIR)
 
 function run(text: string, s: Spec): DealCheck {
   const sheet = parseDealSheet(redactDealSheet(text).text);
-  return checkDealSheet({ sheet, ad: s.ad, state: s.state, modelYear: s.modelYear, myAprPct: s.myAprPct, now: NOW });
+  return checkDealSheet({ sheet, ad: s.ad, state: s.state, modelYear: s.modelYear, condition: s.condition, myAprPct: s.myAprPct, now: NOW });
 }
 
 const score = { lines: 0, linesRead: 0, verdicts: 0, verdictsRight: 0, cleanFalseAlarms: 0 };
@@ -74,7 +76,7 @@ describe("deal-sheet corpus", () => {
       if ((result.loan?.verdict ?? null) !== c.spec.expect.loan) problems.push(`loan: expected ${c.spec.expect.loan}, got ${result.loan?.verdict ?? null} (${result.loan?.note ?? "no loan read"})`);
       for (const [label, verdict] of Object.entries(c.spec.expect.verdicts ?? {})) {
         score.verdicts++;
-        const row = result.rows.find((r) => r.line.label.toLowerCase().includes(label.toLowerCase()));
+        const row = result.rows.find((r) => r.line.label.toLowerCase() === label.toLowerCase()) ?? result.rows.find((r) => r.line.label.toLowerCase().includes(label.toLowerCase()));
         if (row?.verdict === verdict) score.verdictsRight++;
         else problems.push(`"${label}": expected ${verdict}, got ${row?.verdict ?? "no row"} (${row?.note ?? ""})`);
       }

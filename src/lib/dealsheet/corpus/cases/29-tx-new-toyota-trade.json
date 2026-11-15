@@ -1,0 +1,35 @@
+{
+  "note": "Written for the tests (synthetic). A new Toyota in Texas: the 'Delivery, Processing and Handling Fee' is Toyota's destination charge (check against the sticker, never remove), floor liners may be on the sticker (check), the pre-delivery inspection is padding (remove), and 'Trade Difference' is a subtotal, not a credit.",
+  "state": "TX",
+  "condition": "new",
+  "ad": { "price": 37845, "docFee": null, "sellerType": "dealer" },
+  "modelYear": 2026,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      { "label": "MSRP", "kind": "price", "amount": 36450 },
+      { "label": "Delivery, Processing and Handling Fee", "kind": "dealerFee", "amount": 1395 },
+      { "label": "All-Weather Floor Liners", "kind": "addOn", "amount": 329 },
+      { "label": "Pre-Delivery Inspection", "kind": "dealerFee", "amount": 299 },
+      { "label": "Subtotal", "kind": "subtotal", "amount": 38473 },
+      { "label": "Trade Allowance", "kind": "tradeIn", "amount": 12000 },
+      { "label": "Trade Difference", "kind": "subtotal", "amount": 26473 },
+      { "label": "Sales Tax", "kind": "tax", "amount": 1654.56 },
+      { "label": "Documentary Fee", "kind": "docFee", "amount": 225 },
+      { "label": "Title & Registration", "kind": "stateFee", "amount": 93 },
+      { "label": "Total", "kind": "total", "amount": 28445.56 }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "MSRP": "right",
+      "Delivery, Processing": "check",
+      "Floor Liners": "check",
+      "Pre-Delivery Inspection": "remove",
+      "Trade Allowance": "credit",
+      "Total": "right"
+    },
+    "hiddenTotal": 299
+  }
+}
