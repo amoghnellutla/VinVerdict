@@ -462,10 +462,10 @@ export function checkDealSheet(input: CheckInput): DealCheck {
     const rate = `${fromRent ? `a ${cents(T.rentCharge!)} rent charge, which is a money factor of about ${leaseFactor}` : `money factor ${leaseFactor}`} (about ${Math.round(leaseFactor * 2400 * 100) / 100}% as an interest rate)`;
     if (Math.abs(stated - base) <= PAYMENT_GAP) {
       leaseMath = { base, stated, verdict: "right", note: `The ${T.basePayment ? "base " : ""}payment matches the lease math before tax: ${cents(T.adjustedCap)} adjusted cap cost, ${cents(T.residual)} residual, ${L.months} months, ${rate}. Ask whether that's the leasing company's base rate.` };
-    } else if (stated > base && pct <= 11.5) {
+    } else if (stated > base && pct <= 11.5 && !T.basePayment) {
       leaseMath = { base, stated, verdict: "info", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper's ${cents(stated)} is ${pct}% more: if that's your state's tax on lease payments it's right. Ask how it's made up.` };
     } else if (stated > base) {
-      leaseMath = { base, stated, verdict: "check", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper says ${cents(stated)}, ${cents(r2(stated - base))} a month more, more than sales tax would add. Ask for everything in the payment.` };
+      leaseMath = { base, stated, verdict: "check", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper says ${cents(stated)}, ${cents(r2(stated - base))} a month more, ${T.basePayment ? "and a base payment has no tax in it" : "more than sales tax would add"}. Ask for everything in the payment.` };
     } else {
       leaseMath = { base, stated, verdict: "check", note: `The lease math gives ${cents(base)} a month, more than the paper's ${cents(stated)}: check the cap cost, residual and money factor on the paper.` };
     }

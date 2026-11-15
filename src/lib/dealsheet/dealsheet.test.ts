@@ -83,6 +83,8 @@ describe("the buyer's details come out first", () => {
       "Bank Account #: 000123456789   Routing #: 021000021",
       "Insurance Policy No: ABC-99887",
       "Employer: Acme Widgets",
+      "Lessee: Robin Lessee-Name",
+      "Co-Lessee:     Dana Example",
       "Mailing to 44 Oak Avenue Apt 3, Springfield, IL 62701",
       "Customer Cash: $2,000.00",
       "Owner Loyalty Rebate $500.00",
@@ -90,7 +92,7 @@ describe("the buyer's details come out first", () => {
       "72 payments of $468.51",
     ].join("\n");
     const out = redactDealSheet(paper).text;
-    for (const secret of ["Pat Example", "Lee Sample", "Jordan Tester", "9 Elm Road", "ALEX SAMPLE", "Morgan Example", "Casey Example", "000123456789", "021000021", "ABC-99887", "Acme Widgets", "44 Oak Avenue", "Springfield, IL 62701", "07001"]) expect(out, secret).not.toContain(secret);
+    for (const secret of ["Pat Example", "Lee Sample", "Jordan Tester", "9 Elm Road", "ALEX SAMPLE", "Morgan Example", "Casey Example", "000123456789", "021000021", "ABC-99887", "Acme Widgets", "Robin Lessee-Name", "Dana Example", "44 Oak Avenue", "Springfield, IL 62701", "07001"]) expect(out, secret).not.toContain(secret);
     for (const keep of ["Stock # 24689", "Salesperson: Chris", "Customer Cash: $2,000.00", "Owner Loyalty Rebate $500.00", "Vehicle Price $21,998.00      Doc Fee $799.00", "72 payments of $468.51"]) expect(out, keep).toContain(keep);
     // And the money still reads the same.
     expect(parseDealSheet(out).lines.map((l) => [l.kind, l.amount])).toEqual(parseDealSheet(paper.split("\n").slice(12).join("\n")).lines.map((l) => [l.kind, l.amount]));

@@ -12,7 +12,7 @@
 
 import { afterAll, describe, expect, it } from "vitest";
 import { checkDealSheet, type DealCheck } from "./check";
-import { makePaper, type Paper } from "./fuzz-gen";
+import { makeLease, makePaper, type Paper } from "./fuzz-gen";
 import { parseDealSheet } from "./parse";
 import { redactDealSheet } from "./redact";
 
@@ -79,5 +79,26 @@ describe("generated dealer papers (seeded)", () => {
     for (const [k, t] of Object.entries(tallies)) {
       console.log(`Generated papers (${k}): ${t.papers}; added up ${t.confirmed}; clean ${t.clean} with ${t.checksOnClean} "check this"; loans read ${t.loansRead}/${t.loans}; planted problems found ${t.found}/${t.planted}`);
     }
+  });
+});
+
+describe("generated leases (seeded)", () => {
+  it("lease worksheets and disclosures: no loan check, nothing wrong; add-ons refused; a padded payment asked about", () => {
+    const bad: string[] = [];
+    for (let seed = 5001; seed <= 5400; seed++) {
+      const p = makeLease(seed);
+      const c = checkDealSheet({ sheet: parseDealSheet(redactDealSheet(p.text).text), ad: p.ad, state: null, modelYear: 2026, condition: "new", now: new Date("2026-11-15") });
+      if (redactDealSheet(p.text).text.includes(p.name)) bad.push(`#${seed}: name survived`);
+      if (!c.lease) bad.push(`#${seed}: not read as a lease\n${p.text}`);
+      if (c.loan) bad.push(`#${seed}: a lease was loan-checked\n${p.text}`);
+      for (const r of c.rows) if (!p.printed.has(r.line.amount.toFixed(2))) bad.push(`#${seed}: shows ${r.line.amount} (${r.line.label}), not on the paper`);
+      if (c.rows.some((r) => r.verdict === "wrong") || c.leaseMath?.verdict === "wrong") bad.push(`#${seed}: something called wrong on a lease\n${p.text}`);
+      const removes = c.rows.filter((r) => r.verdict === "remove");
+      if (p.problem === "addOn" ? removes.length !== 1 : removes.length) bad.push(`#${seed} (${p.problem}): ${removes.length} to remove\n${p.text}`);
+      // A padded base payment (no tax in it) is asked about; a padded monthly payment may be tax, so at least "info".
+      const base = /base monthly payment/i.test(p.text);
+      if (p.problem === "padded" ? (base ? c.leaseMath?.verdict !== "check" : !c.leaseMath || c.leaseMath.verdict === "right") : c.leaseMath?.verdict !== "right") bad.push(`#${seed} (${p.problem}): lease math ${c.leaseMath?.verdict ?? "not done"}: ${c.leaseMath?.note ?? ""}\n${p.text}`);
+    }
+    expect(bad.slice(0, 6), `${bad.length} problems\n\n${bad.slice(0, 6).join("\n\n")}`).toEqual([]);
   });
 });

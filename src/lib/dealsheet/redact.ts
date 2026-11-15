@@ -12,7 +12,7 @@
 import { redact as redactContacts } from "@/lib/report/redact";
 
 // English and Spanish (papers are matched without accents: "Dirección" as "Direccion").
-const WHO = String.raw`(?:buyer|co-?buyer|purchaser|co-?purchaser|customer|owner|applicant|borrower|co-?borrower|co-?signer|cosigner|guarantor|spouse|comprador|co-?comprador|compradora|cliente|propietario|solicitante|deudor|co-?deudor|codeudor|fiador|conyuge)(?:\(s\)|\(es\)|'s|s|es)?`;
+const WHO = String.raw`(?:buyer|co-?buyer|purchaser|co-?purchaser|customer|owner|applicant|borrower|co-?borrower|co-?signer|cosigner|guarantor|spouse|lessee|co-?lessee|arrendatario|comprador|co-?comprador|compradora|cliente|propietario|solicitante|deudor|co-?deudor|codeudor|fiador|conyuge)(?:\(s\)|\(es\)|'s|s|es)?`;
 const LABEL = new RegExp(
   String.raw`^(?:` +
     [

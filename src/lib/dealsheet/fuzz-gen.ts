@@ -239,3 +239,63 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // A packed payment needs a loan: with none (the trade-in and down payment cover it all) the paper is a clean one.
   return { text, state, ad, problem: problem === "packed" && !hasLoan ? "none" : problem, printed, name, hasLoan, condition, planted: problem === "addOn" || problem === "combo" ? extra.length : 0, negativeEquity: payoff > trade && trade > 0 };
 }
+
+export type LeasePaper = { text: string; problem: "none" | "addOn" | "padded"; printed: Set<string>; name: string; ad: { price: number; docFee: null; sellerType: "dealer" } };
+
+/**
+ * A lease worksheet or the federal lease disclosure, with the lease math done here: the selling price, a cap cost
+ * reduction, the residual, the money factor (or the rent charge it gives), the term and the payment. Optionally an
+ * add-on in the cap cost, or a payment above the lease math.
+ */
+export function makeLease(seed: number): LeasePaper {
+  const rand = rng(seed);
+  const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
+  const problem = pick(["none", "none", "addOn", "padded"] as const);
+  const price = Math.round(22000 + rand() * 30000);
+  const acq = pick([595, 650, 695, 895, 995]);
+  const doc = pick([85, 175, 299, 499]);
+  const addOn: [string, number] | null = problem === "addOn" ? pick([["Paint & Fabric Protection", 1295], ["VIN Etching", 399], ["Nitrogen Tire Fill", 199]] as [string, number][]) : null;
+  const gross = price + acq + doc + (addOn ? addOn[1] : 0);
+  const reduction = pick([0, 1000, 2000, 3000]);
+  const adjusted = gross - reduction;
+  const months = pick([24, 36, 39, 48]);
+  const residual = Math.round(price * pick([0.5, 0.55, 0.58, 0.62]));
+  const mf = pick([0.00125, 0.0015, 0.00175, 0.0021, 0.0025]);
+  const rent = Math.round((adjusted + residual) * mf * months * 100) / 100;
+  const base = Math.round(((adjusted - residual) / months + (adjusted + residual) * mf) * 100) / 100;
+  const payment = problem === "padded" ? Math.round((base + 25 + rand() * 40) * 100) / 100 : base;
+  const name = `${pick(["Pat", "Sam", "Alex"])} ${pick(["Example", "Sample"])}`;
+  const m = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const disclosure = rand() < 0.5;
+  const lines = disclosure
+    ? [
+        "CLOSED-END MOTOR VEHICLE LEASE AGREEMENT",
+        `Lessee: ${name}`,
+        `Gross capitalized cost ${m(gross)}`,
+        ...(addOn ? [`${addOn[0]} ${m(addOn[1])}`] : []),
+        `Capitalized cost reduction ${m(reduction)}`,
+        `Adjusted capitalized cost ${m(adjusted)}`,
+        `Residual value ${m(residual)}`,
+        `Depreciation and any amortized amounts ${m(adjusted - residual)}`,
+        `Rent charge ${m(rent)}`,
+        `Lease term ${months} months`,
+        `Base monthly payment ${m(payment)}`,
+      ]
+    : [
+        "LEASE WORKSHEET",
+        `Customer: ${name}`,
+        `Vehicle Selling Price ${m(price)}`,
+        `Acquisition Fee ${m(acq)}`,
+        `Doc Fee ${m(doc)}`,
+        ...(addOn ? [`${addOn[0]} ${m(addOn[1])}`] : []),
+        `Gross Capitalized Cost ${m(gross)}`,
+        `Cap Cost Reduction ${m(reduction)}`,
+        `Adjusted Capitalized Cost ${m(adjusted)}`,
+        `Residual Value ${m(residual)}`,
+        `Money Factor ${String(mf).replace(/^0/, "")}`,
+        `Term ${months} months`,
+        `Monthly Payment ${m(payment)}`,
+      ];
+  const printed = new Set([price, acq, doc, gross, reduction, adjusted, residual, adjusted - residual, rent, payment, ...(addOn ? [addOn[1]] : [])].map((n) => n.toFixed(2)));
+  return { text: lines.join("\n"), problem, printed, name, ad: { price, docFee: null, sellerType: "dealer" } };
+}
