@@ -160,7 +160,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?!\d|,\d|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 const NOT_MONEY_BEFORE = /(?:\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|contract|lot|key tag|customer|cust|license|lic|account|acct|policy|order|ref|reference|ticket|id|r\.?o|p\.?o|invoice (?:no|number)|weight|gvwr|model code|page)\s*(?:no\.?|number|#)?\s*[:#]?|#\s*:?|\bno\.\s*:?)\s*$/i;
 
@@ -182,7 +182,7 @@ function amountsIn(line: string): Hit[] {
 
 const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out|declinado|rechazado|no incluido|ninguno|no aplica)\b/i;
 const cleanLabel = (s: string) =>
-  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.\-–—|/>=+]+|[\s:.\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
+  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.,;\-–—|/>=+]+|[\s:.\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
     .replace(/^(?:\d{1,2}[.)]|[A-Za-z][.)]|\([a-z0-9]\))\s+(?=[A-Za-z(])/, "").replace(/\s+usd$/i, "").trim();
 // A label that ends with a base ("Sales Tax 6.625% of", "Tax (6.625% x"): the amount after it is what the line is
 // worked out on, and the line's own amount is the next one.
@@ -285,6 +285,23 @@ export function parseDealSheet(input: string): DealSheet {
       }
     }
     const own = hits.map((h, i) => cleanLabel(line.slice(i ? hits[i - 1].end : 0, h.at)));
+    // Several sentences on one line ("…plus our $799 doc fee. Out the door that comes to $24,617.30"): the words after an
+    // amount, up to the sentence break, name that amount; only the words after the break name the next one.
+    const raw = hits.map((h, i) => line.slice(i ? hits[i - 1].end : 0, h.at));
+    for (let i = 1; i < hits.length; i++) {
+      const brk = /^(.*?[a-z)][.;!?])\s+(?=[A-Z"'(])(.*)$/.exec(raw[i]);
+      if (!brk) continue;
+      const trailing = cleanLabel(brk[1]);
+      if (trailing && isLabel(trailing) && classify(trailing).kind !== "other" && classify(own[i - 1]).kind === "other") own[i - 1] = trailing;
+      own[i] = cleanLabel(brk[2]);
+    }
+    // The last amount's trailing words, up to a sentence break, when the words before it don't name it.
+    if (hits.length > 1) {
+      const after = line.slice(hits[hits.length - 1].end);
+      const trailing = cleanLabel(/^(.*?)(?:[.;!?](?:\s|$)|$)/.exec(after)?.[1] ?? "");
+      const k = hits.length - 1;
+      if (trailing && isLabel(trailing) && classify(trailing).kind !== "other" && classify(own[k]).kind === "other") own[k] = trailing;
+    }
     if (!hits.length) {
       flush();
       // A label whose amount comes later (columns flattened), or prose, which ends a label run.
@@ -308,7 +325,12 @@ export function parseDealSheet(input: string): DealSheet {
     hits.forEach((h, i) => {
       if (!isLabel(own[i])) return;
       // The middle of a sentence ("is due at signing, followed by 35 payments of"), not a line's name ("Due at Signing").
-      if (i > 0 && (/^(?:is|are|and|or|then|which|followed)\b/i.test(own[i]) || /\bfollowed by\b/i.test(own[i]))) return;
+      if (i > 0 && (/^(?:is|are|which)\b/i.test(own[i]) || /\bfollowed by\b/i.test(own[i]))) return;
+      // "…and MVC fees ($310)", "with NJ tax": the joining word isn't part of the name.
+      own[i] = own[i].replace(/^(?:and|or|plus|with|then)\s+/i, "");
+      // "here's your out the door: price 18,500": after a colon, the words that follow name the line.
+      const afterColon = own[i].split(/:\s+/).at(-1) ?? own[i];
+      if (afterColon !== own[i] && isLabel(afterColon) && classify(afterColon).kind !== "other") own[i] = afterColon;
       if (BASE_END.test(own[i]) && i + 1 < hits.length && !isLabel(own[i + 1])) push(own[i].replace(BASE_END, "").replace(/[\s(]+$/, ""), hits[i + 1].value, line);
       else push(own[i], h.value, line);
     });
@@ -425,7 +447,9 @@ export function tilaBox(lines: string[]): { loan: Partial<LoanTerms>; skip: Set<
 function proseQuote(line: string): { label: string; value: number }[] | null {
   const words = line.split(/\s+/).filter((w) => /[a-z]/i.test(w)).length;
   // A message to the buyer ("we can do…", "let me know"), not a numbered contract line with a long label.
-  if (words < 10 || /^\(?[0-9A-Z]{1,2}[.)]\s/.test(line) || !/\b(?:we|you|i|i'm|we're|we'll|can|could|would|let me|thanks|thank you|hey|hi|hello|please)\b/i.test(line)) return null;
+  if (words < 10 || /^\(?[0-9A-Z]{1,2}[.)]\s/.test(line) || !/\b(?:we|you|your|i|i'm|we're|we'll|can|could|would|let me|thanks|thank you|hey|hi|hello|please|here'?s|here is)\b/i.test(line)) return null;
+  // A payment schedule written as a sentence ("Your first monthly payment of $439.66 … followed by 35 payments of") is the loan's.
+  if (/\bpayments? of\b|\bfollowed by\b|\bmonthly payments?\b/i.test(line)) return null;
   const NUM = /(?<![\w.,$])\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{3,6}(?:\.\d{2})?)(?![\d,]|\.\d|\s?(?:%|\/\s?mo|per month|a month|months?\b|mo\b|miles?\b|mi\b))/g;
   const pieces = line.split(/\s*(?:,(?!\d{3})|[;!?]|\.(?!\d)|\bplus\b|\band\b|\+|&)\s*/i);
   const out: { label: string; value: number }[] = [];
@@ -435,7 +459,10 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
     if (nums.length !== 1) continue;
     const value = Number(nums[0][1].replace(/,/g, ""));
     if (value < 50) continue;
-    const label = (piece.slice(0, nums[0].index) + " " + piece.slice(nums[0].index + nums[0][0].length)).replace(/\s+/g, " ").trim();
+    let label = (piece.slice(0, nums[0].index) + " " + piece.slice(nums[0].index + nums[0][0].length)).replace(/\s+/g, " ").trim();
+    // "here's your out the door: price 18,500": after a colon, the words that follow name the line.
+    const afterColon = label.split(/:\s+/).at(-1) ?? label;
+    if (afterColon !== label && isLabel(afterColon) && classify(afterColon).kind !== "other") label = afterColon;
     let kind = classify(label).kind;
     if (kind === "other" && !sawPrice && /\b(?:can do|do it for|asking|price|sell(?:ing)? (?:it )?for|for|at)\b/i.test(label)) kind = "price";
     if (kind === "price") sawPrice = true;

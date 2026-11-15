@@ -325,6 +325,18 @@ describe("what each line is", () => {
     expect(or.note).toContain("Oregon has no sales tax on used cars");
   });
 
+  it("an emailed quote in sentences: 'and MVC fees ($310)' is a line, and 'out the door: price 18,500' is the price", () => {
+    const one = parseDealSheet("As discussed, $21,998 plus our $799 doc fee. Out the door that comes to $24,617.30 with NJ tax ($1,510.30) and MVC fees ($310).");
+    // The $24,617.30 is the out-the-door total, never a doc fee; the $799 is the doc fee.
+    expect(one.lines.map((l) => [l.kind, l.amount])).toEqual(expect.arrayContaining([["docFee", 799], ["total", 24617.3], ["tax", 1510.3], ["stateFee", 310]]));
+    expect(one.lines.some((l) => l.kind === "docFee" && l.amount > 1000)).toBe(false);
+    const two = parseDealSheet("Pat - here's your out the door: price 18,500, doc 499, tax 1,258.68, title/reg 166.50, total 20,424.18.");
+    expect(two.lines.map((l) => [l.kind, l.amount])).toEqual([["price", 18500], ["docFee", 499], ["tax", 1258.68], ["stateFee", 166.5], ["total", 20424.18]]);
+    const c = checkDealSheet({ sheet: two, ad: { price: 18500, docFee: null, sellerType: "dealer" }, state: "NJ", modelYear: 2021, now: new Date("2026-11-15") });
+    expect(c.confirmed).toBe(true);
+    expect(c.rows.find((r) => r.line.kind === "tax")?.verdict).toBe("right");
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);
