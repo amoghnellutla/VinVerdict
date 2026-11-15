@@ -272,7 +272,8 @@ export function parseDealSheet(input: string): DealSheet {
     flush();
     hits.forEach((h, i) => {
       if (!isLabel(own[i])) return;
-      if (i > 0 && /^(?:is|are|and|or|followed|then|plus|of|for|at|due|with|which)\b/i.test(own[i])) return;
+      // The middle of a sentence ("is due at signing, followed by 35 payments of"), not a line's name ("Due at Signing").
+      if (i > 0 && (/^(?:is|are|and|or|then|which|followed)\b/i.test(own[i]) || /\bfollowed by\b/i.test(own[i]))) return;
       if (BASE_END.test(own[i]) && i + 1 < hits.length && !isLabel(own[i + 1])) push(own[i].replace(BASE_END, "").replace(/[\s(]+$/, ""), hits[i + 1].value, line);
       else push(own[i], h.value, line);
     });

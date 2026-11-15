@@ -116,6 +116,19 @@ const REPAIRED: Record<string, (t: string) => string> = {
   "PDF: no space before $": (t) => t.replace(/(?<=[A-Za-z:)]) \$/g, "$$"),
   "ALL CAPS": (t) => t.toUpperCase(),
   "tabs for wide gaps": (t) => t.replace(/ {3,}/g, "\t"),
+  // A two-column form: each money line printed beside the next one.
+  "two columns side by side": (t) => {
+    const out: string[] = [];
+    const rows = t.split("\n");
+    const money = (r?: string) => !!r && /\$\s?\d/.test(r) && !/\(includ/i.test(r);
+    for (let i = 0; i < rows.length; i++) {
+      if (money(rows[i]) && money(rows[i + 1])) {
+        out.push(`${rows[i].replace(/\s+$/, "")}        ${rows[i + 1].trim()}`);
+        i++;
+      } else out.push(rows[i]);
+    }
+    return out.join("\n");
+  },
 };
 
 const MUTATIONS: Record<string, (t: string) => string> = {
@@ -124,6 +137,17 @@ const MUTATIONS: Record<string, (t: string) => string> = {
   "dots instead of spaces": (t) => t.replace(/ \.{10} /g, " ....................... "),
   "OCR: comma read as a period": (t) => t.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2"),
   "lines joined": (t) => t.replace(/\n+/g, " "),
+  // A table copied out of a PDF a column at a time: the money lines' labels, then their amounts.
+  "columns flattened": (t) => {
+    const rows = t.split("\n");
+    const money = rows.filter((r) => /^[^$]*[A-Za-z][^$]*\$\s?[\d,]+\.\d{2}\s*$/.test(r) && (r.match(/\$/g) ?? []).length === 1);
+    if (money.length < 3) return t;
+    const first = rows.indexOf(money[0]);
+    const rest = rows.filter((r) => !money.includes(r));
+    const labels = money.map((r) => r.slice(0, r.indexOf("$")).replace(/[.\s:]+$/, ""));
+    const amounts = money.map((r) => r.slice(r.indexOf("$")).trim());
+    return [...rest.slice(0, first), ...labels, ...amounts, ...rest.slice(first)].join("\n");
+  },
   ...REPAIRED,
 };
 

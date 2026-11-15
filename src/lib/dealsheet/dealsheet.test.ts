@@ -183,6 +183,8 @@ describe("what each line is", () => {
     const paper = "Lease Agreement\nMonthly Payments: Your first monthly payment of $439.66 is due at signing, followed by 35 payments of $439.66\nAdjusted capitalized cost $34,450.00\nResidual value $21,870.00\nRent charge $2,264.40\nLease term 36 months\nBase monthly payment $412.34\nMonthly sales/use tax $27.32";
     const s = parseDealSheet(paper);
     expect(s.lines.some((l) => /followed by/.test(l.label))).toBe(false);
+    // Beside another amount, "Due at Signing" is still a line.
+    expect(parseDealSheet("Lease Worksheet\nMonthly Payment $489.00        Due at Signing $2,983.00").lines.map((l) => [l.label, l.amount])).toEqual([["Due at Signing", 2983]]);
     const c = checkDealSheet({ sheet: s, ad: null, state: "NJ", modelYear: 2026, now: new Date("2026-11-15") });
     expect(c.leaseMath?.verdict).toBe("right");
     expect(c.leaseMath?.note).toContain("money factor of about 0.001117 (about 2.68% as an interest rate)");
