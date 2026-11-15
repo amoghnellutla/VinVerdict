@@ -101,6 +101,29 @@ describe("what each line is", () => {
     expect(plan.message).toContain("Dealer Prep");
   });
 
+  it("tax is matched however the state works it out: credits already in a selling price, before a rebate, with destination, less a trade-in", () => {
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const d = (n: number) => `$${r2(n).toFixed(2)}`;
+    const tax = (paper: string, state: "NJ" | "TX", condition: "new" | "used" = "used") =>
+      checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state, modelYear: 2025, condition, now: new Date("2026-11-15") }).rows.find((r) => r.line.kind === "tax")!;
+    expect(tax(`MSRP $32,900.00\nDealer Discount $1,500.00\nSelling Price $31,400.00\nDoc Fee $599.00\nSales Tax ${d((31400 + 599) * 0.06625)}`, "NJ").verdict).toBe("right");
+    const tx = tax(`Selling Price $30,000.00\nManufacturer Rebate $2,000.00\nTrade Allowance $8,000.00\nDoc Fee $225.00\nSales Tax ${d((30000 - 8000) * 0.0625)}`, "TX");
+    expect(tx.verdict).toBe("right");
+    expect(tx.note).toContain("before the maker's rebate, less the trade-in");
+    expect(tax(`Vehicle Price $32,900.00\nDestination $1,395.00\nNitrogen $199.00\nDoc Fee $599.00\nSales Tax ${d((32900 + 1395 + 599) * 0.06625)}`, "NJ", "new").note).toContain("plus the destination charge and doc fee");
+    expect(tax(`Vehicle Price $30,000.00\nDealer Discount $1,000.00\nFactory Rebate $1,500.00\nDoc Fee $599.00\nSales Tax ${d((29000 + 599) * 0.06625)}`, "NJ").verdict).toBe("right");
+  });
+
+  it("the target's tax is worked out the way the paper's was (less the trade-in)", () => {
+    const paper = "Selling Price $30,000.00\nTrade Allowance $8,000.00\nDoc Fee $225.00\nSales Tax $1,375.00\nTitle & Registration $93.00\nTotal $23,693.00";
+    const sheet = parseDealSheet(paper);
+    const ad = { price: 29000, docFee: 225, sellerType: "dealer" as const };
+    const check = checkDealSheet({ sheet, ad, state: "TX", modelYear: 2021, now: new Date("2026-11-15") });
+    expect(check.taxRule).toMatchObject({ lessTrade: true, withDoc: false });
+    const plan = negotiationPlan({ sheet, check, ad, state: "TX", modelYear: 2021, now: new Date("2026-11-15") });
+    expect(plan.parts.find((p) => p.label === "Tax")?.amount).toBe(1312.5);
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);

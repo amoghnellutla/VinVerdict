@@ -65,8 +65,11 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const taxRow = check.rows.find((r) => r.line.kind === "tax" && !r.line.declined);
   let tax: number | null = null;
   if (taxRow && taxRow.verdict === "right" && input.state && carPrice != null) {
-    const onPrice = /on the price\.$/.test(taxRow.note);
-    const t = vehicleTax(input.state, { taxable: onPrice ? carPrice : carPrice + docFee, price: carPrice, seller: "dealer", modelYear: input.modelYear, localPct: 0, now: input.now ?? new Date() });
+    // The same way the paper worked it out: with or without the doc fee, before a maker's rebate, less the trade-in.
+    const rule = check.taxRule ?? { withDoc: !/on the price\.$/.test(taxRow.note), withExtras: false, lessTrade: false, keepRebate: false };
+    const rebate = r2(live.filter((l) => l.kind === "rebate").reduce((s, l) => s + l.amount, 0));
+    const taxable = r2(carPrice + (rule.withDoc ? docFee : 0) + (rule.keepRebate && credits ? rebate : 0) - (rule.lessTrade ? sum(["tradeIn"]) : 0));
+    const t = vehicleTax(input.state, { taxable: Math.max(0, taxable), price: carPrice, seller: "dealer", modelYear: input.modelYear, localPct: 0, now: input.now ?? new Date() });
     tax = r2(t.lines.reduce((s, l) => s + l.amount, 0));
   }
   const plusTax = tax == null && !!taxRow;

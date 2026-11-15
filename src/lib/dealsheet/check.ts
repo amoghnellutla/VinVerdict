@@ -63,6 +63,8 @@ export type DealCheck = {
   leaseMath: { base: number; stated: number; verdict: Verdict; note: string } | null;
   /** A worksheet's payment options, each with what it pays in total. */
   paymentOptions: { months: number; payment: number; total: number }[];
+  /** How the paper's tax was worked out, when it matched the state's rule (the negotiation target uses the same way). */
+  taxRule?: TaxRule | null;
 };
 
 /**
@@ -89,38 +91,65 @@ const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const cents = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** The tax the state's rate gives on the likely taxable amounts (price; + doc fee; + dealer fees and add-ons; − trade-in). */
-function taxCandidates(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date): { amount: number; base: string }[] {
+/** The amounts a paper's tax may be worked out on. */
+function taxParts(lines: DealLine[]) {
   const live = lines.filter((l) => !l.declined && !l.fromAi);
-  const sum = (kinds: string[]) => live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
-  const price = sum(["price"]) - sum(["discount", "rebate"]);
-  const doc = sum(["docFee"]);
-  const extras = sum(["dealerFee", "addOn"]);
-  const trade = sum(["tradeIn"]);
-  const bases: [number, string][] = [
-    [price, "the price"],
-    [price + doc, "the price and doc fee"],
-    [price + doc + extras, "the price, fees and add-ons"],
-    [price + doc - trade, "the price and doc fee, less the trade-in"],
-    [price + doc + extras - trade, "the price, fees and add-ons, less the trade-in"],
-  ];
-  return bases
-    .filter(([b]) => b > 0)
-    .map(([b, base]) => {
-      const t = vehicleTax(state, { taxable: b, price: b, seller: "dealer", modelYear, localPct: 0, now });
-      return { amount: r2(t.lines.reduce((s, l) => s + l.amount, 0)), base };
-    });
+  const sum = (f: (l: DealLine) => boolean) => r2(live.filter(f).reduce((s, l) => s + l.amount, 0));
+  const price = sum((l) => l.kind === "price");
+  let discount = sum((l) => l.kind === "discount");
+  let rebate = sum((l) => l.kind === "rebate");
+  // "MSRP $32,900 / Discount $1,500 / Selling Price $31,400": the credits are already in the selling price.
+  if (live.some((l) => l.kind === "reference" && Math.abs(l.amount - discount - rebate - price) <= 1)) discount = rebate = 0;
+  const destination = sum((l) => l.kind === "dealerFee" && l.name === "Destination charge");
+  return {
+    price,
+    discount,
+    rebate,
+    destination,
+    doc: sum((l) => l.kind === "docFee"),
+    extras: sum((l) => (l.kind === "dealerFee" && l.name !== "Destination charge") || l.kind === "addOn"),
+    trade: sum((l) => l.kind === "tradeIn"),
+  };
+}
+
+const listWords = (w: string[]) => (w.length <= 1 ? w.join("") : `${w.slice(0, -1).join(", ")} and ${w[w.length - 1]}`);
+
+/** How a paper's tax was worked out, when it matched: what's in the taxable amount besides the price. */
+export type TaxRule = { withDoc: boolean; withExtras: boolean; lessTrade: boolean; keepRebate: boolean };
+
+/** Every common way of working out the taxable amount, the usual one first: the price after its discounts (and,
+ * in some states, before the maker's rebate), with or without the destination charge, doc fee, other fees and
+ * add-ons, and less the trade-in where the state allows it. */
+function taxBases(lines: DealLine[]): [number, string, TaxRule][] {
+  const t = taxParts(lines);
+  const out: [number, string, TaxRule][] = [];
+  for (const keepRebate of t.rebate > 0 ? [false, true] : [false]) {
+    for (const lessTrade of t.trade > 0 ? [false, true] : [false]) {
+      for (const withDest of t.destination > 0 ? [true, false] : [false]) {
+        for (const [withDoc, withExtras] of [[true, false], [false, false], [true, true], [false, true]] as const) {
+          if ((withDoc && !t.doc) || (withExtras && !t.extras)) continue;
+          const b = r2(t.price - t.discount - (keepRebate ? 0 : t.rebate) + (withDest ? t.destination : 0) + (withDoc ? t.doc : 0) + (withExtras ? t.extras : 0) - (lessTrade ? t.trade : 0));
+          const plus = [...(withDest ? ["destination charge"] : []), ...(withDoc ? ["doc fee"] : []), ...(withExtras ? ["other fees and add-ons"] : [])];
+          const words = `${keepRebate ? "the price before the maker's rebate" : "the price"}${plus.length ? `, plus the ${listWords(plus)}` : ""}${lessTrade ? ", less the trade-in" : ""}`;
+          out.push([b, words, { withDoc, withExtras, lessTrade, keepRebate }]);
+        }
+      }
+    }
+  }
+  return out.filter(([b]) => b > 0);
+}
+
+/** The tax the state's rule gives on each way of working out the taxable amount (the usual one first). */
+function taxCandidates(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date): { amount: number; base: string; rule: TaxRule }[] {
+  return taxBases(lines).map(([b, base, rule]) => {
+    const t = vehicleTax(state, { taxable: b, price: b, seller: "dealer", modelYear, localPct: 0, now });
+    return { amount: r2(t.lines.reduce((s, l) => s + l.amount, 0)), base, rule };
+  });
 }
 
 /** The local rate (city, county, district) a state-plus-local tax implies, on the likely taxable amount: up to 6%. */
 function impliedLocal(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date, tax: number): { pct: number; base: string } | null {
-  const live = lines.filter((l) => !l.declined && !l.fromAi);
-  const sum = (kinds: string[]) => live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0);
-  const price = sum(["price"]) - sum(["discount", "rebate"]);
-  const doc = sum(["docFee"]);
-  const extras = sum(["dealerFee", "addOn"]);
-  for (const [b, base] of [[price + doc, "the price and doc fee"], [price, "the price"], [price + doc + extras, "the price, fees and add-ons"]] as const) {
-    if (b <= 0) continue;
+  for (const [b, base] of taxBases(lines)) {
     const stateOnly = vehicleTax(state, { taxable: b, price: b, seller: "dealer", modelYear, localPct: 0, now }).lines.reduce((s, l) => s + l.amount, 0);
     const pct = Math.round(((tax - stateOnly) / b) * 100000) / 1000;
     // A whole-thousandth local rate (4.875%, 2.25%) is how local rates are set; anything else isn't a clean match.
@@ -158,6 +187,7 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   const payoff = sumOf(["payoff"]);
   const negativeEquity = sheet.lines.some((l) => l.kind === "negativeEquity") ? sumOf(["negativeEquity"]) : payoff > trade && trade > 0 ? r2(payoff - trade) : 0;
 
+  let taxRule: TaxRule | null = null;
   const rows: LineResult[] = sheet.lines.map((line, i): LineResult => {
     if (line.declined) {
       // "Trade Allowance $0.00" is no trade-in, not a declined charge.
@@ -245,8 +275,11 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         if (!state) return { line, verdict: "info", note: "Sales tax. Add your ZIP to check it against your state's rate." };
         const cands = taxCandidates(sheet.lines, state, input.modelYear, now);
         const hit = cands.find((c) => Math.abs(c.amount - line.amount) <= 2);
-        if (hit) return { line, verdict: "right", note: `What ${STATES[state]}'s ${STATE_TAX[state].summary} gives on ${hit.base}.` };
-        const low = Math.min(...cands.map((c) => c.amount));
+        if (hit) {
+          taxRule = hit.rule;
+          return { line, verdict: "right", note: `What ${STATES[state]}'s ${STATE_TAX[state].summary} gives on ${hit.base}.` };
+        }
+        const low = cands.length ? cands[0].amount : 0;
         if (STATE_TAX[state].local) {
           // A state with city or county tax: say which local rate the paper's tax implies, for the buyer to compare.
           const implied = impliedLocal(sheet.lines, state, input.modelYear, now, line.amount);
@@ -383,5 +416,5 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   ].filter(Boolean);
   const summary = parts.length ? `Dealer's numbers: ${parts.join(", ")}${hiddenTotal > 0 ? `; up to ${usd(hiddenTotal)} to take off` : ""}.` : "Dealer's numbers: every line checks out.";
   const paymentOptions = (sheet.paymentOptions ?? []).map((o) => ({ ...o, total: r2(o.months * o.payment) }));
-  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, condition, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath };
+  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, condition, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath, taxRule };
 }

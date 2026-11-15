@@ -55,17 +55,21 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const extra: [string, number][] = problem === "addOn" ? [pick(WORDS.addOn)] : problem === "product" ? [pick(WORDS.product)] : [];
   // A discount or rebate printed under a higher listed price: the net is still the ad's price.
   const credit = chance(0.3) ? Math.round(300 + rand() * 1500) : 0;
-  const creditRow: [string, number][] = credit ? [[pick(rand() < 0.5 ? WORDS.discount : WORDS.rebate), credit]] : [];
+  const creditIsRebate = rand() >= 0.5;
+  const creditRow: [string, number][] = credit ? [[pick(creditIsRebate ? WORDS.rebate : WORDS.discount), credit]] : [];
   const netPrice = problem === "overAd" ? price + Math.round(300 + rand() * 1500) : price;
   const listed = netPrice + credit;
   // A new car's destination charge (on its window sticker): part of the price, taxed, in the total.
   const destination = condition === "new" ? pick([995, 1095, 1295, 1395, 1595, 1695]) : 0;
   const destRow: [string, number][] = destination ? [[pick(["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
-  const taxable = netPrice + destination + doc + (problem === "addOn" ? extra[0][1] : 0);
-  const tax = r2(taxable * RATE[state]!);
-  const total = r2(netPrice + destination + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
   const hasTrade = rand() < 0.3;
   const trade = hasTrade ? Math.round(2000 + rand() * 8000) : 0;
+  // How the state works out the tax: most take off the trade-in; some tax the price before a maker's rebate.
+  const taxLessTrade = trade > 0 && chance(0.5);
+  const taxBeforeRebate = credit > 0 && creditIsRebate && chance(0.5);
+  const taxable = netPrice + (taxBeforeRebate ? credit : 0) + destination + doc + (problem === "addOn" ? extra[0][1] : 0) - (taxLessTrade ? trade : 0);
+  const tax = r2(taxable * RATE[state]!);
+  const total = r2(netPrice + destination + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
   const payoff = hasTrade && rand() < 0.5 ? Math.round(trade * (0.5 + rand() * 0.4)) : 0;
   const down = rand() < 0.6 ? pick([500, 1000, 2000, 3000, 5000]) : 0;
   const balance = r2(total - trade + payoff - down);
