@@ -49,6 +49,12 @@ ${redactDealSheet(p.text).text}`);
       const paperTotal = sheet.lines.find((l) => l.kind === "total" && !l.declined)?.amount;
       if (plan.target != null && paperTotal != null && !plan.plusTax && plan.target > paperTotal + 1) bad.push(`#${seed} (${p.problem}): target ${plan.target} above the paper's total ${paperTotal}\n${p.text}`);
       if (plan.target != null && plan.target < 0) bad.push(`#${seed}: negative target ${plan.target}`);
+      // The message names every charge to refuse, asks to honor the ad only when the price is over it, and
+      // mentions a payment that doesn't match.
+      for (const r of c.rows.filter((x) => x.verdict === "remove")) if (!plan.message.includes(r.line.name ?? r.line.label)) bad.push(`#${seed}: message doesn't name ${r.line.name ?? r.line.label}\n${plan.message}`);
+      const over = c.rows.some((r) => r.line.kind === "price" && (r.verdict === "wrong" || r.verdict === "check") && /more than/.test(r.note));
+      if (plan.message.includes("honor the advertised price") !== over) bad.push(`#${seed} (${p.problem}): honor-the-ad ${plan.message.includes("honor the advertised price")} but price over ${over}\n${plan.message}\n${p.text}`);
+      if (c.loan && c.loan.verdict !== "right" && c.loan.diff > 0 && !plan.message.includes("doesn't match")) bad.push(`#${seed}: loan mismatch not in the message\n${plan.message}`);
       if (p.problem === "none" && p.ad && plan.target != null && paperTotal != null && !plan.plusTax && Math.abs(plan.target - paperTotal) > 1) bad.push(`#${seed}: clean paper, target ${plan.target} vs total ${paperTotal}\n${p.text}`);
       if (p.problem === "none") {
         t.clean++;
