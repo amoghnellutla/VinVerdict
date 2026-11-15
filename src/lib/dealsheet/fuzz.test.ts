@@ -12,7 +12,8 @@
 
 import { afterAll, describe, expect, it } from "vitest";
 import { checkDealSheet, type DealCheck } from "./check";
-import { makeLease, makeOptions, makePaper, type Paper } from "./fuzz-gen";
+import { makeLease, makeOptions, makePaper, rng, type Paper } from "./fuzz-gen";
+import { diffPapers, snapshot } from "./diff";
 import { parseDealSheet } from "./parse";
 import { redactDealSheet } from "./redact";
 
@@ -119,5 +120,63 @@ describe("generated payment-options worksheets (seeded)", () => {
       if (p.problem === "addOn" ? removes !== 1 : removes) bad.push(`#${seed} (${p.problem}): ${removes} to remove\n${p.text}`);
     }
     expect(bad.slice(0, 6), `${bad.length} problems\n\n${bad.slice(0, 6).join("\n\n")}`).toEqual([]);
+  });
+});
+
+describe("generated paper pairs: what changed since the last paper (seeded)", () => {
+  // The same deal in other words and another layout must show no change; one thing slipped in or raised must show
+  // exactly that one thing, as worse for the buyer.
+  const NAMES: Record<string, string[]> = {
+    price: ["Vehicle Price", "Selling Price", "Cash Price of Vehicle", "Sale Price"],
+    doc: ["Doc Fee", "Documentation Fee", "Documentary Fee", "Dealer Documentary Fee"],
+    gov: ["Title & Registration", "DMV Fees", "Title/Reg Fees", "License and Title"],
+    tax: ["Sales Tax", "State Sales Tax", "Tax"],
+    total: ["Total Price", "Total", "Out the Door Price"],
+    etch: ["VIN Etch", "VIN Etching", "Etching", "Theft Etch"],
+    nitro: ["Nitrogen", "Nitrogen Tire Fill", "Nitro-Fill"],
+    discount: ["Dealer Discount", "Discount", "Internet Savings"],
+  };
+  const LAYOUTS = [(l: string, a: string) => `${l} .......... ${a}`, (l: string, a: string) => `${l}: ${a}`, (l: string, a: string) => `${l.toUpperCase()}    ${a}`, (l: string, a: string) => `${l}\t${a}`];
+  const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  it("rewording and re-laying-out show no change; one slipped-in or raised line shows exactly that", () => {
+    const bad: string[] = [];
+    for (let seed = 7001; seed <= 7300; seed++) {
+      const rand = rng(seed);
+      const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
+      const price = Math.round(15000 + rand() * 25000);
+      const doc = pick([299, 499, 699]);
+      const gov = Math.round((80 + rand() * 300) * 100) / 100;
+      const discount = rand() < 0.4 ? pick([500, 1000]) : 0;
+      const addOns: [string, number][] = rand() < 0.5 ? [["etch", 399], ["nitro", 199]].slice(0, pick([1, 2])) as [string, number][] : [];
+      const change = pick(["none", "none", "product", "price", "discountGone", "addOnRaised"] as const);
+      const paper = (final: boolean) => {
+        const name = (k: string) => pick(NAMES[k]);
+        const lay = pick(LAYOUTS);
+        const p2 = final && change === "price" ? price + 500 : price;
+        const d2 = final && change === "discountGone" ? 0 : discount;
+        const extras = addOns.map(([k, a], i) => [name(k), final && change === "addOnRaised" && i === 0 ? a + 200 : a] as [string, number]);
+        const product: [string, number][] = final && change === "product" ? [["Service Contract", 2495]] : [];
+        const taxBase = p2 - d2 + doc + extras.reduce((s, e) => s + e[1], 0);
+        const tax = Math.round(taxBase * 0.06625 * 100) / 100;
+        const total = Math.round((taxBase + gov + tax + product.reduce((s, e) => s + e[1], 0)) * 100) / 100;
+        const rows: [string, number][] = [[name("price"), p2], ...(d2 ? [[name("discount"), d2] as [string, number]] : []), [name("doc"), doc], ...extras, ...product, [name("gov"), gov], [name("tax"), tax], [name("total"), total]];
+        return rows.map(([l, a]) => lay(l, money(a))).join("\n");
+      };
+      const snap = (text: string, at: string) => {
+        const sheet = parseDealSheet(text);
+        return snapshot(sheet, checkDealSheet({ sheet, ad: null, state: "NJ", modelYear: 2021, now: new Date("2026-11-15") }), { car: null, from: "test", at: new Date(at) });
+      };
+      const before = paper(false);
+      const after = paper(true);
+      const d = diffPapers(snap(before, "2026-11-14T10:00:00Z"), snap(after, "2026-11-14T12:00:00Z"));
+      // Tax moves with any change to what's taxed; it's never counted as worse, so only the other lines are compared.
+      const changes = d.changes.filter((c) => (c.type === "changed" ? c.kind : c.line.kind) !== "tax");
+      // (Raising an add-on or dropping a discount changes nothing on a paper without one.)
+      const want = change === "none" || (change === "addOnRaised" && !addOns.length) || (change === "discountGone" && !discount) ? 0 : 1;
+      if (changes.length !== want || d.worse.length !== want) {
+        bad.push(`#${seed} (${change}): ${JSON.stringify(changes)} worse ${d.worse.length}\n--- before\n${before}\n--- after\n${after}`);
+      }
+    }
+    expect(bad.slice(0, 5), `${bad.length} problems\n\n${bad.slice(0, 5).join("\n\n")}`).toEqual([]);
   });
 });
