@@ -304,7 +304,7 @@ export function checkDealSheet(input: CheckInput): DealCheck {
           return { line, verdict: "check", note: "Insurance on the car. A lender can require you to insure it, but you choose the insurer: compare quotes before buying it here." };
         }
         hidden.push({ what: line.name ?? line.label, amount: line.amount, why: "An optional product sold with the loan." });
-        return { line, verdict: "remove", note: `Optional (${line.name ?? "a loan product"}). A lender generally can't require it to give you the loan. You're saying no to it.`, source: REF.cfpbAddOns };
+        return { line, verdict: "remove", note: `Optional: ${line.name ? (/^[A-Z][a-z]/.test(line.name) ? line.name.charAt(0).toLowerCase() + line.name.slice(1) : line.name) : "a loan product"}. A lender generally can't require it to give you the loan. You're saying no to it.`, source: REF.cfpbAddOns };
       case "tax": {
         if (sheet.lease && /\bmonthly\b|\bper month\b|\bpayment\b/i.test(line.label)) {
           const base = sheet.leaseTerms?.basePayment;

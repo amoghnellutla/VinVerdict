@@ -134,6 +134,12 @@ describe("what each line is", () => {
     expect(Object.fromEntries(u.rows.map((r) => [r.line.label, r.verdict]))).toMatchObject({ "All-Weather Floor Liners": "remove", "Vehicle Insurance": "check" });
   });
 
+  it("a loan product's note names it plainly (no brackets inside brackets; GAP stays GAP)", () => {
+    const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nService Contract $2,195.00\nGAP Protection $895.00"), ad: null, state: null, modelYear: 2021 });
+    expect(c.rows[1].note).toMatch(/^Optional: service contract \(extended warranty\)\. /);
+    expect(c.rows[2].note).toMatch(/^Optional: GAP\. /);
+  });
+
   it("a fee it can't place, a smog fee or an e-filing fee is asked about, never refused", () => {
     const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nSmog Certification $50.00\nElectronic Filing Fee $35.00\nLemon Law Fee $5.00\nBattery Fee $8.00\nDealer Prep $499.00\nTotal $20,597.00"), ad: { price: 20000, docFee: null, sellerType: "dealer" }, state: "CA", modelYear: 2021 });
     const v = Object.fromEntries(c.rows.map((r) => [r.line.label, r.verdict]));
