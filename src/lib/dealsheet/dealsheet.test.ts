@@ -332,6 +332,23 @@ describe("what each line is", () => {
     expect(parseDealSheet("1. Vehicle Price $23,000.00\nB. Doc Fee $799.00\n(c) Title Fee $60.00\nTotal USD 23,859.00").lines.map((l) => l.label)).toEqual(["Vehicle Price", "Doc Fee", "Title Fee", "Total"]);
   });
 
+  it("the paper's own reference numbers are never money: contract, lot, key tag, customer and licence numbers, weight", () => {
+    const head = [
+      "Deal # 10,234   Date 11/15/2026   Salesperson: Chris",
+      "Contract No. 12,345",
+      "Odometer: 41,233",
+      "Lot 3,456   Key Tag 1,234",
+      "Weight 3,370 lbs   Engine: 203 hp",
+      "Customer # 55,123",
+      "Dealer License # 1,234,567",
+      "Trade VIN 1HGCV1F30LA012345  Trade Miles 88,412",
+      "Dealer Invoice $20,100.00",
+      "Vehicle Price $21,998.00",
+      "Title & Tag 95.00",
+    ].join("\n");
+    expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95]]);
+  });
+
   it("doesn't take a mileage, a monthly figure or a year for money", () => {
     const s = parseDealSheet("YEAR 2019 MILES 41,233\nPayments around $512/mo for 72 months\nSelling Price $18,495.00");
     expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["price", 18495]]);

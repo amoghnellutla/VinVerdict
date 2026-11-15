@@ -153,16 +153,16 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\bsub-?total\b|\btaxable (?:amount|total|price)\b|\btotal taxable\b/, l)) return { kind: "subtotal" };
   if (has(/\btotal\b|\bout[- ]the[- ]door\b|\botd\b|\bgrand total\b/, l)) return { kind: "total" };
   // "MSRP" on a deal sheet is the starting price that discounts come off; a market or book value is only a reference.
-  if (has(/\bmarket value\b|\bkbb\b|\bbook value\b|\bretail value\b|\bnada\b|\bblack book\b/, l)) return { kind: "reference" };
+  if (has(/\bmarket value\b|\bkbb\b|\bbook value\b|\bretail value\b|\bnada\b|\bblack book\b|^(?:dealer )?invoice(?: price)?$/, l)) return { kind: "reference" };
   if (has(/\bprice\b|\bmsrp\b|\bsticker\b|\bvehicle\b|\bcash price\b|\bselling\b|\bsale amount\b|\bagreed\b|\bused car\b|\bnew car\b|\bunit\b|^(?:sale|internet|special|e-?price|our price|now)$/, l)) return { kind: "price" };
   return { kind: "other" };
 }
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/gi;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
-const NOT_MONEY_BEFORE = /\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|#)\s*(?:no\.?|number|#)?\s*[:#]?\s*$/i;
+const NOT_MONEY_BEFORE = /(?:\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|contract|lot|key tag|customer|cust|license|lic|account|acct|policy|order|ref|reference|ticket|id|r\.?o|p\.?o|invoice (?:no|number)|weight|gvwr|model code|page)\s*(?:no\.?|number|#)?\s*[:#]?|#\s*:?|\bno\.\s*:?)\s*$/i;
 
 type Hit = { at: number; end: number; value: number };
 
