@@ -283,8 +283,8 @@ describe("doc fee above a state's legal maximum", () => {
     const paper = "Vehicle Price $22,000.00\nDocumentation Fee $175.00\nTotal Price $22,175.00";
     const ny = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "NY", modelYear: 2021 });
     expect(ny.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong");
-    const ca = checkDealSheet({ sheet: parseDealSheet(paper.replace("$175.00", "$399.00").replace("$22,175.00", "$22,399.00")), ad: null, state: "CA", modelYear: 2021 });
-    expect(ca.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong"); // no confirmed cap and no ad: never wrong
+    const fl = checkDealSheet({ sheet: parseDealSheet(paper.replace("$175.00", "$999.00").replace("$22,175.00", "$22,999.00")), ad: null, state: "FL", modelYear: 2021 });
+    expect(fl.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong"); // no confirmed cap and no ad: never wrong
   });
 
   it("Maryland caps it at $800; Minnesota at $350 or 10% of the sale, whichever is less", () => {
@@ -298,6 +298,23 @@ describe("doc fee above a state's legal maximum", () => {
     // A $20,000 car: $350 is the cap, and $350 is fine.
     const ok = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nDocumentary Fee $350.00\nTotal Price $20,350.00"), ad: null, state: "MN", modelYear: 2021 });
     expect(ok.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong");
+  });
+
+  it("California $85, Oregon $250 and Iowa $180, each with the lower limit or extra rule named", () => {
+    const doc = (state: "CA" | "OR" | "IA", fee: string) =>
+      checkDealSheet({ sheet: parseDealSheet(`Vehicle Price $20,000.00\nDocument Processing Charge $${fee}\nTotal Price $1.00`), ad: null, state, modelYear: 2021 }).rows.find((r) => r.line.kind === "docFee")!;
+    const ca = doc("CA", "399.00");
+    expect(ca.verdict).toBe("check"); // the total doesn't add up here, so the reading isn't confirmed: asked, not "wrong"
+    expect(ca.note).toContain("$314 more than California's legal maximum of $85");
+    expect(ca.source?.href).toContain("dmv.ca.gov");
+    expect(doc("CA", "85.00").verdict).not.toMatch(/wrong|check/);
+    expect(doc("OR", "250.00").verdict).not.toMatch(/wrong|check/);
+    expect(doc("OR", "300.00").note).toContain("Oregon's legal maximum of $250");
+    expect(doc("IA", "180.00").verdict).not.toMatch(/wrong|check/);
+    const confirmed = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nDocumentary Fee $299.00\nTotal Price $20,299.00"), ad: null, state: "IA", modelYear: 2021 }).rows.find((r) => r.line.kind === "docFee")!;
+    expect(confirmed.verdict).toBe("wrong");
+    expect(confirmed.note).toContain("$119 more than Iowa's legal maximum of $180");
+    expect(confirmed.note).toContain("included in the advertised price");
   });
 });
 

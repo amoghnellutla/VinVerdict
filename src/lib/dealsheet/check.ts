@@ -69,14 +69,18 @@ export type DealCheck = {
 
 /**
  * Doc-fee caps set by a state's own law or DMV, checked on the official page (2026-11-14). Only states whose
- * current cap could be confirmed are here; others are left out rather than guessed (California's changed
- * recently and couldn't be confirmed; Ohio's and Illinois's are re-indexed every year, with no current figure in the law).
+ * current cap could be confirmed are here; others are left out rather than guessed (Ohio's, Illinois's, Louisiana's and
+ * Pennsylvania's are re-indexed every year, with no current figure in the law). Where the law has two limits, the
+ * higher one is the cap (the paper can't show which applies) and the lower one is named in the note.
  */
 export const DOC_FEE_CAP: Partial<Record<StateCode, { max: number; source: SourceRef; extra?: string; /** Also at most this share of the sale (the lesser applies). */ pctOfSale?: number }>> = {
   NY: { max: 175, source: REF.nyDocFee },
   WA: { max: 200, source: REF.waDocFee, extra: "Washington law also says the dealer must tell you it's negotiable, and can't say the state requires it." },
   MD: { max: 800, source: REF.mdDocFee },
   MN: { max: 350, pctOfSale: 0.1, source: REF.mnDocFee },
+  CA: { max: 85, source: REF.caDocFee, extra: "It's $70 if the dealer doesn't have a DMV partner agreement: ask which applies." },
+  OR: { max: 250, source: REF.orDocFee, extra: "It's $200 if the dealer doesn't use an integrator: ask which applies." },
+  IA: { max: 180, source: REF.iaDocFee, extra: "Iowa law also says the fee must be included in the advertised price." },
 };
 
 /** A state's doc-fee cap for this sale: its dollar limit, or a share of the sale when that's lower (Minnesota). */

@@ -44,6 +44,15 @@ export const REF = {
   mnDocFee: { name: "Minn. Stat. 168.27, subd. 31: Minnesota's documentary fee, at most $350 or 10% of the sale", href: "https://www.revisor.mn.gov/statutes/cite/168.27" },
   // Checked 2026-11-14: Md. Transportation § 15-311.1(b)(1)(ii): "$800 on and after July 1, 2024".
   mdDocFee: { name: "Md. Transportation § 15-311.1: Maryland's dealer processing charge, at most $800", href: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtr&section=15-311.1&enactments=false" },
+  // Checked 2026-11-15: DMV handbook 3.030 (VC 4456.5): "shall not exceed eighty-five dollars ($85)" with a private industry
+  // partner agreement, "seventy dollars ($70)" without (SB 791, which would have raised it, was vetoed in October 2025).
+  caDocFee: { name: "California DMV (Vehicle Code 4456.5): a dealer's document processing charge, at most $85 ($70 without a DMV partner agreement)", href: "https://www.dmv.ca.gov/portal/handbook/vehicle-industry-registration-procedures-manual-2/collection-and-payment-of-fees-and-penalties/dealers-document-preparation-and-electronic-filing-service-fee/" },
+  // Checked 2026-11-15: ORS 822.043(4): "in no case shall the document processing fee ... exceed: (a) $250, if the vehicle
+  // dealer uses an integrator; or (b) $200, if the vehicle dealer does not use an integrator."
+  orDocFee: { name: "ORS 822.043: Oregon's document processing fee, at most $250 ($200 without an integrator)", href: "https://www.oregonlegislature.gov/bills_laws/ors/ors822.html" },
+  // Checked 2026-11-15: Iowa Code 322.19A(2): "a documentary fee not to exceed one hundred eighty dollars"; (3): the dealer
+  // "shall include the fee in the price of the motor vehicle" and disclose it in any advertised price.
+  iaDocFee: { name: "Iowa Code 322.19A: Iowa's documentary fee, at most $180, and included in the advertised price", href: "https://www.legis.iowa.gov/docs/code/322.19A.pdf" },
   // Checked 2026-11-15: 15 U.S.C. § 1232(f): the label lists "the retail price of such automobile suggested by the manufacturer" and "the amount charged, if any, to such dealer for the transportation of such automobile".
   monroney: { name: "15 U.S.C. § 1232: a new car's window sticker lists the maker's price and its destination charge", href: "https://www.law.cornell.edu/uscode/text/15/1232" },
   // Checked 2026-11-15: "Dealers have to display a Buyers Guide in every used car they offer for sale"; it says "whether the car is being sold 'as is' or with a warranty"; "It will override anything in your sales contract."
