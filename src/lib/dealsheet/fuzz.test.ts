@@ -28,6 +28,8 @@ function suite(label: string, from: number, n: number, hard: boolean, condition:
     for (let seed = from; seed < from + n; seed++) {
       const p = makePaper(seed, hard, condition);
       if (redactDealSheet(p.text).text.toLowerCase().includes(p.name.toLowerCase())) bad.push(`#${seed}: the buyer's name survived`);
+      if (/\d+ sample rd/i.test(redactDealSheet(p.text).text)) bad.push(`#${seed}: the buyer's street survived
+${redactDealSheet(p.text).text}`);
       const c = run(p);
       t.papers++;
       if (c.confirmed) t.confirmed++;

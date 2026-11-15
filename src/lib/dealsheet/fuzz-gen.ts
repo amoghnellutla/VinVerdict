@@ -126,7 +126,19 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
     : finalStyle
       ? [`Annual Percentage Rate ${apr}%`, `Your payment schedule: ${months - 1} payments of ${money(payment)} monthly and 1 final payment of ${money(finalPay)}`]
       : [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])];
-  let text = [pick(["BUYER'S ORDER", "PURCHASE AGREEMENT", "DEAL WORKSHEET", "Retail Purchase Order"]), `Buyer: ${name}`, `Address: ${Math.round(rand() * 900 + 10)} Sample Rd, Anytown`, `Stock # ${Math.round(rand() * 90000 + 10000)}`, ...body, ...loanLines].join("\n");
+  // The buyer's details, as different forms print them.
+  const street = `${Math.round(rand() * 900 + 10)} Sample Rd`;
+  const stock = `Stock # ${Math.round(rand() * 90000 + 10000)}`;
+  const who = hard
+    ? pick([
+        [`Buyer: ${name}`, `Address: ${street}, Anytown`, stock],
+        [`${stock}      Buyer: ${name}`, `Date: 11/15/2026\tAddress: ${street}`],
+        ["SOLD TO:", name.toUpperCase(), `${street}, Anytown, NJ 07001`, stock],
+        [`Buyer Name and Address: ${name}, ${street}, Anytown, NJ 07001`, stock],
+        ["BUYER", name, stock],
+      ])
+    : [`Buyer: ${name}`, `Address: ${street}, Anytown`, stock];
+  let text = [pick(["BUYER'S ORDER", "PURCHASE AGREEMENT", "DEAL WORKSHEET", "Retail Purchase Order"]), ...who, ...body, ...loanLines].join("\n");
   if (chance(0.25)) text = text.toUpperCase();
   // OCR misreads: a thousands comma read as a period, or a space after "$".
   if (chance(0.25)) text = text.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2");
