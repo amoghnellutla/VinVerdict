@@ -33,6 +33,23 @@ describe("what changed since the earlier paper", () => {
     expect(d.worse.some((c) => c.type === "changed" && c.kind === "docFee")).toBe(false);
   });
 
+  it("the same add-ons worded differently on the final paper aren't new, and a real new one still is", () => {
+    const before = snap("Vehicle Price $22,000.00\nVIN Etch $399.00\nNitrogen $199.00\nDoc Fee $699.00\nTotal Price $23,297.00", "2026-11-14T10:00:00Z");
+    const after = snap("Vehicle Price $22,000.00\nEtching $399.00\nNitro-Fill $199.00\nWindow Tint $499.00\nDoc Fee $699.00\nTotal Price $23,796.00", "2026-11-14T12:00:00Z");
+    const d = diffPapers(before, after);
+    expect(d.changes).toEqual([{ type: "added", line: { label: "Window Tint", kind: "addOn", amount: 499, declined: false } }]);
+    // Renamed and repriced: still one line that changed, not one removed and one added.
+    const raised = diffPapers(before, snap("Vehicle Price $22,000.00\nTheft Etch $599.00\nNitrogen $199.00\nDoc Fee $699.00\nTotal Price $23,497.00", "2026-11-14T12:00:00Z"));
+    expect(raised.changes).toEqual([{ type: "changed", label: "Theft Etch", kind: "addOn", from: 399, to: 599 }]);
+  });
+
+  it("a paper kept before a wording was learned still lines up (an old dealer-fee reading of a government fee)", () => {
+    const before = snap("Vehicle Price $22,000.00\nReg Fee $210.00\nTotal Price $22,210.00", "2026-11-14T10:00:00Z");
+    const old = { ...before, lines: before.lines.map((l) => (l.label === "Reg Fee" ? { ...l, kind: "dealerFee" as const } : l)) };
+    const after = snap("Vehicle Price $22,000.00\nReg Fee $210.00\nTotal Price $22,210.00", "2026-11-14T12:00:00Z");
+    expect(diffPapers(old, after).changes).toEqual([]);
+  });
+
   it("the same paper twice has no changes", () => {
     expect(diffPapers(snap(ORDER, "2026-11-14T10:00:00Z"), snap(ORDER, "2026-11-14T11:00:00Z")).changes).toEqual([]);
   });

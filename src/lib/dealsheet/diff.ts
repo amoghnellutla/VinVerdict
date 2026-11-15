@@ -8,7 +8,7 @@
  */
 
 import type { DealCheck } from "./check";
-import type { DealLine, DealSheet, LineKind } from "./parse";
+import { classify, type DealLine, type DealSheet, type LineKind } from "./parse";
 
 export type PaperLine = { label: string; kind: LineKind; amount: number; declined: boolean };
 export type PaperSnapshot = { id: string; at: string; car: string | null; from: string; lines: PaperLine[]; total: number | null; payment: number | null };
@@ -31,6 +31,16 @@ const CREDITS: readonly LineKind[] = ["discount", "rebate", "tradeIn", "downPaym
 const TOTALS: readonly LineKind[] = ["total", "balanceDue", "amountFinanced", "subtotal"];
 const key = (l: { label: string; kind: LineKind }) => `${l.kind}:${l.label.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\(read by the ai\)/, "").trim()}`;
 const live = (l: PaperLine) => !l.declined && l.amount > 0;
+// Fees and add-ons are read again with today's rules, so a paper kept before a wording was learned ("Reg Fee" read
+// as a dealer fee then, a government fee now) still lines up with the final one.
+const FEE_KINDS: readonly LineKind[] = ["docFee", "dealerFee", "addOn", "loanProduct", "stateFee", "other"];
+const today = (l: PaperLine): PaperLine => {
+  if (!FEE_KINDS.includes(l.kind)) return l;
+  const k = classify(l.label).kind;
+  return FEE_KINDS.includes(k) ? { ...l, kind: k } : l;
+};
+// What a line is ("VIN etching" for "VIN Etch", "Etching" or "Theft Etch"), when the reader knows its name.
+const nameOf = (l: PaperLine) => classify(l.label).name ?? null;
 
 /** The paper's lines and headline numbers, ready to keep on the device. */
 export function snapshot(sheet: DealSheet, check: DealCheck, meta: { car: string | null; from: string; at?: Date }): PaperSnapshot {
@@ -42,12 +52,23 @@ export function snapshot(sheet: DealSheet, check: DealCheck, meta: { car: string
 
 /** The later paper against the earlier one: lines added, removed or changed, and the ones that cost the buyer more. */
 export function diffPapers(before: PaperSnapshot, after: PaperSnapshot): PaperDiff {
-  const a = before.lines.filter((l) => !TOTALS.includes(l.kind));
-  const b = after.lines.filter((l) => !TOTALS.includes(l.kind));
+  const a = before.lines.filter((l) => !TOTALS.includes(l.kind)).map(today);
+  const b = after.lines.filter((l) => !TOTALS.includes(l.kind)).map(today);
   const usedA = new Set<number>();
   const usedB = new Set<number>();
   const pairs: [PaperLine, PaperLine][] = [];
-  // Same kind and words first; then a kind that appears once on each paper ("Vehicle Price" became "Cash Price of Vehicle").
+  // Same kind and words first; then the same thing named differently ("VIN Etch" became "Etching"); then the same
+  // kind and amount; then a kind that appears once on each paper ("Vehicle Price" became "Cash Price of Vehicle").
+  const pairBy = (same: (x: PaperLine, y: PaperLine) => boolean) =>
+    b.forEach((y, j) => {
+      if (usedB.has(j)) return;
+      const i = a.findIndex((x, k) => !usedA.has(k) && x.kind === y.kind && same(x, y));
+      if (i >= 0) {
+        usedA.add(i);
+        usedB.add(j);
+        pairs.push([a[i], y]);
+      }
+    });
   b.forEach((y, j) => {
     const i = a.findIndex((x, k) => !usedA.has(k) && key(x) === key(y));
     if (i >= 0) {
@@ -56,6 +77,8 @@ export function diffPapers(before: PaperSnapshot, after: PaperSnapshot): PaperDi
       pairs.push([a[i], y]);
     }
   });
+  pairBy((x, y) => nameOf(x) != null && nameOf(x) === nameOf(y));
+  pairBy((x, y) => Math.abs(x.amount - y.amount) < 0.01 && x.kind !== "other");
   b.forEach((y, j) => {
     if (usedB.has(j)) return;
     const sameKindA = a.map((x, k) => ({ x, k })).filter(({ x, k }) => !usedA.has(k) && x.kind === y.kind);
