@@ -61,6 +61,8 @@ export type DealCheck = {
   negativeEquity: number;
   /** A lease's payment against the lease math (never "wrong": lease tax differs by state). */
   leaseMath: { base: number; stated: number; verdict: Verdict; note: string } | null;
+  /** Checked as a used car, but the paper says it's for a new one: the buyer is asked to switch. */
+  looksNew: boolean;
   /** A worksheet's payment options, each with what it pays in total. */
   paymentOptions: { months: number; payment: number; total: number }[];
   /** How the paper's tax was worked out, when it matched the state's rule (the negotiation target uses the same way). */
@@ -268,6 +270,8 @@ export function checkDealSheet(input: CheckInput): DealCheck {
       case "dealerFee":
         if (line.name === "Destination charge") {
           if (isNew) return { line, verdict: "check", note: "The maker's charge for shipping the car to the dealer. Federal law puts it on the window sticker: it should match the sticker exactly and appear only once. A second delivery or freight line is extra.", source: REF.monroney };
+          // Checked as used, but the paper says new: never call a real destination charge padding.
+          if (sheet.looksNew) return { line, verdict: "check", note: "This paper says the car is new. If it is, choose New car above: a new car's destination charge is real and should match its window sticker. On a used car it's padding.", source: REF.monroney };
           hidden.push({ what: line.label, amount: line.amount, why: "A destination charge belongs to a new car's sticker." });
           return { line, verdict: "remove", note: "A destination or freight charge is part of a new car's window sticker. On a used car it was paid when the car was first sold: ask them to remove it." };
         }
@@ -461,5 +465,5 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   ].filter(Boolean);
   const summary = parts.length ? `Dealer's numbers: ${parts.join(", ")}${hiddenTotal > 0 ? `; up to ${usd(hiddenTotal)} to take off` : ""}.` : "Dealer's numbers: every line checks out.";
   const paymentOptions = (sheet.paymentOptions ?? []).map((o) => ({ ...o, total: r2(o.months * o.payment) }));
-  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, condition, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath, taxRule };
+  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, condition, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath, taxRule, looksNew: !isNew && !!sheet.looksNew };
 }

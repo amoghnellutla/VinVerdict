@@ -311,10 +311,18 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
             )}
           </div>
 
+          {result.c.looksNew && (
+            <p className="rounded-md bg-warn-soft px-4 py-3 text-sm print:hidden">
+              <span className="font-semibold">This paper says the car is new.</span> It was checked as a used car.{" "}
+              <button type="button" className="link font-semibold" onClick={() => setCondition("new")}>Check it as a new car</button> to compare it with
+              the window sticker and its destination charge.
+            </p>
+          )}
           {result.c.lease && (
             <p className="rounded-md border border-border px-4 py-3 text-sm">
-              <span className="font-semibold">This is a lease.</span> The selling price, fees and add-ons are checked below. The lease payment itself (money
-              factor and residual) isn&apos;t: ask for both in writing. The money factor times 2,400 is roughly the interest rate.
+              <span className="font-semibold">This is a lease.</span> The selling price, fees and add-ons are checked below, and the lease payment when the
+              paper shows the cap cost, residual and money factor or rent charge. Otherwise ask for them in writing: the money factor times 2,400 is
+              roughly the interest rate.
             </p>
           )}
           {result.c.negativeEquity > 0 && (

@@ -41,6 +41,19 @@ describe("new or used: the rules that differ", () => {
     expect(c.confirmed).toBe(true);
   });
 
+  it("a new car's paper checked as used: destination is asked about (never padding) and the buyer is asked to switch", () => {
+    const paper = "New Vehicle Buyer's Order\n" + "Vehicle Price $32,900.00\nDestination Charge $1,395.00\nTotal Price $34,295.00";
+    const c = run(paper, "used", { price: 34295, docFee: null }).c;
+    expect(c.looksNew).toBe(true);
+    expect(row(c, "Destination").verdict).toBe("check");
+    expect(c.hiddenTotal).toBe(0);
+    expect(run(paper, "new", { price: 34295, docFee: null }).c.looksNew).toBe(false);
+    // A used car's paper isn't taken for a new one, even with a "new" word in it.
+    const used = run("Used Vehicle Buyer's Order\nNew tires installed\nVehicle Price $21,000.00\nFreight $995.00\nTotal Price $21,995.00", "used", { price: 21000, docFee: null }).c;
+    expect(used.looksNew).toBe(false);
+    expect(row(used, "Freight").verdict).toBe("remove");
+  });
+
   it("a certification fee on a used car is asked about, not refused", () => {
     const c = run("Vehicle Price $24,500.00\nCPO Certification Fee $595.00\nTotal Price $25,095.00", "used", { price: 24500, docFee: null }).c;
     expect(row(c, "Certification").verdict).toBe("check");
