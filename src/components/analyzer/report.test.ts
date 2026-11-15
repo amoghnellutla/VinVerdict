@@ -352,6 +352,9 @@ describe("The dealer's numbers in the report", () => {
     expect(md).toContain("**Out-the-door price to ask for, with every add-on refused:** $23,727");
     expect(md).toContain("> Hi, I'm ready to buy the car at $23,727 out the door.");
     expect(outsideFences(md)).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example/);
+    // Escaped once: "\[" and "\|", never a doubled "\\\[" that shows backslashes.
+    expect(md).toContain("| VIN \\[Etching\\](https://evil.example) \\| | $399.00 | Remove |");
+    expect(md).not.toContain("\\\\\\[");
     expect(report(a, null)).not.toContain("## The dealer's numbers");
   });
 });

@@ -474,7 +474,8 @@ export function buildReport(r: ReportInput, opts: ReportOptions = {}): string {
   const ds = r.dealSheet;
   if (ds && ds.rows.length) {
     push("## The dealer's numbers", "", `Checked on your device${ds.ai ? `, double-checked by a free AI (${esc(ds.ai)})` : ""}. ${esc(ds.summary)}`, "");
-    push(table(["Line", "Amount", "Verdict", "Why"], ds.rows.map((x) => [esc(x.label), cents(x.amount), x.verdict, esc(x.note)])), "");
+    push(table(["Line", "Amount", "Verdict", "Why"], // (table() escapes plain-text cells itself.)
+      ds.rows.map((x) => [x.label, cents(x.amount), x.verdict, x.note])), "");
     if (ds.loan) push(`**The loan:** ${esc(ds.loan)}`, "");
     if (ds.target != null) push(`**Out-the-door price to ask for, with every add-on refused:** ${money(ds.target)}${ds.plusTax ? " plus tax" : ""}`, "");
     push("**Message to the dealer:**", "", `> ${esc(ds.message)}`, "");
