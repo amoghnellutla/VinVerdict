@@ -116,10 +116,12 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Whole-dollar amounts print without cents on some papers.
   const noCents = chance(0.2);
   const m = (a: number) => money(a, !(noCents && Number.isInteger(a)));
-  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash", "email", "sentences"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
-  const fmt = ([l, a]: [string, number]) => (layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : layout === "dash" ? `${l} - ${m(a)}` : `${l}    ${m(a)}`);
+  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash", "email", "sentences", "amountFirst", "csv", "sheet"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
+  const fmt = ([l, a]: [string, number]) => (layout === "amountFirst" ? `${m(a)}    ${l}` : layout === "csv" ? `${l.includes(",") ? `"${l}"` : l},${plain(a)}` : layout === "sheet" ? `${l}\t${plain(a)}` : layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : layout === "dash" ? `${l} - ${m(a)}` : `${l}    ${m(a)}`);
   // Layouts with one line per item (the decorations below edit those lines).
   const prose = layout === "email" || layout === "sentences";
+  // A spreadsheet export: "Vehicle Price,21998.00" (CSV) or a tab between label and a bare number (pasted from a sheet).
+  const plain = (a: number) => a.toFixed(2);
   const perLine = layout !== "pairs" && layout !== "columns" && !prose;
   const body = layout === "email"
     // An emailed quote: one comma list.

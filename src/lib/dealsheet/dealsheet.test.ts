@@ -387,6 +387,13 @@ describe("what each line is", () => {
     expect(parseDealSheet("Hi, here's your quote: cash price $11.610, doc fee $699, total $12.309.").lines.map((l) => l.amount)).toEqual([11610, 699, 12309]);
   });
 
+  it("a spreadsheet export reads: CSV (with a quoted label), tabs, and amounts before their labels", () => {
+    const want = [21998, 799, 89, 22886];
+    expect(parseDealSheet('Vehicle Price,21998.00\nDoc Fee,799.00\n"Wheel Locks, set of 4",89.00\nTotal,22886.00').lines.map((l) => l.amount)).toEqual(want);
+    expect(parseDealSheet("Vehicle Price\t21998.00\nDoc Fee\t799.00\nWheel Locks\t89.00\nTotal\t22886.00").lines.map((l) => l.amount)).toEqual(want);
+    expect(parseDealSheet("$21,998.00    Vehicle Price\n$799.00    Doc Fee\n$89.00    Wheel Locks\n$22,886.00    Total").lines.map((l) => l.amount)).toEqual(want);
+  });
+
   it("list numbering and a currency word aren't part of the label", () => {
     expect(parseDealSheet("1. Vehicle Price $23,000.00\nB. Doc Fee $799.00\n(c) Title Fee $60.00\nTotal USD 23,859.00").lines.map((l) => l.label)).toEqual(["Vehicle Price", "Doc Fee", "Title Fee", "Total"]);
   });
@@ -404,8 +411,10 @@ describe("what each line is", () => {
       "Dealer Invoice $20,100.00",
       "Vehicle Price $21,998.00",
       "Title & Tag 95.00",
+      "Service Contract 2,895.00",
+      "GAP Policy 895.00",
     ].join("\n");
-    expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95]]);
+    expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["GAP Policy", "loanProduct", 895]]);
   });
 
   it("doesn't take a mileage, a monthly figure or a year for money", () => {

@@ -160,9 +160,11 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?!\d|,\d|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<=[A-Za-z")\]],)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?!\d|,\d|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
-const NOT_MONEY_BEFORE = /(?:\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|contract|lot|key tag|customer|cust|license|lic|account|acct|policy|order|ref|reference|ticket|id|r\.?o|p\.?o|invoice (?:no|number)|weight|gvwr|model code|page)\s*(?:no\.?|number|#)?\s*[:#]?|#\s*:?|\bno\.\s*:?)\s*$/i;
+// Words that are always a reference ("Lot 3,456"); words that are one only with "No."/"#" after them ("Contract No.
+// 12,345", but "Service Contract 2,895.00" is money).
+const NOT_MONEY_BEFORE = /(?:\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|lot|key tag|r\.?o|p\.?o|weight|gvwr|model code|page)\s*(?:no\.?|number|#)?\s*[:#]?|\b(?:contract|customer|cust|license|lic|account|acct|policy|order|ref|reference|ticket|id|invoice)\s*(?:no\.?|number|#)\s*[:#]?|#\s*:?|\bno\.\s*:?)\s*$/i;
 
 type Hit = { at: number; end: number; value: number };
 
