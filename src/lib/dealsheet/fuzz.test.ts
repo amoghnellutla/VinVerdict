@@ -55,7 +55,7 @@ ${redactDealSheet(p.text).text}`);
         if (stray.length) bad.push(`#${seed} (${p.problem}): called wrong: ${stray.map((r) => `${r.line.label}: ${r.note}`).join(" | ")}\n${p.text}`);
         if (loanWrong && p.problem !== "packed") bad.push(`#${seed} (${p.problem}): loan called wrong: ${c.loan!.note}\n${p.text}`);
         const found =
-          p.problem === "addOn" || p.problem === "product" ? c.rows.some((r) => r.verdict === "remove")
+          p.problem === "addOn" || p.problem === "product" || p.problem === "padding" ? c.rows.some((r) => r.verdict === "remove")
             : p.problem === "overAd" ? c.rows.some((r) => r.line.kind === "price" && (r.verdict === "wrong" || r.verdict === "check")) || !p.ad
               : p.problem === "docOverCap" ? c.rows.some((r) => r.line.kind === "docFee" && (r.verdict === "wrong" || r.verdict === "check") && /legal maximum/.test(r.note))
               : c.loan?.verdict === "wrong" || c.loan?.verdict === "check";

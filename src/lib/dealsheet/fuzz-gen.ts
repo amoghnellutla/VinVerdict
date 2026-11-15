@@ -37,12 +37,14 @@ const WORDS = {
   rebate: ["Manufacturer Rebate", "Factory Rebate", "Loyalty Rebate"],
   addOn: [["VIN Etching", 399], ["Nitrogen Tire Fill", 199], ["Paint & Fabric Protection", 1295], ["Window Tint", 499], ["Wheel Locks", 89], ["Market Adjustment", 2000]] as [string, number][],
   product: [["Service Contract", 2895], ["GAP Protection", 895], ["Tire & Wheel Protection", 1195]] as [string, number][],
+  // Dealer charges on top of the price.
+  padding: [["Dealer Prep", 499], ["Reconditioning Fee", 895], ["Pre-Delivery Inspection", 299], ["Delivery Fee", 349], ["PDI", 199], ["Dealer Inspection Fee", 249]] as [string, number][],
 };
 const RATE: Partial<Record<StateCode, number>> = { NJ: 0.06625, PA: 0.06, TX: 0.0625, VA: 0.0415, IN: 0.07, CA: 0.0725, MD: 0.065, MN: 0.06875 };
 // The doc-fee caps confirmed in check.ts, for the states above that have one.
 const CAP: Partial<Record<StateCode, number>> = { CA: 85, MD: 800, MN: 350 };
 
-export type Problem = "none" | "addOn" | "product" | "overAd" | "packed" | "docOverCap";
+export type Problem = "none" | "addOn" | "product" | "overAd" | "packed" | "docOverCap" | "padding";
 export type Paper = { text: string; state: StateCode; ad: { price: number; docFee: number | null; sellerType: "dealer" } | null; problem: Problem; printed: Set<string>; name: string; hasLoan: boolean; condition: "new" | "used" };
 
 export function makePaper(seed: number, hard = false, condition: "new" | "used" = "used"): Paper {
@@ -50,7 +52,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
   const chance = (p: number) => hard && rand() < p;
   const state = pick(Object.keys(RATE) as StateCode[]);
-  const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap"]);
+  const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap", "padding"]);
   // A doc fee over the legal cap needs a state with one.
   const problem: Problem = drawn === "docOverCap" && !CAP[state] ? "none" : drawn;
   const price = Math.round(8000 + rand() * 40000);
@@ -59,7 +61,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Within the cap, except for a planted fee over it.
   const doc = cap == null ? drawnDoc : problem === "docOverCap" ? cap + pick([15, 50, 114, 250]) : Math.min(drawnDoc, cap);
   const gov = r2(30 + rand() * 300);
-  const extra: [string, number][] = problem === "addOn" ? [pick(WORDS.addOn)] : problem === "product" ? [pick(WORDS.product)] : [];
+  const extra: [string, number][] = problem === "addOn" ? [pick(WORDS.addOn)] : problem === "product" ? [pick(WORDS.product)] : problem === "padding" ? [pick(WORDS.padding)] : [];
   // A discount or rebate printed under a higher listed price: the net is still the ad's price.
   const credit = chance(0.3) ? Math.round(300 + rand() * 1500) : 0;
   const creditIsRebate = rand() >= 0.5;
@@ -75,7 +77,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // (Only where enough is left to tax: a trade-in worth more than the car leaves no realistic tax line.)
   const taxLessTrade = trade > 0 && netPrice - trade >= 3000 && chance(0.5);
   const taxBeforeRebate = credit > 0 && creditIsRebate && chance(0.5);
-  const taxable = netPrice + (taxBeforeRebate ? credit : 0) + destination + doc + (problem === "addOn" ? extra[0][1] : 0) - (taxLessTrade ? trade : 0);
+  const taxable = netPrice + (taxBeforeRebate ? credit : 0) + destination + doc + (problem === "addOn" || problem === "padding" ? extra[0][1] : 0) - (taxLessTrade ? trade : 0);
   const tax = r2(taxable * RATE[state]!);
   const total = r2(netPrice + destination + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
   const payoff = hasTrade && rand() < 0.5 ? Math.round(trade * (0.5 + rand() * 0.4)) : 0;
