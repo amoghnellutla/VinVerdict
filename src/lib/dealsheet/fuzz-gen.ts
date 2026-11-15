@@ -116,32 +116,41 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Whole-dollar amounts print without cents on some papers.
   const noCents = chance(0.2);
   const m = (a: number) => money(a, !(noCents && Number.isInteger(a)));
-  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
+  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash", "email", "sentences"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
   const fmt = ([l, a]: [string, number]) => (layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : layout === "dash" ? `${l} - ${m(a)}` : `${l}    ${m(a)}`);
-  const body = layout === "pairs"
+  // Layouts with one line per item (the decorations below edit those lines).
+  const prose = layout === "email" || layout === "sentences";
+  const perLine = layout !== "pairs" && layout !== "columns" && !prose;
+  const body = layout === "email"
+    // An emailed quote: one comma list.
+    ? [`Hi, here's your quote: ${rows.map(([l, a]) => `${l.toLowerCase()} ${m(a)}`).join(", ")}.`, "Let me know!"]
+    : layout === "sentences"
+      // A quote in sentences, several on a line.
+      ? [`Thanks for coming in. ${rows.map(([l, a]) => `The ${l.toLowerCase()} is ${m(a)}.`).join(" ")} Let me know if you have questions.`]
+      : layout === "pairs"
     ? rows.reduce<string[]>((acc, r, i) => (i % 2 ? (acc[acc.length - 1] += `    ${r[0]} ${m(r[1])}`, acc) : [...acc, `${r[0]} ${m(r[1])}`]), [])
     : layout === "columns"
       ? ["ITEMIZATION", ...rows.map((r) => r[0]), ...rows.map((r) => m(r[1]))]
       : rows.map(fmt);
   // The tax line with what it's worked out on: "Sales Tax 6.625% of $23,000.00   $1,523.75".
-  if (hard && layout !== "pairs" && layout !== "columns" && chance(0.3)) {
+  if (hard && perLine && chance(0.3)) {
     const at = rows.findIndex((r) => r[1] === tax);
     const pct = r2(RATE[state]! * 100);
     body[at] = pick([`${rows[at][0]} ${pct}% of ${m(taxable)}    ${m(tax)}`, `${rows[at][0]} (${pct}% x ${m(taxable)})    ${m(tax)}`, `${rows[at][0]} @ ${pct}% on ${m(taxable)}    ${m(tax)}`]);
   }
   // A note in brackets with its own amount: a former price, or the payoff beside the trade-in.
-  if (hard && layout !== "pairs" && layout !== "columns" && chance(0.3)) {
+  if (hard && perLine && chance(0.3)) {
     body[0] = `${body[0]} (was ${m(listed + pick([500, 1000, 1500]))})`;
     const t = rows.findIndex((r) => r[1] === trade && trade > 0);
     if (t >= 0 && payoff) body[t] = body[t].replace(/(\$[\d,.]+)\s*$/, `(payoff ${m(payoff)}) $1`);
   }
   // A declined add-on printed on the paper (not charged).
-  if (chance(0.3) && layout !== "columns") {
+  if (chance(0.3) && layout !== "columns" && !prose) {
     const [l] = pick(WORDS.addOn);
     body.splice(2, 0, rand() < 0.5 ? `${l} .......... DECLINED` : `${l} $0.00`);
   }
   // A page break with the form's header repeated.
-  if (chance(0.2) && layout !== "columns" && body.length > 4) body.splice(4, 0, "Page 1 of 2", "BUYER'S ORDER (continued)");
+  if (chance(0.2) && layout !== "columns" && !prose && body.length > 4) body.splice(4, 0, "Page 1 of 2", "BUYER'S ORDER (continued)");
   // Loan terms as printed: a term and payment, or a schedule with a final payment a few cents different.
   const finalStyle = hasLoan && chance(0.3);
   const finalPay = r2(payment + Math.round(rand() * 60) / 100);

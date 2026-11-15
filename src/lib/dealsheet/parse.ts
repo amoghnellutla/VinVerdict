@@ -199,7 +199,10 @@ export function parseDealSheet(input: string): DealSheet {
       .replace(/(?<![A-Za-z0-9$])S(?=\d{1,3}(?:,\d{3})*\.\d{2}(?!\d))/g, "$")
       .replace(/\$(\s?)(\d{1,3}(?:,\d{3})*),(\d{2})(?![\d,.])/g, "$$$1$2.$3");
   const text = ocrThousands(ocrMoney(input.replace(/\r\n?/g, "\n")).replace(/[OoIl]/g, (c, at: number, s: string) => (/[\d$]/.test(s[at - 1] ?? "") && /[\d.,]/.test(s[at + 1] ?? "") ? (/[Oo]/.test(c) ? "0" : "1") : c)))
-    .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3")
+    // (A sentence's full stop may follow: "is $9.780.00.")
+    .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?!\d|\.\d)/g, "$1,$2.$3")
+    // A whole-dollar amount with its comma read as a period: "$11.610" (a price never has three decimals).
+    .replace(/\$(\s?)(\d{1,3})\.(\d{3})(?!\d|\.\d)/g, "$$$1$2,$3")
     // …and the comma as a space: "$26 635.71" (only after "$" and with cents, where nothing else fits).
     .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3")
     .replace(/[−‒–](?=\$?\d)/g, "-")
@@ -450,15 +453,15 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
   if (words < 10 || /^\(?[0-9A-Z]{1,2}[.)]\s/.test(line) || !/\b(?:we|you|your|i|i'm|we're|we'll|can|could|would|let me|thanks|thank you|hey|hi|hello|please|here'?s|here is)\b/i.test(line)) return null;
   // A payment schedule written as a sentence ("Your first monthly payment of $439.66 … followed by 35 payments of") is the loan's.
   if (/\bpayments? of\b|\bfollowed by\b|\bmonthly payments?\b/i.test(line)) return null;
-  const NUM = /(?<![\w.,$])\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{3,6}(?:\.\d{2})?)(?![\d,]|\.\d|\s?(?:%|\/\s?mo|per month|a month|months?\b|mo\b|miles?\b|mi\b))/g;
-  const pieces = line.split(/\s*(?:,(?!\d{3})|[;!?]|\.(?!\d)|\bplus\b|\band\b|\+|&)\s*/i);
+  const NUM = /(?<![\w.,$])\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{1,6}\.\d{2}|\d{1,6})(?![\d,]|\.\d|\s?(?:%|\/\s?mo|per month|a month|months?\b|mo\b|miles?\b|mi\b))/g;
+  const pieces = line.split(/\s*(?:,(?!\d{3})|[;!?]|\.(?!\d)|\bplus\b|\band\b|\+|(?<=\d)\s&\s)\s*/i);
   const out: { label: string; value: number }[] = [];
   let sawPrice = false;
   for (const piece of pieces) {
-    const nums = [...piece.matchAll(NUM)].filter((m) => !/^(?:19[89]\d|20[0-4]\d)$/.test(m[1]) || m[0].includes("$"));
+    const nums = [...piece.matchAll(NUM)].filter((m) => (!/^(?:19[89]\d|20[0-4]\d)$/.test(m[1]) || m[0].includes("$")) && (m[1].length > 2 || m[0].includes("$")));
     if (nums.length !== 1) continue;
     const value = Number(nums[0][1].replace(/,/g, ""));
-    if (value < 50) continue;
+    if (value < 50 && !/\$|\.\d{2}$/.test(nums[0][0])) continue;
     let label = (piece.slice(0, nums[0].index) + " " + piece.slice(nums[0].index + nums[0][0].length)).replace(/\s+/g, " ").trim();
     // "here's your out the door: price 18,500": after a colon, the words that follow name the line.
     const afterColon = label.split(/:\s+/).at(-1) ?? label;

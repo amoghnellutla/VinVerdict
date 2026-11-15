@@ -373,6 +373,20 @@ describe("what each line is", () => {
     expect(parseDealSheet("Vehicle Price $1,000.00\nDown Payment $2,051.46\nAmount Due -$1,051.46").lines.at(-1)?.amount).toBe(-1051.46);
   });
 
+  it("an emailed quote keeps a $85 doc fee and 'lic & reg', and never takes '3 year' for money", () => {
+    expect(parseDealSheet("Hi, here's your quote: purchase price $ 10,138, doc fee $ 85, lic & reg $ 229.40, 3 year maintenance plan $ 1,295, total $ 11,747.40.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 10138], ["docFee", 85], ["stateFee", 229.4], ["loanProduct", 1295], ["total", 11747.4]]);
+  });
+
+  it("an emailed quote keeps its small amounts and TT&L", () => {
+    expect(parseDealSheet("Thanks for coming in. The selling price is $26,426.00. The wheel locks is $89.00. The registration fee is $68.98. The tt&l is $280.47.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 26426], ["addOn", 89], ["stateFee", 68.98], ["stateFee", 280.47]]);
+    expect(parseDealSheet("Hi, here's your quote: purchase price $10,648.00, doc fee $85.00, reg fee $61.52, total $10,794.52.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 10648], ["docFee", 85], ["stateFee", 61.52], ["total", 10794.52]]);
+  });
+
+  it("a comma read as a period is repaired at the end of a sentence and in whole dollars", () => {
+    expect(parseDealSheet("The vehicle price is $9.780.00. The doc fee is $899.00. The total is $10.679.00.").lines.map((l) => l.amount)).toEqual([9780, 899, 10679]);
+    expect(parseDealSheet("Hi, here's your quote: cash price $11.610, doc fee $699, total $12.309.").lines.map((l) => l.amount)).toEqual([11610, 699, 12309]);
+  });
+
   it("list numbering and a currency word aren't part of the label", () => {
     expect(parseDealSheet("1. Vehicle Price $23,000.00\nB. Doc Fee $799.00\n(c) Title Fee $60.00\nTotal USD 23,859.00").lines.map((l) => l.label)).toEqual(["Vehicle Price", "Doc Fee", "Title Fee", "Total"]);
   });
