@@ -191,6 +191,20 @@ describe("what each line is", () => {
     expect(padded.leaseMath?.verdict).toBe("check");
   });
 
+  it("with local tax, the taxable amount that gives a real local rate is the one named (2.25%, not 2.452%)", () => {
+    const paper = "Cash Price $18,450.00\nDoc Fee $85.00\nDealer Prep $395.00\nSales Tax $1,798.35\nReg Fee $212.00\nTotal $21,140.35";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "CA", modelYear: 2020, now: new Date("2026-11-15") });
+    const tax = c.rows.find((r) => r.line.kind === "tax")!;
+    expect(tax.note).toContain("about 2.25% local tax on the price, plus the doc fee and other fees and add-ons");
+  });
+
+  it("a subtotal that the lines above add up to is confirmed (Texas Trade Difference)", () => {
+    const paper = "MSRP $36,450.00\nFloor Liners $329.00\nSubtotal $36,779.00\nTrade Allowance $12,000.00\nTrade Difference $24,779.00\nSales Tax $1,548.69\nTotal $26,327.69";
+    const c = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "TX", modelYear: 2026, condition: "new", now: new Date("2026-11-15") });
+    expect(c.rows.find((r) => r.line.label === "Trade Difference")?.verdict).toBe("right");
+    expect(c.rows.find((r) => r.line.label === "Subtotal")?.verdict).toBe("right");
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);

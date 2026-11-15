@@ -153,13 +153,21 @@ function taxCandidates(lines: DealLine[], state: StateCode, modelYear: number | 
 
 /** The local rate (city, county, district) a state-plus-local tax implies, on the likely taxable amount: up to 6%. */
 function impliedLocal(lines: DealLine[], state: StateCode, modelYear: number | null, now: Date, tax: number): { pct: number; base: string } | null {
+  const found: { pct: number; base: string; round: boolean }[] = [];
   for (const [b, base] of taxBases(lines)) {
     const stateOnly = vehicleTax(state, { taxable: b, price: b, seller: "dealer", modelYear, localPct: 0, now }).lines.reduce((s, l) => s + l.amount, 0);
     const pct = Math.round(((tax - stateOnly) / b) * 100000) / 1000;
-    // A whole-thousandth local rate (4.875%, 2.25%) is how local rates are set; anything else isn't a clean match.
-    if (pct > 0 && pct <= 6 && Math.abs(stateOnly + (b * pct) / 100 - tax) <= 1) return { pct, base };
+    if (!(pct > 0 && pct <= 6 && Math.abs(stateOnly + (b * pct) / 100 - tax) <= 1)) continue;
+    // Local rates are set in steps (2.25%, 1.5%, 4.875%, 0.375%): the taxable amount that gives such a rate, to
+    // the cent, is the one the dealer used; any amount gives some rate.
+    const exact = [0.125, 0.05].some((step) => {
+      const r = Math.round(pct / step) * step;
+      return Math.abs(stateOnly + (b * r) / 100 - tax) <= 0.02;
+    });
+    found.push({ pct: exact ? Math.round(pct / 0.005) * 0.005 : pct, base, round: exact });
   }
-  return null;
+  const pick = found.find((f) => f.round) ?? found[0];
+  return pick ? { pct: Math.round(pick.pct * 1000) / 1000, base: pick.base } : null;
 }
 
 export function checkDealSheet(input: CheckInput): DealCheck {
@@ -339,8 +347,10 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         };
       case "reference":
         return { line, verdict: "info", note: "A reference figure, not a charge." };
-      case "subtotal":
-        return { line, verdict: "info", note: "A subtotal." };
+      case "subtotal": {
+        const t = rec.totals.find((x) => x.label === line.label && x.amount === line.amount);
+        return t?.matches ? { line, verdict: "right", note: `A subtotal: the lines add up to this (${t.matches}).` } : { line, verdict: "info", note: "A subtotal." };
+      }
       case "total":
       case "balanceDue":
       case "amountFinanced": {

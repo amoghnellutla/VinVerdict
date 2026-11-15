@@ -49,12 +49,13 @@ export function reconcile(lines: DealLine[]): Reconcile {
   };
   const totals = lines
     .map((t, i) => ({ t, i }))
-    .filter(({ t }) => (t.kind === "total" || t.kind === "balanceDue" || t.kind === "amountFinanced") && !t.declined && !t.fromAi)
+    .filter(({ t }) => (t.kind === "total" || t.kind === "balanceDue" || t.kind === "amountFinanced" || t.kind === "subtotal") && !t.declined && !t.fromAi)
     .map(({ t, i }) => ({
       label: t.label, amount: t.amount, kind: t.kind,
       matches: sums.find((s) => Math.abs(s.amount - t.amount) <= CENTS)?.label ?? (runAbove(i, t.amount) ? "the lines above it" : null),
     }));
-  return { sums, totals, confirmed: totals.some((t) => t.matches) };
+  // A subtotal that adds up confirms the lines above it, not the whole paper.
+  return { sums, totals, confirmed: totals.some((t) => t.matches && t.kind !== "subtotal") };
 }
 
 const CREDIT: readonly LineKind[] = ["discount", "rebate", "tradeIn", "downPayment"];
