@@ -14,6 +14,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { checkDealSheet, type DealCheck } from "./check";
 import { makeLease, makeOptions, makePaper, rng, type Paper } from "./fuzz-gen";
 import { diffPapers, snapshot } from "./diff";
+import { negotiationPlan } from "./negotiate";
 import { parseDealSheet } from "./parse";
 import { redactDealSheet } from "./redact";
 
@@ -42,6 +43,13 @@ ${redactDealSheet(p.text).text}`);
         if (c.loan) t.loansRead++;
       }
       if (p.negativeEquity && !(c.negativeEquity > 0)) bad.push(`#${seed}: negative equity not reported\n${p.text}`);
+      // The plan never asks the buyer to pay more than the paper's own total, and on a right paper it's that total.
+      const sheet = parseDealSheet(redactDealSheet(p.text).text);
+      const plan = negotiationPlan({ sheet, check: c, ad: p.ad, state: p.state, modelYear: 2021, now: new Date("2026-11-15") });
+      const paperTotal = sheet.lines.find((l) => l.kind === "total" && !l.declined)?.amount;
+      if (plan.target != null && paperTotal != null && !plan.plusTax && plan.target > paperTotal + 1) bad.push(`#${seed} (${p.problem}): target ${plan.target} above the paper's total ${paperTotal}\n${p.text}`);
+      if (plan.target != null && plan.target < 0) bad.push(`#${seed}: negative target ${plan.target}`);
+      if (p.problem === "none" && p.ad && plan.target != null && paperTotal != null && !plan.plusTax && Math.abs(plan.target - paperTotal) > 1) bad.push(`#${seed}: clean paper, target ${plan.target} vs total ${paperTotal}\n${p.text}`);
       if (p.problem === "none") {
         t.clean++;
         const checks = c.rows.filter((r) => r.verdict === "check" && !(p.condition === "new" && (r.line.name === "Destination charge" || r.line.kind === "docFee")) && !(p.negativeEquity && r.line.kind === "payoff")).map((r) => `${r.line.label}: ${r.note}`).concat(c.loan?.verdict === "check" ? [`loan: ${c.loan.note}`] : []);
