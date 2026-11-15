@@ -90,19 +90,25 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const payment = problem === "packed" ? r2(exact + 20 + Math.round(rand() * 40)) : exact;
   const name = `${pick(["Pat", "Sam", "Alex", "Jordan"])} ${pick(["Example", "Sample", "Tester"])}`;
 
+  // An installment contract's layout: the cash price total, the credits, the "Unpaid Balance of Cash Price", then
+  // the loan products after it, then the Amount Financed (a principal that isn't the unpaid balance).
+  const risc = hard && problem === "product" && hasLoan && chance(0.5);
+  const productCost = risc ? extra[0][1] : 0;
   const rows: [string, number][] = [
     [pick(WORDS.price), listed],
     ...destRow,
     ...creditRow,
     ...(doc ? [[pick(WORDS.doc), doc] as [string, number]] : []),
-    ...extra,
+    ...(risc ? [] : extra),
     [pick(WORDS.gov), gov],
     [pick(WORDS.tax), tax],
-    [pick(WORDS.total), total],
+    [pick(WORDS.total), r2(total - productCost)],
     ...(trade ? [[pick(WORDS.trade), trade] as [string, number]] : []),
     ...(payoff ? [[pick(WORDS.payoff), payoff] as [string, number]] : []),
     ...(down ? [[pick(WORDS.down), down] as [string, number]] : []),
-    ...(trade || down || payoff ? [[pick(WORDS.balance), balance] as [string, number]] : []),
+    ...(risc
+      ? [[pick(["Unpaid Balance of Cash Price", "Unpaid Balance", "Unpaid Cash Balance"]), r2(balance - productCost)] as [string, number], ...extra]
+      : trade || down || payoff ? [[pick(WORDS.balance), balance] as [string, number]] : []),
     ...(hasLoan ? [[pick(WORDS.financed), balance] as [string, number]] : []),
   ];
   // Whole-dollar amounts print without cents on some papers.
