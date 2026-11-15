@@ -47,7 +47,17 @@ export type DealSheet = {
   /** Several payment options on one worksheet ("60 months $542/mo, 72 months $468/mo"): no single loan. */
   paymentOptions?: { months: number; payment: number }[];
   /** A lease's own numbers, as printed: the adjusted capitalized cost, the residual and the money factor. */
-  leaseTerms?: { adjustedCap: number | null; residual: number | null; moneyFactor: number | null };
+  leaseTerms?: {
+    adjustedCap: number | null;
+    residual: number | null;
+    moneyFactor: number | null;
+    /** The federal lease disclosure's "Rent charge" (the lease's interest over the whole term), when there's no money factor. */
+    rentCharge?: number | null;
+    /** "Depreciation and any amortized amounts". */
+    depreciation?: number | null;
+    /** The payment before tax ("Base monthly payment"). */
+    basePayment?: number | null;
+  };
 };
 
 /** Credits: they lower what's owed. */
@@ -96,7 +106,7 @@ const has = (re: RegExp, s: string) => re.test(s);
 export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   const l = rawLabel.toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
   // Lease terms are information, not charges: the cap cost, residual, money factor, the amount due at signing.
-  if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b/, l)) return { kind: "leaseTerm" };
+  if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b|\bdepreciation\b|\brent charge\b|\bbase monthly payments?\b/, l)) return { kind: "leaseTerm" };
   // The leasing company's own fees (often marked up by the dealer): asked about, not refused.
   if (has(/\b(?:acquisition|disposition|bank|lease (?:origination|initiation)|lessor) fee\b/, l)) return { kind: "leaseFee" };
   // Loan disclosure words first: "Total of payments" is not the total price.
@@ -252,6 +262,7 @@ export function parseDealSheet(input: string): DealSheet {
     flush();
     hits.forEach((h, i) => {
       if (!isLabel(own[i])) return;
+      if (i > 0 && /^(?:is|are|and|or|followed|then|plus|of|for|at|due|with|which)\b/.test(own[i])) return;
       if (BASE_END.test(own[i]) && i + 1 < hits.length && !isLabel(own[i + 1])) push(own[i].replace(BASE_END, "").replace(/[\s(]+$/, ""), hits[i + 1].value, line);
       else push(own[i], h.value, line);
     });
@@ -366,10 +377,14 @@ function leaseTerms(text: string, lines: DealLine[]): NonNullable<DealSheet["lea
   const reduction = find(/cap(?:italized)? cost reduction/);
   const mf = /money factor\s*[:\-]?\s*(0?\.\d{3,6})\b/i.exec(text);
   const factor = mf ? Number(mf[1]) : null;
+  const base = /\bbase monthly payment\b[^$\d\n]{0,20}\$?\s?(\d{1,3}(?:,\d{3})*\.\d{2})/i.exec(text);
   return {
     adjustedCap: adjusted ?? (gross != null && reduction != null ? Math.round((gross - reduction) * 100) / 100 : gross),
     residual: find(/\bresidual/),
     moneyFactor: factor != null && factor > 0 && factor < 0.01 ? factor : null,
+    rentCharge: find(/\brent charge/),
+    depreciation: find(/\bdepreciation/),
+    basePayment: base ? Number(base[1].replace(/,/g, "")) : null,
   };
 }
 

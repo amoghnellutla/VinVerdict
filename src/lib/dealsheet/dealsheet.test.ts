@@ -179,6 +179,18 @@ describe("what each line is", () => {
     expect(checkDealSheet({ sheet: s, ad: null, state: null, modelYear: 2021 }).loan).toBeNull();
   });
 
+  it("a lease disclosure with a rent charge and no money factor: the base payment is checked and the rate it implies is shown", () => {
+    const paper = "Lease Agreement\nMonthly Payments: Your first monthly payment of $439.66 is due at signing, followed by 35 payments of $439.66\nAdjusted capitalized cost $34,450.00\nResidual value $21,870.00\nRent charge $2,264.40\nLease term 36 months\nBase monthly payment $412.34\nMonthly sales/use tax $27.32";
+    const s = parseDealSheet(paper);
+    expect(s.lines.some((l) => /followed by/.test(l.label))).toBe(false);
+    const c = checkDealSheet({ sheet: s, ad: null, state: "NJ", modelYear: 2026, now: new Date("2026-11-15") });
+    expect(c.leaseMath?.verdict).toBe("right");
+    expect(c.leaseMath?.note).toContain("money factor of about 0.001117 (about 2.68% as an interest rate)");
+    // Padded: $25 a month more than the lease math is asked about.
+    const padded = checkDealSheet({ sheet: parseDealSheet(paper.replace("Base monthly payment $412.34", "Base monthly payment $462.34")), ad: null, state: null, modelYear: 2026 });
+    expect(padded.leaseMath?.verdict).toBe("check");
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);

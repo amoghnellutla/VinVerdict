@@ -123,7 +123,7 @@ const SAID_WEAK = new RegExp(String.raw`${WHO}\b(?:wants?|is asking|would|will|'
  * fees itemized with amounts (listing pages say "Taxes & fees" without numbers), plus deal-paper words.
  */
 export function isDealSheet(text: string): boolean {
-  if (!/buyer'?s order|out[- ]the[- ]door|doc(?:ument\w*)? fee|total (?:cash )?price|amount financed|retail installment|purchase agreement|worksheet|balance due/i.test(text)) return false;
+  if (!/buyer'?s order|out[- ]the[- ]door|doc(?:ument\w*)? fee|total (?:cash )?price|amount financed|retail installment|purchase agreement|worksheet|balance due|lease agreement|capitali[sz]ed cost|residual value|money factor/i.test(text)) return false;
   const sheet = parseDealSheet(text);
   const lines = sheet.lines.filter((l) => !l.declined);
   const has = (k: string) => lines.some((l) => l.kind === k);
@@ -131,8 +131,10 @@ export function isDealSheet(text: string): boolean {
   // other lines; a dealer's paper is mostly money lines (or one sentence of them, a texted quote).
   const textLines = text.split(/\r?\n/).filter((l) => l.trim()).length;
   const mostlyMoney = lines.length / Math.max(1, textLines) >= 0.2;
-  // A lease worksheet or a payment-options worksheet has a price but often no total or tax.
-  if ((sheet.lease || sheet.paymentOptions) && has("price") && lines.length >= 2 && mostlyMoney) return true;
+  // A lease worksheet or a payment-options worksheet has a price but often no total or tax; a lease disclosure has
+  // its cap cost, residual and rent charge instead of a price.
+  const leaseLines = lines.filter((l) => l.kind === "leaseTerm").length;
+  if ((sheet.lease || sheet.paymentOptions) && (has("price") || leaseLines >= 3) && lines.length >= 2 && mostlyMoney) return true;
   return lines.length >= 4 && mostlyMoney && (has("total") || has("balanceDue") || has("amountFinanced")) && (has("tax") || has("stateFee"));
 }
 

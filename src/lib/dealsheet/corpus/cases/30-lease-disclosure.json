@@ -1,0 +1,30 @@
+{
+  "note": "Written for the tests (synthetic). The federal lease disclosure (Regulation M) layout: a rent charge instead of a money factor, the depreciation and the base payment printed, and tax on each payment. Every line is checked from the lease's own numbers; only the disposition fee is a question.",
+  "state": "NJ",
+  "condition": "new",
+  "ad": { "price": 36450, "docFee": null, "sellerType": "dealer" },
+  "modelYear": 2026,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      { "label": "Gross capitalized cost", "kind": "leaseTerm", "amount": 36450 },
+      { "label": "Adjusted capitalized cost", "kind": "leaseTerm", "amount": 34450 },
+      { "label": "Residual value", "kind": "leaseTerm", "amount": 21870 },
+      { "label": "Depreciation and any amortized amounts", "kind": "leaseTerm", "amount": 12580 },
+      { "label": "Rent charge", "kind": "leaseTerm", "amount": 2264.4 },
+      { "label": "Monthly sales/use tax", "kind": "tax", "amount": 27.32 }
+    ],
+    "confirmed": false,
+    "loan": null,
+    "lease": true,
+    "verdicts": {
+      "Depreciation": "right",
+      "Total of base monthly payments": "right",
+      "Monthly sales/use tax": "right",
+      "Disposition fee": "check",
+      "Rent charge": "info"
+    },
+    "hiddenTotal": 0
+  }
+}

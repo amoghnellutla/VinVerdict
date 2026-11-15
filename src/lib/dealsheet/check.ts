@@ -217,8 +217,22 @@ export function checkDealSheet(input: CheckInput): DealCheck {
       }
       case "leaseFee":
         return { line, verdict: "check", note: "The leasing company's fee. Dealers sometimes add to it: ask for the leasing company's own amount in writing." };
-      case "leaseTerm":
+      case "leaseTerm": {
+        const T = sheet.leaseTerms;
+        // The disclosure's depreciation is the adjusted cap cost less the residual.
+        if (/depreciation/i.test(line.label) && T?.adjustedCap && T.residual) {
+          const d = r2(T.adjustedCap - T.residual);
+          if (Math.abs(d - line.amount) <= 1) return { line, verdict: "right", note: `The adjusted cap cost (${cents(T.adjustedCap)}) less the residual (${cents(T.residual)}).` };
+          return { line, verdict: "check", note: `The adjusted cap cost less the residual is ${cents(d)}, not ${cents(line.amount)}: ask what else is in it.` };
+        }
+        // "Total of base monthly payments" is the depreciation plus the rent charge.
+        if (/total of base/i.test(line.label) && T?.depreciation != null && T.rentCharge != null) {
+          const sum = r2(T.depreciation + T.rentCharge);
+          if (Math.abs(sum - line.amount) <= 1) return { line, verdict: "right", note: `The depreciation (${cents(T.depreciation)}) plus the rent charge (${cents(T.rentCharge)}).` };
+          return { line, verdict: "check", note: `The depreciation plus the rent charge is ${cents(sum)}, not ${cents(line.amount)}: ask what else is in the payments.` };
+        }
         return { line, verdict: "info", note: "A lease term (see the note on leases above)." };
+      }
       case "docFee": {
         // A state's legal maximum, where its own law or DMV says so (only those checked are listed).
         const cap = state ? capFor(state, netPrice) : null;
@@ -276,6 +290,14 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         hidden.push({ what: line.name ?? line.label, amount: line.amount, why: "An optional product sold with the loan." });
         return { line, verdict: "remove", note: `Optional (${line.name ?? "a loan product"}). A lender generally can't require it to give you the loan. You're saying no to it.`, source: REF.cfpbAddOns };
       case "tax": {
+        if (sheet.lease && /\bmonthly\b|\bper month\b|\bpayment\b/i.test(line.label)) {
+          const base = sheet.leaseTerms?.basePayment;
+          if (state && base) {
+            const t = r2(vehicleTax(state, { taxable: base, price: base, seller: "dealer", modelYear: input.modelYear, localPct: 0, now }).lines.reduce((s, l) => s + l.amount, 0));
+            if (Math.abs(t - line.amount) <= 0.05) return { line, verdict: "right", note: `${STATES[state]}'s ${STATE_TAX[state].summary} of the ${cents(base)} base monthly payment.` };
+          }
+          return { line, verdict: "info", note: "Tax on each lease payment. States tax leases differently (on each payment, or up front): ask how it's worked out." };
+        }
         if (!state) return { line, verdict: "info", note: "Sales tax. Add your ZIP to check it against your state's rate." };
         const cands = taxCandidates(sheet.lines, state, input.modelYear, now);
         const hit = cands.find((c) => Math.abs(c.amount - line.amount) <= 2);
@@ -399,13 +421,16 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   // Never "wrong": states tax lease payments differently, and some fees are rolled in. It says what the math gives.
   let leaseMath: DealCheck["leaseMath"] = null;
   const T = sheet.leaseTerms;
-  if (sheet.lease && T?.adjustedCap && T.residual && T.moneyFactor && L.months && L.payment && T.adjustedCap > T.residual) {
-    const base = r2((T.adjustedCap - T.residual) / L.months + (T.adjustedCap + T.residual) * T.moneyFactor);
-    const stated = L.payment;
+  const leaseFactor = T?.moneyFactor ?? (T?.rentCharge && L.months && T.adjustedCap && T.residual ? Math.round((T.rentCharge / L.months / (T.adjustedCap + T.residual)) * 1e6) / 1e6 : null);
+  const leasePayment = T?.basePayment ?? L.payment;
+  if (sheet.lease && T?.adjustedCap && T.residual && leaseFactor && L.months && leasePayment && T.adjustedCap > T.residual) {
+    const fromRent = !T.moneyFactor && !!T.rentCharge;
+    const base = fromRent ? r2((T.adjustedCap - T.residual + T.rentCharge!) / L.months) : r2((T.adjustedCap - T.residual) / L.months + (T.adjustedCap + T.residual) * leaseFactor);
+    const stated = leasePayment;
     const pct = Math.round((stated / base - 1) * 1000) / 10;
-    const rate = `money factor ${T.moneyFactor} (about ${Math.round(T.moneyFactor * 2400 * 100) / 100}% as an interest rate)`;
+    const rate = `${fromRent ? `a ${cents(T.rentCharge!)} rent charge, which is a money factor of about ${leaseFactor}` : `money factor ${leaseFactor}`} (about ${Math.round(leaseFactor * 2400 * 100) / 100}% as an interest rate)`;
     if (Math.abs(stated - base) <= PAYMENT_GAP) {
-      leaseMath = { base, stated, verdict: "right", note: `The payment matches the lease math before tax: ${cents(T.adjustedCap)} adjusted cap cost, ${cents(T.residual)} residual, ${L.months} months, ${rate}.` };
+      leaseMath = { base, stated, verdict: "right", note: `The ${T.basePayment ? "base " : ""}payment matches the lease math before tax: ${cents(T.adjustedCap)} adjusted cap cost, ${cents(T.residual)} residual, ${L.months} months, ${rate}. Ask whether that's the leasing company's base rate.` };
     } else if (stated > base && pct <= 11.5) {
       leaseMath = { base, stated, verdict: "info", note: `The lease math gives ${cents(base)} a month before tax (${rate}). The paper's ${cents(stated)} is ${pct}% more: if that's your state's tax on lease payments it's right. Ask how it's made up.` };
     } else if (stated > base) {

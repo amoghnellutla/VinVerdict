@@ -1,0 +1,18 @@
+CLOSED-END MOTOR VEHICLE LEASE AGREEMENT
+Lessee: Robin Example
+2026 Honda CR-V EX
+Amount Due at Lease Signing $3,245.00
+Monthly Payments: Your first monthly payment of $439.66 is due at signing, followed by 35 payments of $439.66
+Other Charges: Disposition fee (if you do not purchase the vehicle) $395.00
+Total of Payments $18,072.76
+Gross capitalized cost $36,450.00
+Capitalized cost reduction $2,000.00
+Adjusted capitalized cost $34,450.00
+Residual value $21,870.00
+Depreciation and any amortized amounts $12,580.00
+Rent charge $2,264.40
+Total of base monthly payments $14,844.40
+Lease term 36 months
+Base monthly payment $412.34
+Monthly sales/use tax $27.32
+Total monthly payment $439.66
