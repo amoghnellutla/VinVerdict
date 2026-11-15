@@ -146,8 +146,8 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\bpdi\b|\bpre-?delivery (?:inspection|service)\b|\bdealer inspection\b/, l)) return { kind: "dealerFee" };
   // Some other fee: it could be a government one, so it's asked about rather than refused.
   if (has(/\bfee\b/, l)) return { kind: "dealerFee", name: "Other fee" };
-  if (has(/\brebate\b|\bincentive\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
-  if (has(/\bdiscount\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b|\byou save\b/, l)) return { kind: "discount" };
+  if (has(/\brebates?\b|\bincentives?\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
+  if (has(/\bdiscounts?\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b|\byou save\b/, l)) return { kind: "discount" };
   if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
   if (has(/\bbalance due\b|\bdue (?:at|on) (?:signing|delivery)\b|\bamount due\b|\bbalance owing\b|\bnet (?:due|payoff)\b/, l)) return { kind: "balanceDue" };
   if (has(/\bsub-?total\b|\btaxable (?:amount|total|price)\b|\btotal taxable\b/, l)) return { kind: "subtotal" };
