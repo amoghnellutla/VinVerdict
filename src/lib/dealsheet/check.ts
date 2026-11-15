@@ -190,6 +190,8 @@ export function checkDealSheet(input: CheckInput): DealCheck {
             ? { line, verdict: "wrong", note: `${usd(over)} more than the dealer fee the ad showed (${usd(adFee)}).` }
             : { line, verdict: "check", note: `Reads as ${usd(over)} more than the ad's dealer fee (${usd(adFee)}). Check this line.` };
         }
+        // Only say what the ad showed when the ad is known.
+        if (!ad || ad.price == null) return { line, verdict: "info", note: "The dealer's own fee for the paperwork. Ask whether it's negotiable, or for it to be taken off the price." };
         return { line, verdict: "check", note: "The dealer's own fee. It wasn't in a price the ad showed: ask for it to be lowered or included in the price.", source: REF.ftcAddOns };
       }
       case "dealerFee":

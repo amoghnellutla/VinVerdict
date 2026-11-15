@@ -145,7 +145,7 @@ describe("doc fee above a state's legal maximum", () => {
     const ny = checkDealSheet({ sheet: parseDealSheet(paper), ad: null, state: "NY", modelYear: 2021 });
     expect(ny.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong");
     const ca = checkDealSheet({ sheet: parseDealSheet(paper.replace("$175.00", "$399.00").replace("$22,175.00", "$22,399.00")), ad: null, state: "CA", modelYear: 2021 });
-    expect(ca.rows.find((r) => r.line.kind === "docFee")?.verdict).toBe("check");
+    expect(ca.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong"); // no confirmed cap and no ad: never wrong
   });
 
   it("Maryland caps it at $800; Minnesota at $350 or 10% of the sale, whichever is less", () => {
@@ -197,5 +197,21 @@ describe("the Truth-in-Lending box on a finance contract", () => {
   it("a tax included in the cash price in brackets is its own line, and the cash price is a subtotal", () => {
     const s = parseDealSheet("1. Cash Price (including $1,510.30 sales tax)  $24,307.30\n   Vehicle  $21,998.00\n   Documentary Fee  $799.00");
     expect(s.lines.map((l) => [l.kind, l.amount])).toEqual([["tax", 1510.3], ["subtotal", 24307.3], ["price", 21998], ["docFee", 799]]);
+  });
+});
+
+describe("found by the generated papers", () => {
+  it("a negative balance keeps its sign: 'Amount Due $-1,051.46' means the dealer owes the buyer", () => {
+    const s = parseDealSheet("Cash Price of Vehicle $9,828.00\nTitle Fee $161.43\nSales Tax $651.11\nTotal Cash Price $10,640.54\nTrade-In Value $9,692.00\nCash Down $2,000.00\nAmount Due $-1,051.46");
+    expect(s.lines.find((l) => l.kind === "balanceDue")?.amount).toBe(-1051.46);
+    expect(checkDealSheet({ sheet: s, ad: null, state: null, modelYear: 2018 }).rows.find((r) => r.line.kind === "balanceDue")?.verdict).toBe("right");
+  });
+
+  it("in a flattened column, 'Down Payment / Amount Due' is never read as a payment amount", () => {
+    const paper = ["ITEMIZATION", "Sale Price", "Down Payment", "Amount Due", "Amount Financed", "$17,605.00", "$2,000.00", "$15,605.00", "$15,605.00",
+      "Annual Percentage Rate 9.99%", "Term 84 months", "Monthly Payment $258.98"].join("\n");
+    const s = parseDealSheet(paper);
+    expect(s.loan.payment).toBe(258.98);
+    expect(s.loan.amountFinanced).toBe(15605);
   });
 });

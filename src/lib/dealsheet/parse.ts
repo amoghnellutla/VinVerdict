@@ -92,7 +92,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:acquisition|disposition|bank|lease (?:origination|initiation)|lessor) fee\b/, l)) return { kind: "leaseFee" };
   // Loan disclosure words first: "Total of payments" is not the total price.
   if (has(/\b(?:annual percentage rate|apr|interest rate|finance charge|total of payments|total sale price|monthly payment|payment amount|amount of (?:each )?payments?|number of payments|term|first payment|payments? (?:of|due))\b/, l)) return { kind: "loan" };
-  if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financed\b|\bloan amount\b|\bbalance to finance\b/, l)) return { kind: "amountFinanced" };
+  if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financ(?:e|ed)\b|\bamount financing\b|\bto be financed\b|\bloan amount\b|\bbalance to finance\b|\btotal (?:amount )?financed\b/, l)) return { kind: "amountFinanced" };
   if (has(/\bnegative equity\b/, l)) return { kind: "negativeEquity" };
   if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b/, l)) return { kind: "payoff" };
   if (has(/\btrade[- ]?in\b|\btrade (?:allowance|value|credit|equity)\b|\ballowance\b/, l)) return { kind: "tradeIn" };
@@ -119,7 +119,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?<![\w.,$])(\()?(-)?\s?(\$)?\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
+const AMOUNT = /(?<![\w.,$])(\()?(-)?\s?(\$)?\s?(-)?\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 const NOT_MONEY_BEFORE = /\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|#)\s*(?:no\.?|number|#)?\s*[:#]?\s*$/i;
 
@@ -128,12 +128,13 @@ type Hit = { at: number; end: number; value: number };
 function amountsIn(line: string): Hit[] {
   const out: Hit[] = [];
   for (const m of line.matchAll(AMOUNT)) {
-    const [, open, minus, dollar, whole, cents, close, trailMinus] = m;
+    // A minus before or after the "$" ("-$500", "$-1,051.46"), brackets, or a trailing minus: a negative amount.
+    const [, open, minus, dollar, minus2, whole, cents, close, trailMinus] = m;
     if (!dollar && !cents && !whole.includes(",")) continue;
     if (!dollar && NOT_MONEY_BEFORE.test(line.slice(Math.max(0, m.index - 30), m.index))) continue;
     const value = Number(whole.replace(/,/g, "")) + (cents ? Number(cents) : 0);
     if (!Number.isFinite(value) || value > 2_000_000) continue;
-    out.push({ at: m.index, end: m.index + m[0].length, value: (open && close) || minus || trailMinus ? -value : value });
+    out.push({ at: m.index, end: m.index + m[0].length, value: (open && close) || minus || minus2 || trailMinus ? -value : value });
   }
   return out;
 }
@@ -154,7 +155,10 @@ export function parseDealSheet(input: string): DealSheet {
   const push = (label: string, value: number, wholeLine: string) => {
     const { kind, name } = classify(label);
     const declined = NOT_CHARGED.test(wholeLine) || value === 0;
-    lines.push({ label, amount: Math.abs(value), kind, declined, ...(name ? { name } : {}) });
+    // Totals and balances keep their sign: "Amount Due $-1,051.46" means the dealer owes the buyer. Charges and
+    // credits are amounts; their kind says which way they go.
+    const signed = kind === "total" || kind === "balanceDue" || kind === "subtotal" || kind === "amountFinanced";
+    lines.push({ label, amount: signed ? value : Math.abs(value), kind, declined, ...(name ? { name } : {}) });
   };
 
   // Amounts with no words of their own ("$799.00" on its own line, or "$21,998.00  $799.00" in a column): the
@@ -353,15 +357,33 @@ const num = (s: string | undefined) => (s == null ? null : Number(s.replace(/[$,
 
 /** The loan terms, from labelled lines first, then anywhere in the text ("72 months at 7.9%"). */
 function readLoan(text: string, lines: DealLine[]): LoanTerms {
-  const t = text.toLowerCase().replace(/\s+/g, " ");
+  // Line by line: a label's number is on its own line, or on the next line when the label stands alone. Never
+  // across other labels: in a flattened column "Down Payment / Amount Due / $17,605.00" is not a payment amount.
+  const rows = text.toLowerCase().split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
   // A whole amount only: never the "24.27" out of a misread "24.277.80".
   const money = String.raw`\$?\s?(?<![\d.,])(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}|\d{3,6})(?![\d,]|\.\d)`;
-  const near = (label: string) => num(new RegExp(`(?:${label})[^$\\d%]{0,40}${money}`).exec(t)?.[1]);
-  const apr = /(?:annual percentage rate|\bapr\b|a\.p\.r\.|interest rate|\brate\b)[^%\d]{0,40}(\d{1,2}(?:\.\d{1,3})?)\s?%/.exec(t) ?? /(\d{1,2}(?:\.\d{1,3})?)\s?%\s?(?:apr|a\.p\.r|annual percentage rate|interest)/.exec(t);
-  const months =
-    /(?:term|number of payments|no\.? of payments|# of payments)[^\d]{0,25}(\d{2,3})\b/.exec(t) ??
-    /\b(\d{2,3})\s?(?:months?|mos?\.?|monthly payments|payments)\b/.exec(t);
-  const amountFinanced = lines.find((l) => l.kind === "amountFinanced")?.amount ?? near("amount financed|unpaid balance|amount to (?:be )?financed|loan amount");
+  const onlyMoney = new RegExp(String.raw`^\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2})$`);
+  const find = (label: string, value: string, gap: string) => {
+    const re = new RegExp(`(?:${label})${gap}${value}`);
+    const alone = new RegExp(`(?:${label})\\s*:?$`);
+    for (let i = 0; i < rows.length; i++) {
+      const m = re.exec(rows[i]);
+      if (m) return m[1];
+      if (alone.test(rows[i]) && rows[i + 1]) {
+        const next = onlyMoney.exec(rows[i + 1]) ?? new RegExp(`^${value}`).exec(rows[i + 1]);
+        if (next) return next[1];
+      }
+    }
+    return undefined;
+  };
+  const near = (label: string) => num(find(label, money, "[^$\\d%]{0,40}"));
+  const aprAt = find("annual percentage rate|\\bapr\\b|a\\.p\\.r\\.|interest rate|\\brate\\b", String.raw`(\d{1,2}(?:\.\d{1,3})?)\s?%`, "[^%\\d]{0,40}");
+  const aprAfter = rows.map((r) => /(\d{1,2}(?:\.\d{1,3})?)\s?%\s?(?:apr|a\.p\.r|annual percentage rate|interest)/.exec(r)).find(Boolean);
+  const apr = aprAt != null ? [aprAt, aprAt] : aprAfter ?? null;
+  const monthsAt = find("term|number of payments|no\\.? of payments|# of payments", String.raw`(\d{2,3})\b`, "[^\\d]{0,25}");
+  const monthsLoose = rows.map((r) => /\b(\d{2,3})\s?(?:months?|mos?\.?|monthly payments|payments)\b/.exec(r)).find(Boolean);
+  const months = monthsAt != null ? [monthsAt, monthsAt] : monthsLoose ?? null;
+  const amountFinanced = lines.find((l) => l.kind === "amountFinanced")?.amount ?? near("amount financed|unpaid balance|amount to (?:be )?financ(?:e|ed)|to be financed|loan amount");
   const m = months ? Number(months[1]) : null;
   return {
     aprPct: apr ? Number(apr[1]) : null,
