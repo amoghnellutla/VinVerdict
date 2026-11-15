@@ -235,6 +235,31 @@ describe("what each line is", () => {
     expect(c.loan?.verdict).toBe("right");
   });
 
+  it("a price that includes the doc fee is compared with the ad after taking the fee off; the fee isn't counted twice", () => {
+    const ad = { price: 21298, docFee: 799, sellerType: "dealer" as const };
+    for (const paper of [
+      "Vehicle Price (includes $799 doc fee) $22,097.00\nSales Tax $1,463.93\nTitle & Registration $310.00\nTotal $23,870.93",
+      "Vehicle Price $22,097.00 (doc fee of $799.00 included)\nSales Tax $1,463.93\nTitle & Registration $310.00\nTotal $23,870.93",
+      "Selling Price incl. Doc Fee $22,097.00\nSales Tax $1,463.93\nTitle & Registration $310.00\nTotal $23,870.93",
+    ]) {
+      const sheet = parseDealSheet(paper);
+      const c = checkDealSheet({ sheet, ad, state: "NJ", modelYear: 2021, now: new Date("2026-11-15") });
+      expect(c.rows.filter((r) => r.verdict === "wrong"), paper).toEqual([]);
+      expect(c.hiddenTotal, paper).toBe(0);
+      expect(c.confirmed, paper).toBe(true);
+      const price = c.rows.find((r) => r.line.kind === "price")!;
+      expect(price.verdict, paper).toBe("right");
+      expect(price.note, paper).toContain("once the $799 doc fee it includes is taken off");
+      const plan0 = negotiationPlan({ sheet, check: c, ad, state: "NJ", modelYear: 2021, now: new Date("2026-11-15") });
+      expect(plan0.message, paper).not.toContain("honor the advertised price");
+      const plan = negotiationPlan({ sheet, check: c, ad, state: "NJ", modelYear: 2021, now: new Date("2026-11-15") });
+      expect(plan.target, paper).toBe(23870.93);
+    }
+    // Over the ad by $300 with the fee inside: still found.
+    const over = checkDealSheet({ sheet: parseDealSheet("Vehicle Price (includes $799 doc fee) $22,397.00\nTotal $22,397.00"), ad, state: null, modelYear: 2021 });
+    expect(over.rows.find((r) => r.line.kind === "price")?.note).toContain("$300 more than the ad's price");
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);

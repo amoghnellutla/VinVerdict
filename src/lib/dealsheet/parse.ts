@@ -27,6 +27,11 @@ export type DealLine = {
   name?: string;
   /** Read only by the free AI (the pattern reader didn't find it): never a verdict on its own, never in a sum. */
   fromAi?: boolean;
+  /** A doc fee the paper says is already inside the price ("Vehicle Price (includes $799 doc fee)"): shown and
+   *  checked, never added to the price again. */
+  inPrice?: boolean;
+  /** A price whose label says it includes the dealer's fee, amount not given ("Selling Price incl. Doc Fee"). */
+  feeInPrice?: boolean;
 };
 
 export type LoanTerms = {
@@ -125,6 +130,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   const addOns = ADD_ONS.filter(([, re]) => has(re, l));
   if (addOns.length) return addOns.length === 1 ? { kind: "addOn", name: addOns[0][0] } : { kind: "addOn" };
   if (has(/\b(?:pro|protection|appearance|premium|value|security|dealer|accessory|accessories) ?pa(?:ck|ckage|kage)\b/, l)) return { kind: "addOn" };
+  if (has(/\b(?:price|msrp)\b.*\b(?:incl\.?|including|includes|with|w\/)\s.*\b(?:doc|documentary|documentation|processing|dealer|admin|conveyance)\b/, l)) return { kind: "price" };
   if (has(/\b(?:sales|use|state|county|city|local|excise|vehicle|privilege|highway use)? ?tax(?:es)?\b|\bhut\b/, l) && !has(/\btax(?:es)?,? (?:title|tag|license|registration)|title,? (?:tax|tag)|\bdoc(?:umentary)? stamps?\b/, l)) return { kind: "tax" };
   if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fees?|plates?|and|&)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bbmv\b|\bmva\b|\bstate (?:fees?|inspection)\b|(?<!delivery |dealer |pdi )\b(?:state |safety )?inspection fee\b|\bpublic officials?\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b|\b(?:reg|lic|regis)\.? ?(?:fees?|&|and|\/)|\b(?:reg|lic)\.?$|\btt ?& ?l\b|\bttl\b|\bt ?& ?l\b|\bdoc(?:umentary)? stamps?\b|\blemon law\b|\bcounty fees?\b/, l)) return { kind: "stateFee" };
   if (has(/\bdelivery,? processing,? (?:and |& )?handling\b|\bdelivery (?:and|&) handling\b|\bdph\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
@@ -202,12 +208,13 @@ export function parseDealSheet(input: string): DealSheet {
   const queue: string[] = [];
   const push = (label: string, value: number, wholeLine: string) => {
     const { kind, name } = classify(label);
+    const feeInPrice = kind === "price" && /\b(?:incl\.?|including|includes|with|w\/)\s.*\b(?:doc|documentary|documentation|processing|dealer|admin|conveyance)\b/i.test(toEnglish(label));
     const declined = NOT_CHARGED.test(wholeLine) || value === 0;
     // A balance keeps its sign: "Amount Due $-1,051.46" means the dealer owes the buyer. A total price, subtotal or
     // amount financed is never below zero ("Total -$11,479.46" is a dash with its gap lost). Charges and credits are
     // amounts; their kind says which way they go.
     const signed = kind === "balanceDue";
-    lines.push({ label, amount: signed ? value : Math.abs(value), kind, declined, ...(name ? { name } : {}) });
+    lines.push({ label, amount: signed ? value : Math.abs(value), kind, declined, ...(name ? { name } : {}), ...(feeInPrice ? { feeInPrice: true } : {}) });
   };
 
   // Amounts with no words of their own ("$799.00" on its own line, or "$21,998.00  $799.00" in a column): the
@@ -237,7 +244,13 @@ export function parseDealSheet(input: string): DealSheet {
     // (it's in the cash price, which is then a subtotal), never the label of the amount after it.
     const included = /\((?:including|incl\.?)\s*[^)]*?\$\s?([\d,]+\.\d{2})[^)]*\)|\((?:including|incl\.?)\s*[^)]*?\btax(?:es)? of\s?\$\s?([\d,]+\.\d{2})\)/i.exec(line);
     let subtotalHere = false;
-    if (included && /tax/i.test(included[0])) {
+    const feeIn = /\((?=[^)]*\bincl(?:\.|uded|udes|uding)?\b)(?=[^)]*\b(?:doc|documentary|documentation|processing|dealer|admin|conveyance)\b)[^)]*?\$\s?([\d,]+(?:\.\d{2})?)[^)]*\)/i.exec(line);
+    if (feeIn && !/tax/i.test(feeIn[0])) {
+      flush();
+      const value = Number(feeIn[1].replace(/,/g, ""));
+      lines.push({ label: "Doc fee (included in the price)", amount: value, kind: "docFee", declined: value === 0, inPrice: true });
+      line = line.replace(feeIn[0], " ");
+    } else if (included && /tax/i.test(included[0])) {
       flush();
       push("Sales tax (included in the cash price)", Number((included[1] ?? included[2]).replace(/,/g, "")), line);
       line = line.replace(included[0], " ");

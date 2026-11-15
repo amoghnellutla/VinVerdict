@@ -19,7 +19,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const CENTS = 1.01;
 
 export function reconcile(lines: DealLine[]): Reconcile {
-  const live = lines.filter((l) => !l.declined && !l.fromAi);
+  const live = lines.filter((l) => !l.declined && !l.fromAi && !l.inPrice);
   const sum = (kinds: readonly LineKind[]) => r2(live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0));
   const charges = sum(CHARGE_KINDS);
   const discounts = sum(["discount", "rebate"]);
@@ -34,7 +34,7 @@ export function reconcile(lines: DealLine[]): Reconcile {
   ].filter((s, i, a) => a.findIndex((x) => x.amount === s.amount) === i);
   // A subtotal of the lines just above it ("Total Other Charges", "Unpaid balance (1 minus 2)"): charges add,
   // credits take away, read upwards from the total. Matching to the cent is no coincidence.
-  const signed = (l: DealLine) => (l.declined || l.fromAi ? 0 : CREDIT.includes(l.kind) ? -l.amount : CHARGE_KINDS.includes(l.kind) ? l.amount : null);
+  const signed = (l: DealLine) => (l.declined || l.fromAi || l.inPrice ? 0 : CREDIT.includes(l.kind) ? -l.amount : CHARGE_KINDS.includes(l.kind) ? l.amount : null);
   const runAbove = (t: number, amount: number) => {
     let run = 0;
     let n = 0;

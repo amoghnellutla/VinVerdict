@@ -112,7 +112,7 @@ function taxParts(lines: DealLine[]) {
     discount,
     rebate,
     destination,
-    doc: sum((l) => l.kind === "docFee"),
+    doc: sum((l) => l.kind === "docFee" && !l.inPrice),
     extras: sum((l) => (l.kind === "dealerFee" && l.name !== "Destination charge") || l.kind === "addOn"),
     trade: sum((l) => l.kind === "tradeIn"),
   };
@@ -192,7 +192,10 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   // "MSRP $32,900 / Dealer Discount $1,500 / Selling Price $31,400": the discount is already in the selling price.
   const refs = counted.filter((l) => l.kind === "reference").map((l) => l.amount);
   const credits = refs.some((r) => Math.abs(r - listedCredits - sumOf(["price"])) <= 1) ? 0 : listedCredits;
-  const netPrice = r2(sumOf(["price"]) - credits);
+  // A doc fee the paper says is inside the price comes off before the price is compared with the ad.
+  const feeInside = r2(counted.filter((l) => l.kind === "docFee" && l.inPrice).reduce((s, l) => s + l.amount, 0));
+  const adFeeInside = !feeInside && counted.some((l) => l.kind === "price" && l.feeInPrice) && adFee != null ? adFee : 0;
+  const netPrice = r2(sumOf(["price"]) - credits - feeInside - adFeeInside);
   // A new car's sticker (the ad's price for a new car) includes the destination charge: compare like with like.
   const destination = isNew ? r2(counted.filter((l) => l.kind === "dealerFee" && l.name === "Destination charge").reduce((s, l) => s + l.amount, 0)) : 0;
   const adWord = isNew ? "sticker or advertised price" : "ad's price";
@@ -214,7 +217,8 @@ export function checkDealSheet(input: CheckInput): DealCheck {
       case "price": {
         if (i !== firstPrice) return { line, verdict: "info", note: "Part of the car's price on this paper." };
         if (adPrice == null) return { line, verdict: "info", note: isNew ? "The car's price. Compare it with the window sticker (MSRP) or the dealer's advertised price." : "The car's price. Compare it with the price in the ad you saw." };
-        const after = (credits ? ` after the paper's ${usd(credits)} in discounts and rebates` : "") + (destination ? `${credits ? " and" : ""} with the ${usd(destination)} destination charge` : "");
+        const inside = feeInside || adFeeInside;
+        const after = (credits ? ` after the paper's ${usd(credits)} in discounts and rebates` : "") + (inside ? `${credits ? " and" : ""} once the ${usd(inside)} doc fee it includes is taken off` : "") + (destination ? `${credits || inside ? " and" : ""} with the ${usd(destination)} destination charge` : "");
         const compared = r2(netPrice + destination);
         const afterText = after ? (Math.abs(compared - adPrice) <= 1 ? after : `${after} (${usd(compared)})`) : "";
         const over = r2(compared - adPrice);

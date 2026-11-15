@@ -49,7 +49,12 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const refs = live.filter((l) => l.kind === "reference").map((l) => l.amount);
   const listedCredits = sum(["discount", "rebate"]);
   const credits = refs.some((r) => Math.abs(r - listedCredits - sum(["price"])) <= 1) ? 0 : listedCredits;
-  const paperPrice = sum(["price"]) ? r2(sum(["price"]) - credits + destination) : null;
+  // A doc fee inside the price is counted once, as the doc fee.
+  const adFeeShown = ad && ad.sellerType === "dealer" ? ad.docFee : null;
+  const insideLine = r2(live.filter((l) => l.kind === "docFee" && l.inPrice).reduce((s, l) => s + l.amount, 0));
+  // "Selling Price incl. Doc Fee" with no amount: the ad's fee is what's inside.
+  const inside = insideLine || (live.some((l) => l.kind === "price" && l.feeInPrice) && adFeeShown != null ? adFeeShown : 0);
+  const paperPrice = sum(["price"]) ? r2(sum(["price"]) - credits - inside + destination) : null;
   const adPrice = ad?.price ?? null;
   const carPrice = paperPrice == null ? adPrice : adPrice == null ? paperPrice : Math.min(paperPrice, adPrice);
   const adFee = ad && ad.sellerType === "dealer" ? ad.docFee : null;
@@ -68,7 +73,8 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
     // The same way the paper worked it out: with or without the doc fee, before a maker's rebate, less the trade-in.
     const rule = check.taxRule ?? { withDoc: !/on the price\.$/.test(taxRow.note), withExtras: false, lessTrade: false, keepRebate: false };
     const rebate = r2(live.filter((l) => l.kind === "rebate").reduce((s, l) => s + l.amount, 0));
-    const taxable = r2(carPrice + (rule.withDoc ? docFee : 0) + (rule.keepRebate && credits ? rebate : 0) - (rule.lessTrade ? sum(["tradeIn"]) : 0));
+    // A fee inside the price was taxed with it.
+    const taxable = r2(carPrice + (rule.withDoc || inside > 0 ? docFee : 0) + (rule.keepRebate && credits ? rebate : 0) - (rule.lessTrade ? sum(["tradeIn"]) : 0));
     const t = vehicleTax(input.state, { taxable: Math.max(0, taxable), price: carPrice, seller: "dealer", modelYear: input.modelYear, localPct: 0, now: input.now ?? new Date() });
     tax = r2(t.lines.reduce((s, l) => s + l.amount, 0));
   }
