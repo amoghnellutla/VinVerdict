@@ -5,7 +5,7 @@ import { useReportPart } from "./report-parts";
 import { readDealSheetAction } from "@/app/actions/ai";
 import { Turnstile } from "@/components/Turnstile";
 import { compareReads, type AiDealRead } from "@/lib/ai/dealsheet-read";
-import { EXAMPLE_PAPER, EXAMPLE_STATE } from "@/lib/dealsheet/example";
+import { EXAMPLES } from "@/lib/dealsheet/example";
 import { diffPapers, forgetPapers, keepPaper, loadPapers, snapshot, type PaperChange, type PaperSnapshot } from "@/lib/dealsheet/diff";
 import { CopyButton } from "@/components/CopyButton";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -47,14 +47,16 @@ const BADGE: Record<Verdict, { word: string; cls: string }> = {
  * text), and every line is read and checked on this device, with a negotiation plan that assumes every add-on is
  * refused. Nothing is uploaded; the buyer's own details are taken out before anything is shown.
  */
-export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false, onChecked = null, onExample = null }: {
+export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false, onChecked = null, onExample = null, defaultCondition = "used" }: {
   ad: AdFacts | null;
   car?: string | null;
   modelYear?: number | null;
   /** On its own page, under the page's own title. */
   standalone?: boolean;
   /** "Try it with an example": the page fills in the example's ad price and fee; the paper is checked here. */
-  onExample?: (() => void) | null;
+  onExample?: ((ad: { price: number; docFee: number | null }) => void) | null;
+  /** New or used to start with (the buyer's button changes it). VinVerdict's listings are used cars. */
+  defaultCondition?: "new" | "used";
   /** A visitor (the AI double-check needs the "I'm human" check). */
   guest?: boolean;
   /** AI mode is on. */
@@ -77,6 +79,7 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     return z.saved ? z.state : "";
   });
   const [myApr, setMyApr] = useState("");
+  const [condition, setCondition] = useState<"new" | "used">(defaultCondition);
   const [aiRead, setAiRead] = useState<{ read: AiDealRead; provider: string } | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
@@ -136,10 +139,10 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
     if (!read) return null;
     const both = compareReads(parseDealSheet(read.text), aiRead?.read ?? null);
     const sheet = both.sheet;
-    const c = checkDealSheet({ sheet, ad, state: st, modelYear, myAprPct: apr != null && Number.isFinite(apr) ? apr : null, aiAgrees: aiRead ? both.aiAgrees : undefined });
+    const c = checkDealSheet({ sheet, ad, state: st, modelYear, condition, myAprPct: apr != null && Number.isFinite(apr) ? apr : null, aiAgrees: aiRead ? both.aiAgrees : undefined });
     const plan = negotiationPlan({ sheet, check: c, ad, state: st, modelYear, car, myAprPct: apr != null && Number.isFinite(apr) ? apr : null });
     return { sheet, c, plan, both };
-  }, [read, ad, st, modelYear, car, apr, aiRead]);
+  }, [read, ad, st, modelYear, car, apr, aiRead, condition]);
 
   const current = useMemo(() => (result && read && result.sheet.lines.length ? snapshot(result.sheet, result.c, { car, from: read.from, at: new Date(read.at) }) : null), [result, read, car]);
   const others = saved.filter((x) => x.id !== current?.id);
@@ -216,6 +219,24 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
         </p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 text-sm print:hidden" role="group" aria-label="New or used car">
+        <span className="font-semibold">This car is</span>
+        {(["used", "new"] as const).map((c) => (
+          <button
+            key={c}
+            type="button"
+            aria-pressed={condition === c}
+            className={`rounded-md border px-3 py-1.5 font-semibold ${condition === c ? "border-accent bg-accent text-accent-foreground" : "border-border-strong"}`}
+            onClick={() => setCondition(c)}
+          >
+            {c === "used" ? "Used car" : "New car"}
+          </button>
+        ))}
+        <span className="text-muted">
+          {condition === "used" ? "Checks the Buyers Guide, and flags new-car charges like destination." : "Checks against the window sticker, destination charge and rebates."}
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <label className="btn btn-secondary cursor-pointer">
           Attach PDF or photo
@@ -228,9 +249,10 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
             className="link text-sm"
             disabled={!!busy}
             onClick={() => {
-              onExample();
-              setState(EXAMPLE_STATE);
-              check(EXAMPLE_PAPER, "the made-up example paper");
+              const ex = EXAMPLES[condition];
+              onExample({ price: ex.ad.price, docFee: ex.ad.docFee });
+              setState(ex.state);
+              check(ex.paper, `the made-up ${condition}-car example`);
             }}
           >
             No paper yet? Try it with an example

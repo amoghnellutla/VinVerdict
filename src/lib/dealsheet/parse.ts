@@ -104,7 +104,11 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:sales|use|state|county|city|local|excise|vehicle|privilege|highway use)? ?tax(?:es)?\b|\bhut\b/, l) && !has(/\btax(?:es)?,? (?:title|tag|license|registration)|title,? (?:tax|tag)/, l)) return { kind: "tax" };
   if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fee|plates?)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bstate (?:fees?|inspection)\b|\binspection fee\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b/, l)) return { kind: "stateFee" };
   if (has(/\bdoc(?:ument(?:ary|ation|s)?)?\.? ?(?:fee|charge|prep)\b|^docs?\.?$|\b(?:dealer )?(?:processing|admin(?:istrative|istration)?|service|conveyance|handling) (?:fee|charge)\b|\bdealer fees?\b/, l)) return { kind: "docFee" };
-  if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\bdestination\b|\belectronic (?:filing|registration|title)\b|\be-?fil(?:e|ing)\b|\bcertification fee\b|\bcpo (?:fee|charge)\b|\bfee\b/, l)) return { kind: "dealerFee" };
+  // The maker's shipping charge: real on a new car (it's on the window sticker), padding on a used one.
+  if (has(/\bdestination\b|\bfreight\b|\bdest\.? (?:&|and) (?:handling|delivery)\b|\bd ?& ?h\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
+  // Certified pre-owned charges: usually part of a CPO car's price.
+  if (has(/\bcertification (?:fee|charge)\b|\bcpo (?:fee|charge|certification)\b|\bcertified pre-?owned (?:fee|charge)\b/, l)) return { kind: "dealerFee", name: "Certification fee" };
+  if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\belectronic (?:filing|registration|title)\b|\be-?fil(?:e|ing)\b|\bcertification fee\b|\bcpo (?:fee|charge)\b|\bfee\b/, l)) return { kind: "dealerFee" };
   if (has(/\brebate\b|\bincentive\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
   if (has(/\bdiscount\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b/, l)) return { kind: "discount" };
   if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
@@ -230,6 +234,9 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   }
   flush();
+  // "MSRP $32,900 / Selling Price $31,400": with another price on the paper, the MSRP or sticker line is a reference.
+  const prices = lines.filter((l) => l.kind === "price" && !l.declined);
+  if (prices.length >= 2) for (const l of prices) if (/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(l.label) && prices.some((o) => o !== l && !/\bmsrp\b|\bsticker\b|\b(?:base|list) price\b/i.test(o.label))) l.kind = "reference";
   const options = paymentOptions(text);
   return {
     lines: lines.filter((l) => l.kind !== "loan"),

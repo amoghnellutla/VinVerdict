@@ -41,9 +41,9 @@ const WORDS = {
 const RATE: Partial<Record<StateCode, number>> = { NJ: 0.06625, PA: 0.06, TX: 0.0625, VA: 0.0415, IN: 0.07 };
 
 export type Problem = "none" | "addOn" | "product" | "overAd" | "packed";
-export type Paper = { text: string; state: StateCode; ad: { price: number; docFee: number; sellerType: "dealer" } | null; problem: Problem; printed: Set<string>; name: string; hasLoan: boolean };
+export type Paper = { text: string; state: StateCode; ad: { price: number; docFee: number | null; sellerType: "dealer" } | null; problem: Problem; printed: Set<string>; name: string; hasLoan: boolean; condition: "new" | "used" };
 
-export function makePaper(seed: number, hard = false): Paper {
+export function makePaper(seed: number, hard = false, condition: "new" | "used" = "used"): Paper {
   const rand = rng(seed);
   const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
   const chance = (p: number) => hard && rand() < p;
@@ -58,9 +58,12 @@ export function makePaper(seed: number, hard = false): Paper {
   const creditRow: [string, number][] = credit ? [[pick(rand() < 0.5 ? WORDS.discount : WORDS.rebate), credit]] : [];
   const netPrice = problem === "overAd" ? price + Math.round(300 + rand() * 1500) : price;
   const listed = netPrice + credit;
-  const taxable = netPrice + doc + (problem === "addOn" ? extra[0][1] : 0);
+  // A new car's destination charge (on its window sticker): part of the price, taxed, in the total.
+  const destination = condition === "new" ? pick([995, 1095, 1295, 1395, 1595, 1695]) : 0;
+  const destRow: [string, number][] = destination ? [[pick(["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
+  const taxable = netPrice + destination + doc + (problem === "addOn" ? extra[0][1] : 0);
   const tax = r2(taxable * RATE[state]!);
-  const total = r2(netPrice + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
+  const total = r2(netPrice + destination + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
   const hasTrade = rand() < 0.3;
   const trade = hasTrade ? Math.round(2000 + rand() * 8000) : 0;
   const payoff = hasTrade && rand() < 0.5 ? Math.round(trade * (0.5 + rand() * 0.4)) : 0;
@@ -75,6 +78,7 @@ export function makePaper(seed: number, hard = false): Paper {
 
   const rows: [string, number][] = [
     [pick(WORDS.price), listed],
+    ...destRow,
     ...creditRow,
     ...(doc ? [[pick(WORDS.doc), doc] as [string, number]] : []),
     ...extra,
@@ -113,6 +117,8 @@ export function makePaper(seed: number, hard = false): Paper {
   if (chance(0.25)) text = text.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2");
   else if (chance(0.2)) text = text.replace(/\$(\d)/g, "$$ $1");
   const printed = new Set([...rows.map((r) => r[1]), payment, r2(payment * months), apr, 0].map((n) => n.toFixed(2)));
-  const ad = rand() < 0.8 ? { price, docFee: doc, sellerType: "dealer" as const } : null;
-  return { text, state, ad, problem, printed, name: hard ? name : name, hasLoan };
+  // A used car's ad shows its price and the dealer's fee; a new car's sticker shows the price with destination, no dealer fee.
+  const ad = rand() < 0.8 ? (condition === "new" ? { price: price + destination, docFee: null, sellerType: "dealer" as const } : { price, docFee: doc, sellerType: "dealer" as const }) : null;
+  // A packed payment needs a loan: with none (the trade-in and down payment cover it all) the paper is a clean one.
+  return { text, state, ad, problem: problem === "packed" && !hasLoan ? "none" : problem, printed, name, hasLoan, condition };
 }

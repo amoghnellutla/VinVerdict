@@ -42,7 +42,14 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const { sheet, check, ad } = input;
   const live = sheet.lines.filter((l) => !l.declined && !l.fromAi);
   const sum = (kinds: string[]) => r2(live.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0));
-  const paperPrice = sum(["price"]) ? r2(sum(["price"]) - sum(["discount", "rebate"])) : null;
+  const isNew = check.condition === "new";
+  // A new car's price is compared and agreed with its destination charge, as on the window sticker.
+  const destination = isNew ? r2(live.filter((l) => l.kind === "dealerFee" && l.name === "Destination charge").reduce((s, l) => s + l.amount, 0)) : 0;
+  // Discounts are already in the selling price when an MSRP line minus them gives it.
+  const refs = live.filter((l) => l.kind === "reference").map((l) => l.amount);
+  const listedCredits = sum(["discount", "rebate"]);
+  const credits = refs.some((r) => Math.abs(r - listedCredits - sum(["price"])) <= 1) ? 0 : listedCredits;
+  const paperPrice = sum(["price"]) ? r2(sum(["price"]) - credits + destination) : null;
   const adPrice = ad?.price ?? null;
   const carPrice = paperPrice == null ? adPrice : adPrice == null ? paperPrice : Math.min(paperPrice, adPrice);
   const adFee = ad && ad.sellerType === "dealer" ? ad.docFee : null;
@@ -63,7 +70,7 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const target = carPrice == null || sheet.lease ? null : r2(carPrice + docFee + gov + (tax ?? 0));
 
   const parts: Plan["parts"] = [
-    { label: "The car", amount: carPrice, note: adPrice != null && paperPrice != null && paperPrice > adPrice ? "the advertised price" : undefined },
+    { label: "The car", amount: carPrice, note: isNew && destination ? `with the ${usd(destination)} destination charge${adPrice != null && paperPrice != null && paperPrice > adPrice ? ", at the sticker or advertised price" : ""}` : adPrice != null && paperPrice != null && paperPrice > adPrice ? "the advertised price" : undefined },
     ...(docFee ? [{ label: "Doc fee", amount: docFee, note: adFee != null ? "as the ad showed" : "ask for it to be lowered" }] : []),
     ...(gov ? [{ label: "Government fees", amount: gov, note: "title, registration, plates" }] : []),
     ...(tax != null ? [{ label: "Tax", amount: tax, note: "on the lower price" }] : plusTax ? [{ label: "Tax", amount: null, note: "plus tax: ask them to recompute it on the lower price" }] : []),
@@ -82,6 +89,9 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
     "Before you sign, check the final paper again here.",
   ] : [
     "Agree the out-the-door price first, in writing. Not the monthly payment.",
+    isNew
+      ? "Compare the paper with the window sticker: the price, and the destination charge exactly (it's printed there by law). Ask which maker rebates and incentives you qualify for."
+      : "Before you sign, read the Buyers Guide on the car's window: it says whether the car is sold As Is or with a warranty, and it overrides the sales contract (FTC).",
     ...(options.length >= 2 ? [`This worksheet shows monthly payments, not a price. The longest option costs ${usd(spread)} more in total than the shortest: ask for the out-the-door price and the interest rate in writing.`] : []),
     ...(check.negativeEquity > 0 ? [`${usd(check.negativeEquity)} of your old loan is carried into this deal. Consider paying it down first, or selling the trade-in yourself for more.`] : []),
     "Say no to every add-on and every optional product. You can buy a warranty or GAP later, elsewhere, if you want one.",

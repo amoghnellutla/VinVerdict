@@ -22,6 +22,8 @@ export type CheckInput = {
   /** Where the buyer registers the car (from their ZIP), for the tax check. */
   state: StateCode | null;
   modelYear: number | null;
+  /** A new or a used car (the buyer's button): some rules differ (the destination charge, the sticker, rebates). Default used. */
+  condition?: "new" | "used";
   /** A bank or credit union's pre-approval rate the buyer typed, to price the dealer's rate. */
   myAprPct?: number | null;
   /** Per line (same order as `sheet.lines`): the free AI read the same label and amount. */
@@ -51,6 +53,8 @@ export type DealCheck = {
   hiddenTotal: number;
   /** One-line summary for the verdict's "Ready to pay" row. */
   summary: string;
+  /** New or used, as checked. */
+  condition: "new" | "used";
   /** A lease worksheet: price, fees and add-ons are checked; the lease payment isn't. */
   lease: boolean;
   /** The trade-in is worth less than its payoff: this much of the old loan is carried into the deal (0 when not). */
@@ -139,8 +143,16 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   const sumOf = (kinds: string[]) => r2(counted.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount, 0));
   // The car's price after the paper's own discounts and rebates is what's compared with the ad: "$23,000 less a
   // $1,000 dealer discount" is the ad's $22,000, not $1,000 over it.
-  const credits = sumOf(["discount", "rebate"]);
+  const condition = input.condition ?? "used";
+  const isNew = condition === "new";
+  const listedCredits = sumOf(["discount", "rebate"]);
+  // "MSRP $32,900 / Dealer Discount $1,500 / Selling Price $31,400": the discount is already in the selling price.
+  const refs = counted.filter((l) => l.kind === "reference").map((l) => l.amount);
+  const credits = refs.some((r) => Math.abs(r - listedCredits - sumOf(["price"])) <= 1) ? 0 : listedCredits;
   const netPrice = r2(sumOf(["price"]) - credits);
+  // A new car's sticker (the ad's price for a new car) includes the destination charge: compare like with like.
+  const destination = isNew ? r2(counted.filter((l) => l.kind === "dealerFee" && l.name === "Destination charge").reduce((s, l) => s + l.amount, 0)) : 0;
+  const adWord = isNew ? "sticker or advertised price" : "ad's price";
   const firstPrice = sheet.lines.findIndex((l) => l.kind === "price" && !l.declined && !l.fromAi);
   const trade = sumOf(["tradeIn"]);
   const payoff = sumOf(["payoff"]);
@@ -157,15 +169,17 @@ export function checkDealSheet(input: CheckInput): DealCheck {
     switch (line.kind) {
       case "price": {
         if (i !== firstPrice) return { line, verdict: "info", note: "Part of the car's price on this paper." };
-        if (adPrice == null) return { line, verdict: "info", note: "The car's price. Compare it with the price in the ad you saw." };
-        const after = credits ? ` after the paper's ${usd(credits)} in discounts and rebates (${usd(netPrice)})` : "";
-        const over = r2(netPrice - adPrice);
-        if (over <= 1) return { line, verdict: "right", note: over < -1 ? `${usd(-over)} below the ad's price (${usd(adPrice)})${after}.` : `Matches the ad's price (${usd(adPrice)})${after}.` };
+        if (adPrice == null) return { line, verdict: "info", note: isNew ? "The car's price. Compare it with the window sticker (MSRP) or the dealer's advertised price." : "The car's price. Compare it with the price in the ad you saw." };
+        const after = (credits ? ` after the paper's ${usd(credits)} in discounts and rebates` : "") + (destination ? `${credits ? " and" : ""} with the ${usd(destination)} destination charge` : "");
+        const compared = r2(netPrice + destination);
+        const afterText = after ? (Math.abs(compared - adPrice) <= 1 ? after : `${after} (${usd(compared)})`) : "";
+        const over = r2(compared - adPrice);
+        if (over <= 1) return { line, verdict: "right", note: over < -1 ? `${usd(-over)} below the ${adWord} (${usd(adPrice)})${afterText}.` : `Matches the ${adWord} (${usd(adPrice)})${afterText}.` };
         // Counted as money to take off only once the line's reading is confirmed.
-        if (sure(i)) hidden.push({ what: "Price above the ad", amount: over, why: `The ad's price was ${usd(adPrice)}; this paper says ${usd(netPrice)}${credits ? " after its discounts" : ""}.` });
+        if (sure(i)) hidden.push({ what: isNew ? "Price above the sticker or advertised price" : "Price above the ad", amount: over, why: `The ${adWord} was ${usd(adPrice)}; this paper says ${usd(compared)}${credits ? " after its discounts" : ""}.` });
         return sure(i)
-          ? { line, verdict: "wrong", note: `${usd(over)} more than the ad's price (${usd(adPrice)})${after}. Ask them to honor the advertised price.` }
-          : { line, verdict: "check", note: `Reads as ${usd(over)} more than the ad's price (${usd(adPrice)})${after}. Check this line on the paper, then ask for the advertised price.` };
+          ? { line, verdict: "wrong", note: `${usd(over)} more than the ${adWord} (${usd(adPrice)})${afterText}. Ask them to honor it.` }
+          : { line, verdict: "check", note: `Reads as ${usd(over)} more than the ${adWord} (${usd(adPrice)})${afterText}. Check this line on the paper, then ask them to honor it.` };
       }
       case "leaseFee":
         return { line, verdict: "check", note: "The leasing company's fee. Dealers sometimes add to it: ask for the leasing company's own amount in writing." };
@@ -192,9 +206,18 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         }
         // Only say what the ad showed when the ad is known.
         if (!ad || ad.price == null) return { line, verdict: "info", note: "The dealer's own fee for the paperwork. Ask whether it's negotiable, or for it to be taken off the price." };
+        if (isNew) return { line, verdict: "check", note: "The dealer's own fee; it isn't on the window sticker. Ask for it to be lowered or taken off the price.", source: REF.ftcAddOns };
         return { line, verdict: "check", note: "The dealer's own fee. It wasn't in a price the ad showed: ask for it to be lowered or included in the price.", source: REF.ftcAddOns };
       }
       case "dealerFee":
+        if (line.name === "Destination charge") {
+          if (isNew) return { line, verdict: "check", note: "The maker's charge for shipping the car to the dealer. Federal law puts it on the window sticker: it should match the sticker exactly and appear only once. A second delivery or freight line is extra.", source: REF.monroney };
+          hidden.push({ what: line.label, amount: line.amount, why: "A destination charge belongs to a new car's sticker." });
+          return { line, verdict: "remove", note: "A destination or freight charge is part of a new car's window sticker. On a used car it was paid when the car was first sold: ask them to remove it." };
+        }
+        if (line.name === "Certification fee" && !isNew) {
+          return { line, verdict: "check", note: "A certified pre-owned charge. Certification is usually part of a CPO car's price: ask what it covers and whether it's in the advertised price, and get the CPO warranty in writing." };
+        }
         hidden.push({ what: line.label, amount: line.amount, why: "A dealer charge on top of the car's price (preparation, reconditioning, delivery or filing)." });
         return { line, verdict: "remove", note: "A dealer charge on top of the price. Ask them to remove it or include it in the advertised price.", source: REF.ftcAddOns };
       case "addOn":
@@ -232,7 +255,14 @@ export function checkDealSheet(input: CheckInput): DealCheck {
       case "rebate":
       case "tradeIn":
       case "downPayment":
-        return { line, verdict: "credit", note: line.kind === "tradeIn" ? "Your trade-in. Get a written offer elsewhere (CarMax, Carvana, another dealer) to compare." : line.kind === "downPayment" ? "Your down payment." : "Taken off the price." };
+        return {
+          line,
+          verdict: "credit",
+          note: line.kind === "tradeIn" ? "Your trade-in. Get a written offer elsewhere (CarMax, Carvana, another dealer) to compare."
+            : line.kind === "downPayment" ? "Your down payment."
+              : line.kind === "rebate" && isNew ? "A maker rebate. Ask for every rebate and incentive you qualify for to be listed: they're often by region, loyalty or financing."
+                : "Taken off the price.",
+        };
       case "reference":
         return { line, verdict: "info", note: "A reference figure, not a charge." };
       case "subtotal":
@@ -338,5 +368,5 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   ].filter(Boolean);
   const summary = parts.length ? `Dealer's numbers: ${parts.join(", ")}${hiddenTotal > 0 ? `; up to ${usd(hiddenTotal)} to take off` : ""}.` : "Dealer's numbers: every line checks out.";
   const paymentOptions = (sheet.paymentOptions ?? []).map((o) => ({ ...o, total: r2(o.months * o.payment) }));
-  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath };
+  return { rows, reconcile: rec, confirmed, loan, hidden, hiddenTotal, summary, condition, lease: !!sheet.lease, negativeEquity, paymentOptions, leaseMath };
 }

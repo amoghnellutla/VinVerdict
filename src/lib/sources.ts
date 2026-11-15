@@ -44,6 +44,10 @@ export const REF = {
   mnDocFee: { name: "Minn. Stat. 168.27, subd. 31: Minnesota's documentary fee, at most $350 or 10% of the sale", href: "https://www.revisor.mn.gov/statutes/cite/168.27" },
   // Checked 2026-11-14: Md. Transportation § 15-311.1(b)(1)(ii): "$800 on and after July 1, 2024".
   mdDocFee: { name: "Md. Transportation § 15-311.1: Maryland's dealer processing charge, at most $800", href: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtr&section=15-311.1&enactments=false" },
+  // Checked 2026-11-15: 15 U.S.C. § 1232(f): the label lists "the retail price of such automobile suggested by the manufacturer" and "the amount charged, if any, to such dealer for the transportation of such automobile".
+  monroney: { name: "15 U.S.C. § 1232: a new car's window sticker lists the maker's price and its destination charge", href: "https://www.law.cornell.edu/uscode/text/15/1232" },
+  // Checked 2026-11-15: "Dealers have to display a Buyers Guide in every used car they offer for sale"; it says "whether the car is being sold 'as is' or with a warranty"; "It will override anything in your sales contract."
+  ftcBuyersGuide: { name: "FTC: the Buyers Guide on every used car (as is or warranty), which overrides the contract", href: "https://consumer.ftc.gov/buying-used-car-dealer" },
   cfpbAddOns: { name: "CFPB: an extended warranty, GAP or credit insurance generally can't be required", href: "https://www.consumerfinance.gov/ask-cfpb/am-i-required-to-purchase-an-extended-warranty-or-guaranteed-asset-protection-gap-insurance-from-a-lender-or-dealer-to-get-an-auto-loan-en-807/" },
 } satisfies Record<string, SourceRef>;
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { EXAMPLE_AD } from "@/lib/dealsheet/example";
 import { DealSheet } from "./DealSheet";
 
 const money = (v: string) => v.replace(/[^\d]/g, "").slice(0, 7);
@@ -16,7 +15,7 @@ export function DealStandalone({ guest }: { guest: boolean }) {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm">
         <label>
-          The price in the ad (optional)
+          The price in the ad, or a new car&apos;s sticker price (optional)
           <input className="field mt-1 w-40" inputMode="numeric" value={price} onChange={(e) => setPrice(money(e.target.value))} placeholder="$" />
         </label>
         <label>
@@ -24,7 +23,7 @@ export function DealStandalone({ guest }: { guest: boolean }) {
           <input className="field mt-1 w-40" inputMode="numeric" value={fee} onChange={(e) => setFee(money(e.target.value))} placeholder="$" />
         </label>
       </div>
-      <DealSheet ad={p ? { price: p, docFee: f, sellerType: "dealer" } : null} standalone guest={guest} ai={process.env.NEXT_PUBLIC_AI_MODE === "1"} onExample={() => { setPrice(String(EXAMPLE_AD.price)); setFee(String(EXAMPLE_AD.docFee)); }} />
+      <DealSheet ad={p ? { price: p, docFee: f, sellerType: "dealer" } : null} standalone guest={guest} ai={process.env.NEXT_PUBLIC_AI_MODE === "1"} onExample={(ex) => { setPrice(String(ex.price)); setFee(ex.docFee != null ? String(ex.docFee) : ""); }} />
     </div>
   );
 }

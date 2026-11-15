@@ -17,16 +17,16 @@ import { parseDealSheet } from "./parse";
 import { redactDealSheet } from "./redact";
 
 const run = (p: Paper): DealCheck =>
-  checkDealSheet({ sheet: parseDealSheet(redactDealSheet(p.text).text), ad: p.ad, state: p.state, modelYear: 2021, now: new Date("2026-11-15") });
+  checkDealSheet({ sheet: parseDealSheet(redactDealSheet(p.text).text), ad: p.ad, state: p.state, modelYear: 2021, condition: p.condition, now: new Date("2026-11-15") });
 
 const tallies: Record<string, { papers: number; confirmed: number; clean: number; checksOnClean: number; loansRead: number; loans: number; found: number; planted: number }> = {};
 
-function suite(label: string, from: number, n: number, hard: boolean) {
+function suite(label: string, from: number, n: number, hard: boolean, condition: "new" | "used" = "used") {
   it(`${label}: no mistakes`, () => {
     const t = (tallies[label] = { papers: 0, confirmed: 0, clean: 0, checksOnClean: 0, loansRead: 0, loans: 0, found: 0, planted: 0 });
     const bad: string[] = [];
     for (let seed = from; seed < from + n; seed++) {
-      const p = makePaper(seed, hard);
+      const p = makePaper(seed, hard, condition);
       if (redactDealSheet(p.text).text.toLowerCase().includes(p.name.toLowerCase())) bad.push(`#${seed}: the buyer's name survived`);
       const c = run(p);
       t.papers++;
@@ -40,7 +40,7 @@ function suite(label: string, from: number, n: number, hard: boolean) {
       }
       if (p.problem === "none") {
         t.clean++;
-        const checks = c.rows.filter((r) => r.verdict === "check").map((r) => `${r.line.label}: ${r.note}`).concat(c.loan?.verdict === "check" ? [`loan: ${c.loan.note}`] : []);
+        const checks = c.rows.filter((r) => r.verdict === "check" && !(p.condition === "new" && (r.line.name === "Destination charge" || r.line.kind === "docFee"))).map((r) => `${r.line.label}: ${r.note}`).concat(c.loan?.verdict === "check" ? [`loan: ${c.loan.note}`] : []);
         t.checksOnClean += checks.length;
         if (wrongs.length || loanWrong) bad.push(`#${seed}: clean paper called wrong: ${wrongs.join(",")}${loanWrong ? ` loan: ${c.loan!.note}` : ""}\n${p.text}`);
         const removes = c.rows.filter((r) => r.verdict === "remove");
@@ -67,6 +67,8 @@ function suite(label: string, from: number, n: number, hard: boolean) {
 describe("generated dealer papers (seeded)", () => {
   suite("plain", 1, 600, false);
   suite("hard", 1001, 600, true);
+  suite("new car", 2001, 400, false, "new");
+  suite("new car, hard", 3001, 400, true, "new");
   afterAll(() => {
     for (const [k, t] of Object.entries(tallies)) {
       console.log(`Generated papers (${k}): ${t.papers}; added up ${t.confirmed}; clean ${t.clean} with ${t.checksOnClean} "check this"; loans read ${t.loansRead}/${t.loans}; planted problems found ${t.found}/${t.planted}`);
