@@ -377,6 +377,12 @@ describe("what each line is", () => {
     expect(parseDealSheet("Hi, here's your quote: purchase price $ 10,138, doc fee $ 85, lic & reg $ 229.40, 3 year maintenance plan $ 1,295, total $ 11,747.40.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 10138], ["docFee", 85], ["stateFee", 229.4], ["loanProduct", 1295], ["total", 11747.4]]);
   });
 
+  it("an emailed quote keeps a balance's minus sign (the dealer owes the buyer)", () => {
+    const s = parseDealSheet("Hi, here's your quote: sale price $9,526.00, total $9,526.00, trade-in value $6,860.00, down payment $3,000.00, balance due $-334.00.");
+    expect(s.lines.at(-1)).toMatchObject({ kind: "balanceDue", amount: -334 });
+    expect(s.lines.find((l) => l.kind === "downPayment")?.amount).toBe(3000);
+  });
+
   it("an emailed quote keeps its small amounts and TT&L", () => {
     expect(parseDealSheet("Thanks for coming in. The selling price is $26,426.00. The wheel locks is $89.00. The registration fee is $68.98. The tt&l is $280.47.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 26426], ["addOn", 89], ["stateFee", 68.98], ["stateFee", 280.47]]);
     expect(parseDealSheet("Hi, here's your quote: purchase price $10,648.00, doc fee $85.00, reg fee $61.52, total $10,794.52.").lines.map((l) => [l.kind, l.amount])).toEqual([["price", 10648], ["docFee", 85], ["stateFee", 61.52], ["total", 10794.52]]);

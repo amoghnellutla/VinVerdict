@@ -455,15 +455,15 @@ function proseQuote(line: string): { label: string; value: number }[] | null {
   if (words < 10 || /^\(?[0-9A-Z]{1,2}[.)]\s/.test(line) || !/\b(?:we|you|your|i|i'm|we're|we'll|can|could|would|let me|thanks|thank you|hey|hi|hello|please|here'?s|here is)\b/i.test(line)) return null;
   // A payment schedule written as a sentence ("Your first monthly payment of $439.66 … followed by 35 payments of") is the loan's.
   if (/\bpayments? of\b|\bfollowed by\b|\bmonthly payments?\b/i.test(line)) return null;
-  const NUM = /(?<![\w.,$])\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{1,6}\.\d{2}|\d{1,6})(?![\d,]|\.\d|\s?(?:%|\/\s?mo|per month|a month|months?\b|mo\b|miles?\b|mi\b))/g;
+  const NUM = /(?<![\w.,$-])-?\$?\s?-?(\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{1,6}\.\d{2}|\d{1,6})(?![\d,]|\.\d|\s?(?:%|\/\s?mo|per month|a month|months?\b|mo\b|miles?\b|mi\b))/g;
   const pieces = line.split(/\s*(?:,(?!\d{3})|[;!?]|\.(?!\d)|\bplus\b|\band\b|\+|(?<=\d)\s&\s)\s*/i);
   const out: { label: string; value: number }[] = [];
   let sawPrice = false;
   for (const piece of pieces) {
     const nums = [...piece.matchAll(NUM)].filter((m) => (!/^(?:19[89]\d|20[0-4]\d)$/.test(m[1]) || m[0].includes("$")) && (m[1].length > 2 || m[0].includes("$")));
     if (nums.length !== 1) continue;
-    const value = Number(nums[0][1].replace(/,/g, ""));
-    if (value < 50 && !/\$|\.\d{2}$/.test(nums[0][0])) continue;
+    const value = Number(nums[0][1].replace(/,/g, "")) * (/^-|\$-/.test(nums[0][0].replace(/\s/g, "")) ? -1 : 1);
+    if (Math.abs(value) < 50 && !/\$|\.\d{2}$/.test(nums[0][0])) continue;
     let label = (piece.slice(0, nums[0].index) + " " + piece.slice(nums[0].index + nums[0][0].length)).replace(/\s+/g, " ").trim();
     // "here's your out the door: price 18,500": after a colon, the words that follow name the line.
     const afterColon = label.split(/:\s+/).at(-1) ?? label;
