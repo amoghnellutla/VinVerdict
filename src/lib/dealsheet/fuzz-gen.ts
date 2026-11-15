@@ -63,8 +63,8 @@ const RATE: Partial<Record<StateCode, number>> = { NJ: 0.06625, PA: 0.06, TX: 0.
 // The doc-fee caps confirmed in check.ts, for the states above that have one.
 const CAP: Partial<Record<StateCode, number>> = { CA: 85, MD: 800, MN: 350 };
 
-export type Problem = "none" | "addOn" | "product" | "overAd" | "packed" | "docOverCap" | "padding";
-export type Paper = { text: string; state: StateCode; ad: { price: number; docFee: number | null; sellerType: "dealer" } | null; problem: Problem; printed: Set<string>; name: string; hasLoan: boolean; condition: "new" | "used" };
+export type Problem = "none" | "addOn" | "product" | "overAd" | "packed" | "docOverCap" | "padding" | "combo";
+export type Paper = { text: string; state: StateCode; ad: { price: number; docFee: number | null; sellerType: "dealer" } | null; problem: Problem; printed: Set<string>; name: string; hasLoan: boolean; condition: "new" | "used"; /** How many add-ons were planted (each must be found). */ planted: number; /** The trade-in owes more than it's worth. */ negativeEquity: boolean };
 
 export function makePaper(seed: number, hard = false, condition: "new" | "used" = "used"): Paper {
   const rand = rng(seed);
@@ -74,7 +74,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Some hard papers are in Spanish.
   const es = chance(0.15);
   const W = es ? WORDS_ES : WORDS;
-  const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap", "padding"]);
+  const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap", "padding", "combo"]);
   // A doc fee over the legal cap needs a state with one.
   const problem: Problem = drawn === "docOverCap" && !CAP[state] ? "none" : drawn;
   const price = Math.round(8000 + rand() * 40000);
@@ -83,12 +83,17 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Within the cap, except for a planted fee over it.
   const doc = cap == null ? drawnDoc : problem === "docOverCap" ? cap + pick([15, 50, 114, 250]) : Math.min(drawnDoc, cap);
   const gov = r2(30 + rand() * 300);
-  const extra: [string, number][] = problem === "addOn" ? [pick(W.addOn)] : problem === "product" ? [pick(W.product)] : problem === "padding" ? [pick(W.padding)] : [];
+  // One add-on, or (hard) two or three different ones; "combo" is add-ons plus a price over the ad.
+  const addOns = (k: number) => [...W.addOn].sort(() => rand() - 0.5).slice(0, k);
+  const extra: [string, number][] = problem === "addOn" ? addOns(hard ? pick([1, 1, 2, 3]) : 1)
+    : problem === "combo" ? addOns(pick([1, 2]))
+      : problem === "product" ? [pick(W.product)] : problem === "padding" ? [pick(W.padding)] : [];
+  const taxedExtras = problem === "addOn" || problem === "padding" || problem === "combo" ? extra.reduce((s, e) => s + e[1], 0) : 0;
   // A discount or rebate printed under a higher listed price: the net is still the ad's price.
   const credit = chance(0.3) ? Math.round(300 + rand() * 1500) : 0;
   const creditIsRebate = rand() >= 0.5;
   const creditRow: [string, number][] = credit ? [[pick(creditIsRebate ? W.rebate : W.discount), credit]] : [];
-  const netPrice = problem === "overAd" ? price + Math.round(300 + rand() * 1500) : price;
+  const netPrice = problem === "overAd" || problem === "combo" ? price + Math.round(300 + rand() * 1500) : price;
   const listed = netPrice + credit;
   // A new car's destination charge (on its window sticker): part of the price, taxed, in the total.
   const destination = condition === "new" ? pick([995, 1095, 1295, 1395, 1595, 1695]) : 0;
@@ -99,10 +104,12 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // (Only where enough is left to tax: a trade-in worth more than the car leaves no realistic tax line.)
   const taxLessTrade = trade > 0 && netPrice - trade >= 3000 && chance(0.5);
   const taxBeforeRebate = credit > 0 && creditIsRebate && chance(0.5);
-  const taxable = netPrice + (taxBeforeRebate ? credit : 0) + destination + doc + (problem === "addOn" || problem === "padding" ? extra[0][1] : 0) - (taxLessTrade ? trade : 0);
+  const taxable = netPrice + (taxBeforeRebate ? credit : 0) + destination + doc + taxedExtras - (taxLessTrade ? trade : 0);
   const tax = r2(taxable * RATE[state]!);
   const total = r2(netPrice + destination + doc + gov + tax + extra.reduce((s, e) => s + e[1], 0));
-  const payoff = hasTrade && rand() < 0.5 ? Math.round(trade * (0.5 + rand() * 0.4)) : 0;
+  // A payoff, sometimes (hard) more than the trade-in is worth: negative equity carried into the deal.
+  const underwater = hasTrade && chance(0.25);
+  const payoff = hasTrade && (underwater || rand() < 0.5) ? Math.round(trade * (underwater ? 1.1 + rand() * 0.5 : 0.5 + rand() * 0.4)) : 0;
   const down = rand() < 0.6 ? pick([500, 1000, 2000, 3000, 5000]) : 0;
   const balance = r2(total - trade + payoff - down);
   const hasLoan = balance > 1500 && (rand() < 0.6 || problem === "packed");
@@ -166,7 +173,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   if (hard && perLine && chance(0.3)) {
     body[0] = `${body[0]} (was ${m(listed + pick([500, 1000, 1500]))})`;
     const t = rows.findIndex((r) => r[1] === trade && trade > 0);
-    if (t >= 0 && payoff) body[t] = body[t].replace(/(\$[\d,.]+)\s*$/, `(payoff ${m(payoff)}) $1`);
+    if (t >= 0 && payoff) body[t] = body[t].replace(/(\$[\d,.]+)\s*$/, (amt) => `(payoff ${m(payoff)}) ${amt}`);
   }
   // A declined add-on printed on the paper (not charged).
   if (chance(0.3) && layout !== "columns" && !prose) {
@@ -217,5 +224,5 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // A used car's ad shows its price and the dealer's fee; a new car's sticker shows the price with destination, no dealer fee.
   const ad = rand() < 0.8 ? (condition === "new" ? { price: price + destination, docFee: null, sellerType: "dealer" as const } : { price, docFee: doc, sellerType: "dealer" as const }) : null;
   // A packed payment needs a loan: with none (the trade-in and down payment cover it all) the paper is a clean one.
-  return { text, state, ad, problem: problem === "packed" && !hasLoan ? "none" : problem, printed, name, hasLoan, condition };
+  return { text, state, ad, problem: problem === "packed" && !hasLoan ? "none" : problem, printed, name, hasLoan, condition, planted: problem === "addOn" || problem === "combo" ? extra.length : 0, negativeEquity: payoff > trade && trade > 0 };
 }

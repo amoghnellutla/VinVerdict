@@ -40,9 +40,10 @@ ${redactDealSheet(p.text).text}`);
         t.loans++;
         if (c.loan) t.loansRead++;
       }
+      if (p.negativeEquity && !(c.negativeEquity > 0)) bad.push(`#${seed}: negative equity not reported\n${p.text}`);
       if (p.problem === "none") {
         t.clean++;
-        const checks = c.rows.filter((r) => r.verdict === "check" && !(p.condition === "new" && (r.line.name === "Destination charge" || r.line.kind === "docFee"))).map((r) => `${r.line.label}: ${r.note}`).concat(c.loan?.verdict === "check" ? [`loan: ${c.loan.note}`] : []);
+        const checks = c.rows.filter((r) => r.verdict === "check" && !(p.condition === "new" && (r.line.name === "Destination charge" || r.line.kind === "docFee")) && !(p.negativeEquity && r.line.kind === "payoff")).map((r) => `${r.line.label}: ${r.note}`).concat(c.loan?.verdict === "check" ? [`loan: ${c.loan.note}`] : []);
         t.checksOnClean += checks.length;
         if (wrongs.length || loanWrong) bad.push(`#${seed}: clean paper called wrong: ${wrongs.join(",")}${loanWrong ? ` loan: ${c.loan!.note}` : ""}\n${p.text}`);
         const removes = c.rows.filter((r) => r.verdict === "remove");
@@ -51,11 +52,13 @@ ${redactDealSheet(p.text).text}`);
         if (checks.length) bad.push(`#${seed}: clean paper, check: ${checks.join(" | ")}\n${p.text}`);
       } else {
         t.planted++;
-        const stray = c.rows.filter((r) => r.verdict === "wrong" && !(p.problem === "overAd" && r.line.kind === "price") && !(p.problem === "docOverCap" && r.line.kind === "docFee"));
+        const stray = c.rows.filter((r) => r.verdict === "wrong" && !((p.problem === "overAd" || p.problem === "combo") && r.line.kind === "price") && !(p.problem === "docOverCap" && r.line.kind === "docFee"));
         if (stray.length) bad.push(`#${seed} (${p.problem}): called wrong: ${stray.map((r) => `${r.line.label}: ${r.note}`).join(" | ")}\n${p.text}`);
         if (loanWrong && p.problem !== "packed") bad.push(`#${seed} (${p.problem}): loan called wrong: ${c.loan!.note}\n${p.text}`);
         const found =
-          p.problem === "addOn" || p.problem === "product" || p.problem === "padding" ? c.rows.some((r) => r.verdict === "remove")
+          p.problem === "addOn" ? c.rows.filter((r) => r.verdict === "remove").length >= p.planted
+            : p.problem === "combo" ? c.rows.filter((r) => r.verdict === "remove").length >= p.planted && (c.rows.some((r) => r.line.kind === "price" && (r.verdict === "wrong" || r.verdict === "check")) || !p.ad)
+            : p.problem === "product" || p.problem === "padding" ? c.rows.some((r) => r.verdict === "remove")
             : p.problem === "overAd" ? c.rows.some((r) => r.line.kind === "price" && (r.verdict === "wrong" || r.verdict === "check")) || !p.ad
               : p.problem === "docOverCap" ? c.rows.some((r) => r.line.kind === "docFee" && (r.verdict === "wrong" || r.verdict === "check") && /legal maximum/.test(r.note))
               : c.loan?.verdict === "wrong" || c.loan?.verdict === "check";

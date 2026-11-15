@@ -418,9 +418,10 @@ describe("what each line is", () => {
       "Vehicle Price $21,998.00",
       "Title & Tag 95.00",
       "Service Contract 2,895.00",
+      "Grabado del VIN 399.00",
       "GAP Policy 895.00",
     ].join("\n");
-    expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["GAP Policy", "loanProduct", 895]]);
+    expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["Grabado del VIN", "addOn", 399], ["GAP Policy", "loanProduct", 895]]);
   });
 
   it("doesn't take a mileage, a monthly figure or a year for money", () => {

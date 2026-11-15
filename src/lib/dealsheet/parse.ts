@@ -174,7 +174,7 @@ function amountsIn(line: string): Hit[] {
     // A minus before or after the "$" ("-$500", "$-1,051.46"), brackets, or a trailing minus: a negative amount.
     const [, open, minus, dollar, minus2, whole, cents, close, trailMinus] = m;
     if (!dollar && !cents && !whole.includes(",")) continue;
-    if (!dollar && NOT_MONEY_BEFORE.test(line.slice(Math.max(0, m.index - 30), m.index))) continue;
+    if (!dollar && !cents && NOT_MONEY_BEFORE.test(line.slice(Math.max(0, m.index - 30), m.index))) continue;
     const value = Number(whole.replace(/,/g, "")) + (cents ? Number(cents) : 0);
     if (!Number.isFinite(value) || value > 2_000_000) continue;
     out.push({ at: m.index, end: m.index + m[0].length, value: (open && close) || minus || minus2 || trailMinus ? -value : value });
