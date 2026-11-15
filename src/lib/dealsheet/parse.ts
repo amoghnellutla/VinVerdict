@@ -147,7 +147,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   // Some other fee: it could be a government one, so it's asked about rather than refused.
   if (has(/\bfee\b/, l)) return { kind: "dealerFee", name: "Other fee" };
   if (has(/\brebate\b|\bincentive\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
-  if (has(/\bdiscount\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b/, l)) return { kind: "discount" };
+  if (has(/\bdiscount\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b|\byou save\b/, l)) return { kind: "discount" };
   if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
   if (has(/\bbalance due\b|\bdue (?:at|on) (?:signing|delivery)\b|\bamount due\b|\bbalance owing\b|\bnet (?:due|payoff)\b/, l)) return { kind: "balanceDue" };
   if (has(/\bsub-?total\b|\btaxable (?:amount|total|price)\b|\btotal taxable\b/, l)) return { kind: "subtotal" };
@@ -317,6 +317,12 @@ export function parseDealSheet(input: string): DealSheet {
     queue.length = 0;
   }
   flush();
+  // "Dealer Discount $1,500 / Factory Rebate $1,000 / Total Savings $2,500": the total repeats the credits above it.
+  for (const l of lines) {
+    if ((l.kind !== "discount" && l.kind !== "rebate") || !/\btotal\b|\byou save\b|\ball (?:savings|discounts)\b/i.test(toEnglish(l.label))) continue;
+    const rest = lines.filter((o) => o !== l && (o.kind === "discount" || o.kind === "rebate") && !o.declined);
+    if (rest.length >= 1 && Math.abs(rest.reduce((s, o) => s + o.amount, 0) - l.amount) <= 1) l.kind = "subtotal";
+  }
   // "Trade-In $8,000 / Payoff $5,000 / Equity $3,000": the equity line repeats the other two, so it isn't a second credit.
   for (const l of lines) {
     if (l.kind !== "tradeIn" || !/\bnet\b|\bequity\b/i.test(toEnglish(l.label))) continue;

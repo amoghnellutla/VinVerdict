@@ -285,6 +285,21 @@ describe("what each line is", () => {
     expect(one("Total Price = $23,523.75")).toEqual([["Total Price", "total", 23523.75]]);
   });
 
+  it("a Total Savings line that repeats the discounts above it isn't a second credit", () => {
+    const ad = { price: 27500, docFee: 499, sellerType: "dealer" as const };
+    for (const paper of [
+      "MSRP $30,000.00\nDealer Discount $1,500.00\nFactory Rebate $1,000.00\nTotal Savings $2,500.00\nSelling Price $27,500.00\nDoc Fee $499.00\nTotal $27,999.00",
+      "Vehicle Price $30,000.00\nDealer Discount $1,500.00\nFactory Rebate $1,000.00\nYou Save $2,500.00\nDoc Fee $499.00\nTotal $27,999.00",
+    ]) {
+      const c = checkDealSheet({ sheet: parseDealSheet(paper), ad, state: null, modelYear: 2026, condition: "new" });
+      expect(c.confirmed, paper).toBe(true);
+      const price = c.rows.find((r) => r.line.kind === "price")!;
+      expect(price.note, paper).toMatch(/^Matches/);
+    }
+    // On its own, "Total Savings" is the credit.
+    expect(parseDealSheet("Vehicle Price $30,000.00\nTotal Savings $2,500.00").lines.map((l) => l.kind)).toEqual(["price", "discount"]);
+  });
+
   it("a was, list or plain price beside a lower sale price is what it's marked down from", () => {
     const c = checkDealSheet({ sheet: parseDealSheet("Price: $21,998.00   Sale: $20,998.00\nDoc Fee $499.00\nTotal $21,497.00"), ad: { price: 20998, docFee: 499, sellerType: "dealer" }, state: null, modelYear: 2021 });
     expect(c.rows.find((r) => r.line.label === "Price")?.line.kind).toBe("reference");

@@ -98,6 +98,8 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
     [pick(WORDS.price), listed],
     ...destRow,
     ...creditRow,
+    // A summary that repeats the credit ("Total Savings").
+    ...(creditRow.length && hard && rand() < 0.3 ? [[pick(["Total Savings", "You Save", "Total Discounts"]), credit] as [string, number]] : []),
     ...(doc ? [[pick(WORDS.doc), doc] as [string, number]] : []),
     ...(risc ? [] : extra),
     [pick(WORDS.gov), gov],
