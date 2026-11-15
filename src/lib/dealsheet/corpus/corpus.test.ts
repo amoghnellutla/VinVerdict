@@ -108,13 +108,39 @@ describe("deal-sheet corpus", () => {
   });
 });
 
+// Misreads the reader repairs: every amount must read exactly as before.
+const REPAIRED: Record<string, (t: string) => string> = {
+  "OCR: $ read as S": (t) => t.replace(/\$(\d{1,3}(?:,\d{3})*\.\d{2})/g, "S$1"),
+  "OCR: $ doubled": (t) => t.replace(/\$(?=\d)/g, "$$$$"),
+  "OCR: cents point read as a comma": (t) => t.replace(/\$(\d{1,3}(?:,\d{3})*)\.(\d{2})(?!\d)/g, "$$$1,$2"),
+  "PDF: no space before $": (t) => t.replace(/(?<=[A-Za-z:)]) \$/g, "$$"),
+  "ALL CAPS": (t) => t.toUpperCase(),
+  "tabs for wide gaps": (t) => t.replace(/ {3,}/g, "\t"),
+};
+
 const MUTATIONS: Record<string, (t: string) => string> = {
   "Windows line ends": (t) => t.replace(/\n/g, "\r\n"),
   "blank lines between": (t) => t.replace(/\n/g, "\n\n"),
   "dots instead of spaces": (t) => t.replace(/ \.{10} /g, " ....................... "),
   "OCR: comma read as a period": (t) => t.replace(/\$(\d{1,3}),(\d{3})/g, "$$$1.$2"),
   "lines joined": (t) => t.replace(/\n+/g, " "),
+  ...REPAIRED,
 };
+
+describe("deal sheets with misreads the reader repairs", () => {
+  for (const [how, mutate] of Object.entries(REPAIRED)) {
+    it(`${how}: every amount reads the same`, () => {
+      const bad: string[] = [];
+      const amounts = (t: string, s: Spec) => parseDealSheet(redactDealSheet(t).text).lines.map((l) => `${l.kind}:${l.amount}`).join(" | ");
+      for (const c of cases) {
+        const want = amounts(c.text, c.spec);
+        const got = amounts(mutate(c.text), c.spec);
+        if (got !== want) bad.push(`${c.name}\n    was: ${want}\n    now: ${got}`);
+      }
+      expect(bad, `${how}\n  ${bad.join("\n  ")}`).toEqual([]);
+    });
+  }
+});
 
 describe("deal sheets, pasted differently", () => {
   for (const [how, mutate] of Object.entries(MUTATIONS)) {
@@ -123,8 +149,8 @@ describe("deal sheets, pasted differently", () => {
       for (const c of cases) {
         const base = run(c.text, c.spec);
         const got = run(mutate(c.text), c.spec);
-        const baseWrong = new Set(base.rows.filter((r) => r.verdict === "wrong").map((r) => r.line.label));
-        for (const r of got.rows) if (r.verdict === "wrong" && !baseWrong.has(r.line.label)) bad.push(`${c.name}: "${r.line.label}" became wrong: ${r.note}`);
+        const baseWrong = new Set(base.rows.filter((r) => r.verdict === "wrong").map((r) => r.line.label.toLowerCase()));
+        for (const r of got.rows) if (r.verdict === "wrong" && !baseWrong.has(r.line.label.toLowerCase())) bad.push(`${c.name}: "${r.line.label}" became wrong: ${r.note}`);
         if (got.loan?.verdict === "wrong" && base.loan?.verdict !== "wrong") bad.push(`${c.name}: loan became wrong`);
         if (got.hiddenTotal > base.hiddenTotal + 1) bad.push(`${c.name}: ${got.hiddenTotal} to take off, was ${base.hiddenTotal}`);
       }

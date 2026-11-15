@@ -153,7 +153,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/g;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?![\d,]|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b))(\))?(-)?(?!\w)/gi;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 const NOT_MONEY_BEFORE = /\b(?:miles?|mileage|odometer|odo|stock|stk|deal|vin|year|zip|phone|#)\s*(?:no\.?|number|#)?\s*[:#]?\s*$/i;
 
@@ -195,7 +195,8 @@ export function parseDealSheet(input: string): DealSheet {
     .replace(/(?<![\d.,])(\d{1,3})\.(\d{3})\.(\d{2})(?![\d.])/g, "$1,$2.$3")
     // …and the comma as a space: "$26 635.71" (only after "$" and with cents, where nothing else fits).
     .replace(/\$\s?(\d{1,3}) (\d{3})(\.\d{2})(?![\d.,])/g, "$$$1,$2$3")
-    .replace(/[−‒–](?=\$?\d)/g, "-");
+    .replace(/[−‒–](?=\$?\d)/g, "-")
+    .replace(/[\s\S]*/, (t) => ocrMoney(t));
   const lines: DealLine[] = [];
   const queue: string[] = [];
   const push = (label: string, value: number, wholeLine: string) => {
@@ -231,7 +232,7 @@ export function parseDealSheet(input: string): DealSheet {
     if (!line) continue;
     // "1. Cash Price (including $1,510.30 sales tax)  $24,307.30": the tax inside the brackets is a line of its own
     // (it's in the cash price, which is then a subtotal), never the label of the amount after it.
-    const included = /\((?:including|incl\.?)\s[^)]*?\$\s?([\d,]+\.\d{2})[^)]*\)|\((?:including|incl\.?)\s[^)]*?\btax(?:es)? of\s\$\s?([\d,]+\.\d{2})\)/i.exec(line);
+    const included = /\((?:including|incl\.?)\s*[^)]*?\$\s?([\d,]+\.\d{2})[^)]*\)|\((?:including|incl\.?)\s*[^)]*?\btax(?:es)? of\s?\$\s?([\d,]+\.\d{2})\)/i.exec(line);
     let subtotalHere = false;
     if (included && /tax/i.test(included[0])) {
       flush();
@@ -271,7 +272,7 @@ export function parseDealSheet(input: string): DealSheet {
     flush();
     hits.forEach((h, i) => {
       if (!isLabel(own[i])) return;
-      if (i > 0 && /^(?:is|are|and|or|followed|then|plus|of|for|at|due|with|which)\b/.test(own[i])) return;
+      if (i > 0 && /^(?:is|are|and|or|followed|then|plus|of|for|at|due|with|which)\b/i.test(own[i])) return;
       if (BASE_END.test(own[i]) && i + 1 < hits.length && !isLabel(own[i + 1])) push(own[i].replace(BASE_END, "").replace(/[\s(]+$/, ""), hits[i + 1].value, line);
       else push(own[i], h.value, line);
     });
