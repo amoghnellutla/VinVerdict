@@ -1,0 +1,13 @@
+RETAIL BUYER'S ORDER - USED VEHICLE
+Buyer: Sam Example
+2020 Honda Civic EX   Stock# C2207
+Cash Price ........ $18,450.00
+Smog Check Fee ........ $49.95
+Electronic Filing Fee ........ $35.00
+Doc Fee ........ $85.00
+Dealer Prep ........ $395.00
+Sales Tax ........ $1,798.35
+Reg Fee ........ $212.00
+Lic Fee ........ $119.93
+Tire Fee ........ $8.75
+Total ........ $21,153.98

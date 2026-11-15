@@ -57,8 +57,29 @@ describe("what each line is", () => {
     ["Documentary Fee", "docFee"], ["Dealer Prep", "dealerFee"], ["Reconditioning Fee", "dealerFee"],
     ["Title & Registration", "stateFee"], ["State Sales Tax 6.25%", "tax"], ["Trade-In Allowance", "tradeIn"], ["Payoff on Trade", "payoff"],
     ["Total of Payments", "loan"], ["Amount Financed", "amountFinanced"], ["Total Price", "total"], ["Selling Price", "price"], ["Kelley Blue Book Value", "reference"],
+    // Government fees in short forms, never dealer padding.
+    ["Reg Fee", "stateFee"], ["Lic & Reg", "stateFee"], ["Lic/Title", "stateFee"], ["TT&L", "stateFee"], ["Doc Stamps", "stateFee"], ["Lemon Law Fee", "stateFee"],
+    ["License Fees", "stateFee"], ["BMV Fees", "stateFee"], ["Safety Inspection Fee", "stateFee"], ["Documentary Stamp Tax", "stateFee"],
+    // Add-ons and loan products in the words of real addendums.
+    ["Undercoating", "addOn"], ["Rustproofing", "addOn"], ["Clear Bra", "addOn"], ["Nitro-Fill", "addOn"], ["Dealer Addendum", "addOn"],
+    ["Service Agreement", "loanProduct"], ["Platinum Warranty", "loanProduct"], ["Prepaid Maintenance", "loanProduct"], ["Tire Protection", "loanProduct"], ["Accident & Health", "loanProduct"],
+    ["Dealer Handling", "docFee"],
   ])("%s → %s", (label, kind) => {
     expect(classify(label).kind).toBe(kind);
+  });
+
+  it("a fee it can't place, a smog fee or an e-filing fee is asked about, never refused", () => {
+    const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nSmog Certification $50.00\nElectronic Filing Fee $35.00\nLemon Law Fee $5.00\nBattery Fee $8.00\nDealer Prep $499.00\nTotal $20,597.00"), ad: { price: 20000, docFee: null, sellerType: "dealer" }, state: "CA", modelYear: 2021 });
+    const v = Object.fromEntries(c.rows.map((r) => [r.line.label, r.verdict]));
+    expect(v).toMatchObject({ "Smog Certification": "check", "Electronic Filing Fee": "check", "Lemon Law Fee": "info", "Battery Fee": "check", "Dealer Prep": "remove" });
+    expect(c.hiddenTotal).toBe(499);
+    // The fees asked about stay in the target, and the message asks what they are.
+    const sheet = parseDealSheet("Vehicle Price $20,000.00\nSmog Certification $50.00\nDealer Prep $499.00\nTotal $20,549.00");
+    const ad = { price: 20000, docFee: null, sellerType: "dealer" as const };
+    const plan = negotiationPlan({ sheet, check: checkDealSheet({ sheet, ad, state: null, modelYear: 2021 }), ad, state: null, modelYear: 2021 });
+    expect(plan.target).toBe(20050);
+    expect(plan.message).toContain("what the Smog Certification is for");
+    expect(plan.message).toContain("Dealer Prep");
   });
 
   it("doesn't take a mileage, a monthly figure or a year for money", () => {

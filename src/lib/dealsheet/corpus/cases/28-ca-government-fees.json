@@ -1,0 +1,36 @@
+{
+  "note": "Written for the tests (synthetic). California fees in their short forms: 'Reg Fee', 'Lic Fee' and 'Tire Fee' are the state's (never 'remove'); smog and e-filing fees are asked about; only the dealer prep is padding.",
+  "state": "CA",
+  "ad": { "price": 18450, "docFee": 85, "sellerType": "dealer" },
+  "modelYear": 2020,
+  "myAprPct": null,
+  "clean": false,
+  "expect": {
+    "lines": [
+      { "label": "Cash Price", "kind": "price", "amount": 18450 },
+      { "label": "Smog Check Fee", "kind": "dealerFee", "amount": 49.95 },
+      { "label": "Electronic Filing Fee", "kind": "dealerFee", "amount": 35 },
+      { "label": "Doc Fee", "kind": "docFee", "amount": 85 },
+      { "label": "Dealer Prep", "kind": "dealerFee", "amount": 395 },
+      { "label": "Sales Tax", "kind": "tax", "amount": 1798.35 },
+      { "label": "Reg Fee", "kind": "stateFee", "amount": 212 },
+      { "label": "Lic Fee", "kind": "stateFee", "amount": 119.93 },
+      { "label": "Tire Fee", "kind": "stateFee", "amount": 8.75 },
+      { "label": "Total", "kind": "total", "amount": 21153.98 }
+    ],
+    "confirmed": true,
+    "loan": null,
+    "verdicts": {
+      "Cash Price": "right",
+      "Smog Check Fee": "check",
+      "Electronic Filing Fee": "check",
+      "Doc Fee": "right",
+      "Dealer Prep": "remove",
+      "Reg Fee": "info",
+      "Lic Fee": "info",
+      "Tire Fee": "info",
+      "Total": "right"
+    },
+    "hiddenTotal": 395
+  }
+}

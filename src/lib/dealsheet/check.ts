@@ -218,7 +218,16 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         if (line.name === "Certification fee" && !isNew) {
           return { line, verdict: "check", note: "A certified pre-owned charge. Certification is usually part of a CPO car's price: ask what it covers and whether it's in the advertised price, and get the CPO warranty in writing." };
         }
-        hidden.push({ what: line.label, amount: line.amount, why: "A dealer charge on top of the car's price (preparation, reconditioning, delivery or filing)." });
+        if (line.name === "Smog or emissions") {
+          return { line, verdict: "check", note: "A smog or emissions charge. Some states require the seller to provide the certificate: ask whether this is the state's fee or the test's cost, and for the receipt." };
+        }
+        if (line.name === "Electronic filing fee") {
+          return { line, verdict: "check", note: "A fee for filing the title and registration electronically. Some states allow and limit it: ask whether it's set by the state, and for the amount in writing." };
+        }
+        if (line.name === "Other fee") {
+          return { line, verdict: "check", note: "A fee VinVerdict can't place. Ask what it's for: if it's a government fee it should be on your DMV's fee list; if it's the dealer's own, ask for it to be removed." };
+        }
+        hidden.push({ what: line.label, amount: line.amount, why: "A dealer charge on top of the car's price (preparation, reconditioning or delivery)." });
         return { line, verdict: "remove", note: "A dealer charge on top of the price. Ask them to remove it or include it in the advertised price.", source: REF.ftcAddOns };
       case "addOn":
         hidden.push({ what: line.name ?? line.label, amount: line.amount, why: "An optional add-on." });

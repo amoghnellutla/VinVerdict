@@ -56,6 +56,10 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const paperDoc = sum(["docFee"]);
   const docFee = adFee != null ? Math.min(adFee, paperDoc || adFee) : paperDoc;
   const gov = sum(["stateFee"]);
+  // Fees that may be the state's (smog, e-filing, a fee it can't place) stay in the target until the dealer says
+  // what they are: leaving out a real state fee would set a walk-away number no dealer can meet.
+  const askFees = live.filter((l) => l.kind === "dealerFee" && (l.name === "Smog or emissions" || l.name === "Electronic filing fee" || l.name === "Other fee"));
+  const asked = r2(askFees.reduce((s, l) => s + l.amount, 0));
 
   // Tax: recomputed only when the paper's tax matched the state's rule (the tax row says "right").
   const taxRow = check.rows.find((r) => r.line.kind === "tax" && !r.line.declined);
@@ -67,12 +71,13 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   }
   const plusTax = tax == null && !!taxRow;
   // A lease has no out-the-door price to pay: what's negotiated is the selling price (the capitalized cost).
-  const target = carPrice == null || sheet.lease ? null : r2(carPrice + docFee + gov + (tax ?? 0));
+  const target = carPrice == null || sheet.lease ? null : r2(carPrice + docFee + gov + asked + (tax ?? 0));
 
   const parts: Plan["parts"] = [
     { label: "The car", amount: carPrice, note: isNew && destination ? `with the ${usd(destination)} destination charge${adPrice != null && paperPrice != null && paperPrice > adPrice ? ", at the sticker or advertised price" : ""}` : adPrice != null && paperPrice != null && paperPrice > adPrice ? "the advertised price" : undefined },
     ...(docFee ? [{ label: "Doc fee", amount: docFee, note: adFee != null ? "as the ad showed" : "ask for it to be lowered" }] : []),
     ...(gov ? [{ label: "Government fees", amount: gov, note: "title, registration, plates" }] : []),
+    ...(asked ? [{ label: "Fees to ask about", amount: asked, note: "keep them only if they're the state's" }] : []),
     ...(tax != null ? [{ label: "Tax", amount: tax, note: "on the lower price" }] : plusTax ? [{ label: "Tax", amount: null, note: "plus tax: ask them to recompute it on the lower price" }] : []),
   ];
 
@@ -107,7 +112,7 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const car = input.car ? `the ${input.car}` : "the car";
   const lines: string[] = [];
   if (target != null) {
-    const made = parts.filter((p) => p.amount != null).map((p) => `${usd(p.amount!)} ${p.label === "The car" ? "for the car" : p.label === "Doc fee" ? "doc fee" : p.label === "Government fees" ? "in government fees" : "tax"}`);
+    const made = parts.filter((p) => p.amount != null).map((p) => `${usd(p.amount!)} ${p.label === "The car" ? "for the car" : p.label === "Doc fee" ? "doc fee" : p.label === "Government fees" ? "in government fees" : p.label === "Fees to ask about" ? "in other fees" : "tax"}`);
     lines.push(`Hi, I'm ready to buy ${car} at ${usd(target)}${plusTax ? " plus tax" : ""} out the door: ${made.join(", ")}.`);
   } else {
     lines.push(sheet.lease && carPrice != null
@@ -116,6 +121,7 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   }
   if (priceOver) lines.push(`Your buyer's order shows ${usd(paperPrice!)} for the car; it was advertised at ${usd(adPrice!)}. Please honor the advertised price.`);
   if (removes.length) lines.push(`Please remove ${removes.length === 1 ? removes[0] : `${removes.slice(0, -1).join(", ")} and ${removes[removes.length - 1]}`}. I'm not buying any add-ons.`);
+  if (askFees.length) lines.push(`Please tell me what ${askFees.length === 1 ? `the ${askFees[0].label} is` : `these are: ${askFees.map((l) => l.label).join(", ")}`} for, and whether ${askFees.length === 1 ? "it's" : "they're"} set by the state.`);
   if (L && L.verdict !== "right" && L.diff > 0) lines.push(`Your payment of ${cents(L.stated)} doesn't match ${cents(L.principal)} at ${L.aprPct}% for ${L.months} months (${cents(L.expected)}). Please list everything included in it.`);
   if (L && input.myAprPct != null && input.myAprPct < L.aprPct) lines.push(`I'm pre-approved at ${input.myAprPct}%. Can you beat that rate?`);
   if (sheet.lease) lines.push("Please send the money factor, the residual and the leasing company's acquisition fee in writing.");
