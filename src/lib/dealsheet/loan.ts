@@ -42,6 +42,23 @@ export function checkPayment(principal: number, aprPct: number, months: number, 
   return { principal, aprPct, months, stated, expected, diff, overLoan: r2(diff * months), ok: Math.abs(diff) <= PAYMENT_TOLERANCE };
 }
 
+/**
+ * A schedule whose last payment differs ("71 payments of $468.51 and 1 final payment of $469.10", or a balloon):
+ * the regular payment that pays off `principal` with that final payment, over `months` payments in all (the final
+ * one included). Never guessed from the payment: a padded payment can look like a shorter loan.
+ */
+export function checkPaymentWithFinal(principal: number, aprPct: number, months: number, stated: number, final: number): LoanCheck {
+  const regular = (n: number) => {
+    const r = aprPct / 1200;
+    if (n < 2) return NaN;
+    if (r === 0) return r2((principal - final) / (n - 1));
+    return r2(((principal - final / Math.pow(1 + r, n)) * r) / (1 - Math.pow(1 + r, -(n - 1))));
+  };
+  const expected = regular(months);
+  const diff = r2(stated - expected);
+  return { principal, aprPct, months, stated, expected, diff, overLoan: r2(diff * (months - 1)), ok: Math.abs(diff) <= PAYMENT_TOLERANCE };
+}
+
 /** Interest saved by borrowing the same amount at `otherPct` (a bank or credit union's pre-approval). */
 export function savingAtRate(principal: number, aprPct: number, months: number, otherPct: number): number {
   return r2(totalInterest(principal, aprPct, months) - totalInterest(principal, otherPct, months));

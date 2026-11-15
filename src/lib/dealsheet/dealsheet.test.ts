@@ -124,6 +124,35 @@ describe("what each line is", () => {
     expect(plan.parts.find((p) => p.label === "Tax")?.amount).toBe(1312.5);
   });
 
+  it("loan terms written many ways are read, and a final payment is part of the math", () => {
+    const head = "Vehicle Price $25,000.00\nAmount Financed $25,998.58\n";
+    const loan = (t: string) => checkDealSheet({ sheet: parseDealSheet(head + t), ad: null, state: null, modelYear: 2021 }).loan;
+    for (const t of [
+      "Annual Percentage Rate 8.99%\nYour payment schedule will be: 71 payments of $468.51 monthly and 1 final payment of $469.10",
+      "APR 8.99%\nNumber of Payments 71   Amount of Payments $468.51\n1 final payment $469.10",
+      "APR: 8.990 %\nTerm: 72\nPayment: $468.51",
+      "72 mo @ 8.99% = $468.51/mo",
+      "Interest Rate 8.99 (simple)\nTerm 72 months\nMonthly Payment $468.51",
+      "Payment $468.51 per month for 72 months at 8.99% APR",
+      "APR 8.99%\nTerm 6 years\nMonthly Payment $468.51",
+    ]) {
+      const l = loan(t);
+      expect(l?.verdict, t).toBe("right");
+      expect(l?.months, t).toBe(72);
+    }
+    expect(loan("APR 8.99%\n71 payments of $468.51 and 1 final payment of $469.10")?.note).toContain("with a final payment of $469.10");
+    // A balloon: the regular payment is checked with the balloon taken into account, never as a 71-month loan.
+    const b = loan("APR 8.99%\n71 payments of $388.37 and a final balloon payment of $8,000.00");
+    expect(b?.verdict).toBe("right");
+    expect(b?.note).toContain("balloon payment of $8,000.00");
+  });
+
+  it("a payment to the lienholder or a down payment is never the monthly payment", () => {
+    const s = parseDealSheet("Vehicle Price $25,000.00\nDown Payment $3,000.00\nPayment to ABC Bank (trade lien) $12,000.00\nAmount Financed $22,000.00\nAPR 7.9%\nTerm 60 months");
+    expect(s.loan.payment).toBeNull();
+    expect(checkDealSheet({ sheet: s, ad: null, state: null, modelYear: 2021 }).loan).toBeNull();
+  });
+
   it("a tax line that shows its base gives the tax, not the base", () => {
     for (const t of ["Sales Tax 6.625% of $23,000.00 $1,523.75", "Sales Tax (6.625% x $23,000.00) $1,523.75", "Sales Tax @ 6.625% on $23,000.00 $1,523.75"]) {
       const s = parseDealSheet(`Vehicle Price $23,000.00\n${t}\nTotal $24,523.75`);

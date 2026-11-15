@@ -9,7 +9,7 @@
 import { STATE_TAX, vehicleTax } from "@/lib/costs/stateTax";
 import { STATES, type StateCode } from "@/lib/geo/zip";
 import { REF, type SourceRef } from "@/lib/sources";
-import { checkPayment, monthlyPayment, PAYMENT_TOLERANCE as PAYMENT_GAP, savingAtRate, totalInterest, type LoanCheck } from "./loan";
+import { checkPayment, checkPaymentWithFinal, monthlyPayment, PAYMENT_TOLERANCE as PAYMENT_GAP, savingAtRate, totalInterest, type LoanCheck } from "./loan";
 import type { DealLine, DealSheet } from "./parse";
 import { reconcile, type Reconcile } from "./reconcile";
 
@@ -347,40 +347,46 @@ export function checkDealSheet(input: CheckInput): DealCheck {
   let loan: DealCheck["loan"] = null;
   const principal = L.amountFinanced;
   // Only numbers that make sense as a car loan are checked (a misread "24.27" financed is not a loan).
-  const plausible = !!principal && principal >= 1_000 && L.payment != null && L.payment >= 25 && L.months != null && L.payment * L.months >= principal * 0.9;
+  const plausible = !!principal && principal >= 1_000 && L.payment != null && L.payment >= 25 && L.months != null && L.payment * L.months >= principal * 0.9 && L.payment <= principal / 5;
   if (!sheet.lease && !sheet.paymentOptions && plausible && principal && L.aprPct != null && L.months && L.payment) {
-    const c = checkPayment(principal, L.aprPct, L.months, L.payment);
+    // A last payment that differs (an odd final payment, or a balloon) is part of the math.
+    const final = L.finalPayment && L.finalPayment > 0 && Math.abs(L.finalPayment - L.payment) > 0.005 ? L.finalPayment : null;
+    const balloon = final != null && final > L.payment * 1.5;
+    const c = final != null ? checkPaymentWithFinal(principal, L.aprPct, L.months, L.payment, final) : checkPayment(principal, L.aprPct, L.months, L.payment);
+    const n = c.months;
+    const finalWords = final != null ? ` with a ${balloon ? "balloon" : "final"} payment of ${cents(final)}` : "";
     // Second check for the loan numbers: the paper's own total of payments (payment × months, a final payment a
     // few cents different). When they disagree, one of them was misread (a photo's "$450.20" read as "$450.00").
-    const tilaOk = L.totalOfPayments != null && Math.abs(L.totalOfPayments - L.payment * L.months) <= 2;
+    const scheduled = final != null ? L.payment * (n - 1) + final : L.payment * n;
+    const tilaOk = L.totalOfPayments != null && Math.abs(L.totalOfPayments - scheduled) <= 2;
     const tilaDisagrees = L.totalOfPayments != null && !tilaOk;
     let verdict: Verdict = "right";
-    let note = `The payment matches ${cents(principal)} at ${L.aprPct}% for ${L.months} months (${cents(c.expected)}).`;
+    let note = `The payment matches ${cents(principal)} at ${L.aprPct}% for ${n} months${finalWords} (${cents(c.expected)}).`;
     if (tilaDisagrees) {
       verdict = "check";
-      note = `The payment reads as ${cents(L.payment)}, but the paper's total of payments (${cents(L.totalOfPayments!)}) is ${cents(L.totalOfPayments! / L.months)} a month. Check both on the paper. The loan math for ${cents(principal)} at ${L.aprPct}% for ${L.months} months is ${cents(c.expected)}${c.diff > PAYMENT_GAP ? ": anything above that is something not shown" : ""}.`;
+      note = `The payment reads as ${cents(L.payment)}, but the paper's total of payments (${cents(L.totalOfPayments!)}) is ${cents(L.totalOfPayments! / n)} a month. Check both on the paper. The loan math for ${cents(principal)} at ${L.aprPct}% for ${n} months${finalWords} is ${cents(c.expected)}${c.diff > PAYMENT_GAP ? ": anything above that is something not shown" : ""}.`;
     } else if (!c.ok && c.diff > 0) {
       verdict = tilaOk ? "wrong" : "check";
-      note = `${cents(principal)} at ${L.aprPct}% for ${L.months} months is ${cents(c.expected)} a month; the paper says ${cents(L.payment)}. That's ${cents(c.diff)} a month (${usd(c.overLoan)} over the loan) for something not shown. Ask for every product in the payment.`;
+      note = `${cents(principal)} at ${L.aprPct}% for ${n} months${finalWords} is ${cents(c.expected)} a month; the paper says ${cents(L.payment)}. That's ${cents(c.diff)} a month (${usd(c.overLoan)} over the loan) for something not shown. Ask for every product in the payment.`;
       if (verdict === "wrong") hidden.push({ what: "Payment above the loan math", amount: c.overLoan, why: note });
     } else if (!c.ok) {
       verdict = "check";
       note = `The loan math gives ${cents(c.expected)} a month; the paper says ${cents(L.payment)}. Check the amount financed, rate and term on the paper.`;
     }
-    const longTerm = L.months > 60
-      ? `At ${L.months} months you pay ${usd(totalInterest(principal, L.aprPct, L.months))} in interest; at 60 months it would be ${usd(totalInterest(principal, L.aprPct, 60))} (payment ${cents(monthlyPayment(principal, L.aprPct, 60))}). A long term lowers the payment, not the price.`
+    const longTerm = !balloon && n > 60
+      ? `At ${n} months you pay ${usd(totalInterest(principal, L.aprPct, n))} in interest; at 60 months it would be ${usd(totalInterest(principal, L.aprPct, 60))} (payment ${cents(monthlyPayment(principal, L.aprPct, 60))}). A long term lowers the payment, not the price.`
       : null;
     // What the lines to take off (add-ons, products, dealer fees, a price over the ad) cost inside this loan, with
     // interest, and the payment without them, against the loan math's payment (so money hidden in the payment
     // isn't counted twice). Tax on them is left out, so the real drop is at least this.
-    const without = lineSaving > 0 && principal - lineSaving > 0
+    const without = !balloon && lineSaving > 0 && principal - lineSaving > 0
       ? (() => {
-          const payment = monthlyPayment(principal - lineSaving, L.aprPct!, L.months!);
-          return { payment, drop: r2(c.expected - payment), withInterest: r2((lineSaving / principal) * c.expected * L.months!), amount: lineSaving };
+          const payment = monthlyPayment(principal - lineSaving, L.aprPct!, n);
+          return { payment, drop: r2(c.expected - payment), withInterest: r2((lineSaving / principal) * c.expected * n), amount: lineSaving };
         })()
       : null;
     const my = input.myAprPct;
-    const atMyRate = my != null && my >= 0 && my < L.aprPct ? savingAtRate(principal, L.aprPct, L.months, my) : null;
+    const atMyRate = my != null && my >= 0 && my < L.aprPct ? savingAtRate(principal, L.aprPct, n, my) : null;
     if (atMyRate && atMyRate > 0) hidden.push({ what: `Interest at ${L.aprPct}% instead of your ${my}%`, amount: atMyRate, why: "The dealer's rate usually includes an amount for the dealer, and it's negotiable (FTC)." });
     loan = { ...c, verdict, note, longTerm, atMyRate, without };
   }

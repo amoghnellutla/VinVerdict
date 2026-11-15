@@ -35,6 +35,8 @@ export type LoanTerms = {
   amountFinanced: number | null;
   totalOfPayments: number | null;
   financeCharge: number | null;
+  /** A last payment that differs from the others (a final odd payment, or a balloon). */
+  finalPayment?: number | null;
 };
 
 export type DealSheet = {
@@ -410,16 +412,33 @@ function readLoan(text: string, lines: DealLine[]): LoanTerms {
   const near = (label: string) => num(find(label, money, "[^$\\d%]{0,40}"));
   const aprAt = find("annual percentage rate|\\bapr\\b|a\\.p\\.r\\.|interest rate|\\brate\\b", String.raw`(\d{1,2}(?:\.\d{1,3})?)\s?%`, "[^%\\d]{0,40}");
   const aprAfter = rows.map((r) => /(\d{1,2}(?:\.\d{1,3})?)\s?%\s?(?:apr|a\.p\.r|annual percentage rate|interest)/.exec(r)).find(Boolean);
-  const apr = aprAt != null ? [aprAt, aprAt] : aprAfter ?? null;
+  // "72 mo @ 8.99%", or a rate printed without its "%" ("Interest Rate 8.99 (simple)", always with decimals).
+  const aprAtSign = rows.map((r) => /\b(?:mos?|months?)\.?\s?@\s?(\d{1,2}(?:\.\d{1,3})?)\s?%/.exec(r)).find(Boolean);
+  const aprNoPct = find("annual percentage rate|\\bapr\\b|interest rate", String.raw`(\d{1,2}\.\d{1,3})(?![\d.,%]|\s?%)`, "[^\\d$]{0,20}");
+  const apr = aprAt != null ? [aprAt, aprAt] : aprAfter ?? aprAtSign ?? (aprNoPct != null ? [aprNoPct, aprNoPct] : null);
   const monthsAt = find("term|number of payments|no\\.? of payments|# of payments", String.raw`(\d{2,3})\b`, "[^\\d]{0,25}");
   const monthsLoose = rows.map((r) => /\b(\d{2,3})\s?(?:months?|mos?\.?|monthly payments|payments)\b/.exec(r)).find(Boolean);
-  const months = monthsAt != null ? [monthsAt, monthsAt] : monthsLoose ?? null;
+  // "Term 6 years": in months.
+  const termYears = rows.map((r) => /\bterm\b[^\d]{0,12}(\d{1,2})\s?(?:years?|yrs?)\b/.exec(r)).find(Boolean);
+  const months = monthsAt != null ? [monthsAt, monthsAt] : monthsLoose ?? (termYears ? [termYears[0], String(Number(termYears[1]) * 12)] : null);
   const amountFinanced = lines.find((l) => l.kind === "amountFinanced")?.amount ?? near("amount financed|unpaid balance|amount to (?:be )?financ(?:e|ed)|to be financed|loan amount");
-  const m = months ? Number(months[1]) : null;
+  let m = months ? Number(months[1]) : null;
+  // "71 payments of $468.51 and 1 final payment of $469.10": the count printed with the regular payment leaves the
+  // final one out (a term in months already includes it).
+  const finalPayment = near("final (?:balloon )?payment|balloon payment|last payment");
+  if (m && finalPayment != null) {
+    const asCount = rows.some((r) => new RegExp(String.raw`\b${m} (?:regular |monthly |equal )?payments\b|(?:number|no\.?|#) of payments\D{0,25}\b${m}\b`).test(r));
+    const asTerm = rows.some((r) => new RegExp(String.raw`\bterm\b\D{0,12}\b${m}\b|\b${m} ?(?:months?|mos?)\b`).test(r));
+    if (asCount && !asTerm) m += 1;
+  }
   return {
     aprPct: apr ? Number(apr[1]) : null,
     months: m && m >= 6 && m <= 96 ? m : null,
-    payment: near("monthly payment|payment amount|amount of (?:each )?payments?|payments? of|est(?:imated)?\\.? payment|your payment"),
+    // A plain "Payment" (never a down, first, final or deferred one), or "$468.51 per month" as a last resort.
+    payment: near("monthly payment|payment amount|amount of (?:each )?payments?|payments? of|est(?:imated)?\\.? payment|your payment")
+      ?? near("(?<!down |first |final |last |balloon |deferred |pickup |cash |total of |number of |no\\. of |# of )\\bpayment\\b(?! schedule| due| date| to| option)")
+      ?? num(rows.map((r) => /\$\s?(\d{1,3}(?:,\d{3})*\.\d{2})\s?(?:\/\s?mo(?:nth)?\b|per month|a month)/.exec(r)?.[1]).find(Boolean)),
+    finalPayment,
     amountFinanced,
     totalOfPayments: near("total of payments"),
     financeCharge: near("finance charge"),

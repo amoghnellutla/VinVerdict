@@ -118,9 +118,14 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   }
   // A page break with the form's header repeated.
   if (chance(0.2) && layout !== "columns" && body.length > 4) body.splice(4, 0, "Page 1 of 2", "BUYER'S ORDER (continued)");
-  const loanLines = hasLoan
-    ? [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])]
-    : [];
+  // Loan terms as printed: a term and payment, or a schedule with a final payment a few cents different.
+  const finalStyle = hasLoan && chance(0.3);
+  const finalPay = r2(payment + Math.round(rand() * 60) / 100);
+  const loanLines = !hasLoan
+    ? []
+    : finalStyle
+      ? [`Annual Percentage Rate ${apr}%`, `Your payment schedule: ${months - 1} payments of ${money(payment)} monthly and 1 final payment of ${money(finalPay)}`]
+      : [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])];
   let text = [pick(["BUYER'S ORDER", "PURCHASE AGREEMENT", "DEAL WORKSHEET", "Retail Purchase Order"]), `Buyer: ${name}`, `Address: ${Math.round(rand() * 900 + 10)} Sample Rd, Anytown`, `Stock # ${Math.round(rand() * 90000 + 10000)}`, ...body, ...loanLines].join("\n");
   if (chance(0.25)) text = text.toUpperCase();
   // OCR misreads: a thousands comma read as a period, or a space after "$".
