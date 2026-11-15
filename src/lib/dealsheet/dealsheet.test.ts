@@ -147,4 +147,30 @@ describe("doc fee above a state's legal maximum", () => {
     const ca = checkDealSheet({ sheet: parseDealSheet(paper.replace("$175.00", "$399.00").replace("$22,175.00", "$22,399.00")), ad: null, state: "CA", modelYear: 2021 });
     expect(ca.rows.find((r) => r.line.kind === "docFee")?.verdict).toBe("check");
   });
+
+  it("Maryland caps it at $800; Minnesota at $350 or 10% of the sale, whichever is less", () => {
+    const md = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $18,000.00\nDealer Processing Charge $899.00\nTotal Price $18,899.00"), ad: null, state: "MD", modelYear: 2020 });
+    expect(md.rows.find((r) => r.line.kind === "docFee")?.note).toContain("$99 more than Maryland's legal maximum of $800");
+    // A $2,500 car: 10% is $250, less than $350.
+    const mn = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $2,500.00\nDocumentary Fee $350.00\nTotal Price $2,850.00"), ad: null, state: "MN", modelYear: 2012 });
+    const row = mn.rows.find((r) => r.line.kind === "docFee")!;
+    expect(row.verdict).toBe("wrong");
+    expect(row.note).toContain("$100 more than Minnesota's legal maximum of $250 (10% of the sale)");
+    // A $20,000 car: $350 is the cap, and $350 is fine.
+    const ok = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $20,000.00\nDocumentary Fee $350.00\nTotal Price $20,350.00"), ad: null, state: "MN", modelYear: 2021 });
+    expect(ok.rows.find((r) => r.line.kind === "docFee")?.verdict).not.toBe("wrong");
+  });
+});
+
+describe("the example paper on /deal", () => {
+  it("adds up, and shows the usual problems: over the ad, three add-ons, a packed payment", async () => {
+    const { EXAMPLE_AD, EXAMPLE_PAPER, EXAMPLE_STATE } = await import("./example");
+    const sheet = parseDealSheet(EXAMPLE_PAPER);
+    const c = checkDealSheet({ sheet, ad: { ...EXAMPLE_AD, sellerType: "dealer" }, state: EXAMPLE_STATE, modelYear: 2021 });
+    expect(c.confirmed).toBe(true);
+    expect(c.rows.find((r) => r.line.kind === "tax")?.verdict).toBe("right");
+    expect(c.rows.filter((r) => r.verdict === "remove")).toHaveLength(3);
+    expect(c.loan?.verdict).toBe("wrong");
+    expect(Math.round(c.hiddenTotal)).toBe(5253);
+  });
 });

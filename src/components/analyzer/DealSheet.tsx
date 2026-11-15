@@ -5,6 +5,7 @@ import { useReportPart } from "./report-parts";
 import { readDealSheetAction } from "@/app/actions/ai";
 import { Turnstile } from "@/components/Turnstile";
 import { compareReads, type AiDealRead } from "@/lib/ai/dealsheet-read";
+import { EXAMPLE_PAPER, EXAMPLE_STATE } from "@/lib/dealsheet/example";
 import { diffPapers, forgetPapers, keepPaper, loadPapers, snapshot, type PaperChange, type PaperSnapshot } from "@/lib/dealsheet/diff";
 import { CopyButton } from "@/components/CopyButton";
 import { ExternalLink } from "@/components/ExternalLink";
@@ -46,12 +47,14 @@ const BADGE: Record<Verdict, { word: string; cls: string }> = {
  * text), and every line is read and checked on this device, with a negotiation plan that assumes every add-on is
  * refused. Nothing is uploaded; the buyer's own details are taken out before anything is shown.
  */
-export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false, onChecked = null }: {
+export function DealSheet({ ad, car = null, modelYear = null, standalone = false, guest = true, ai = false, onChecked = null, onExample = null }: {
   ad: AdFacts | null;
   car?: string | null;
   modelYear?: number | null;
   /** On its own page, under the page's own title. */
   standalone?: boolean;
+  /** "Try it with an example": the page fills in the example's ad price and fee; the paper is checked here. */
+  onExample?: (() => void) | null;
   /** A visitor (the AI double-check needs the "I'm human" check). */
   guest?: boolean;
   /** AI mode is on. */
@@ -219,6 +222,20 @@ export function DealSheet({ ad, car = null, modelYear = null, standalone = false
           <input type="file" accept="application/pdf,image/*" multiple className="sr-only" onChange={(e) => void readFiles(e)} disabled={!!busy} />
         </label>
         <span className="text-sm text-muted">or paste it below</span>
+        {onExample && (
+          <button
+            type="button"
+            className="link text-sm"
+            disabled={!!busy}
+            onClick={() => {
+              onExample();
+              setState(EXAMPLE_STATE);
+              check(EXAMPLE_PAPER, "the made-up example paper");
+            }}
+          >
+            No paper yet? Try it with an example
+          </button>
+        )}
       </div>
       <div className="print:hidden">
         <label htmlFor="deal-text" className="sr-only">The dealer&apos;s numbers</label>

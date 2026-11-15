@@ -64,12 +64,22 @@ export type DealCheck = {
 /**
  * Doc-fee caps set by a state's own law or DMV, checked on the official page (2026-11-14). Only states whose
  * current cap could be confirmed are here; others are left out rather than guessed (California's changed
- * recently and couldn't be confirmed).
+ * recently and couldn't be confirmed; Ohio's and Illinois's are re-indexed every year, with no current figure in the law).
  */
-export const DOC_FEE_CAP: Partial<Record<StateCode, { max: number; source: SourceRef; extra?: string }>> = {
+export const DOC_FEE_CAP: Partial<Record<StateCode, { max: number; source: SourceRef; extra?: string; /** Also at most this share of the sale (the lesser applies). */ pctOfSale?: number }>> = {
   NY: { max: 175, source: REF.nyDocFee },
   WA: { max: 200, source: REF.waDocFee, extra: "Washington law also says the dealer must tell you it's negotiable, and can't say the state requires it." },
+  MD: { max: 800, source: REF.mdDocFee },
+  MN: { max: 350, pctOfSale: 0.1, source: REF.mnDocFee },
 };
+
+/** A state's doc-fee cap for this sale: its dollar limit, or a share of the sale when that's lower (Minnesota). */
+function capFor(state: StateCode, sale: number): { max: number; how: string; source: SourceRef; extra?: string } | null {
+  const c = DOC_FEE_CAP[state];
+  if (!c) return null;
+  if (c.pctOfSale && sale > 0 && sale * c.pctOfSale < c.max) return { max: r2(sale * c.pctOfSale), how: `${c.pctOfSale * 100}% of the sale`, source: c.source, extra: c.extra };
+  return { max: c.max, how: usd(c.max), source: c.source, extra: c.extra };
+}
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const cents = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -163,13 +173,14 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         return { line, verdict: "info", note: "A lease term (see the note on leases above)." };
       case "docFee": {
         // A state's legal maximum, where its own law or DMV says so (only those checked are listed).
-        const cap = state ? DOC_FEE_CAP[state] : undefined;
+        const cap = state ? capFor(state, netPrice) : null;
         if (cap && line.amount > cap.max + 0.5) {
           const over = r2(line.amount - cap.max);
-          if (sure(i)) hidden.push({ what: `Doc fee above ${STATES[state!]}'s legal maximum`, amount: over, why: `${STATES[state!]} caps it at ${usd(cap.max)}.` });
+          const limit = cap.how === usd(cap.max) ? usd(cap.max) : `${usd(cap.max)} (${cap.how})`;
+          if (sure(i)) hidden.push({ what: `Doc fee above ${STATES[state!]}'s legal maximum`, amount: over, why: `${STATES[state!]} caps it at ${limit}.` });
           return sure(i)
-            ? { line, verdict: "wrong", note: `${usd(over)} more than ${STATES[state!]}'s legal maximum of ${usd(cap.max)}.${cap.extra ? ` ${cap.extra}` : ""}`, source: cap.source }
-            : { line, verdict: "check", note: `Reads as ${usd(over)} more than ${STATES[state!]}'s legal maximum of ${usd(cap.max)}. Check this line.`, source: cap.source };
+            ? { line, verdict: "wrong", note: `${usd(over)} more than ${STATES[state!]}'s legal maximum of ${limit}.${cap.extra ? ` ${cap.extra}` : ""}`, source: cap.source }
+            : { line, verdict: "check", note: `Reads as ${usd(over)} more than ${STATES[state!]}'s legal maximum of ${limit}. Check this line.`, source: cap.source };
         }
         if (adFee != null) {
           const over = r2(line.amount - adFee);

@@ -40,6 +40,10 @@ export const REF = {
   nyDocFee: { name: "NY DMV: a dealer may charge up to $175 to process registration and title", href: "https://dmv.ny.gov/brochure/let-the-buyer-be-aware" },
   // Checked 2026-11-14: RCW 46.70.180(2)(a)(ii): "an amount not to exceed $200 per vehicle sale or lease"; it must be disclosed as "a negotiable fee".
   waDocFee: { name: "RCW 46.70.180: Washington's documentary service fee, at most $200 and negotiable", href: "https://app.leg.wa.gov/RCW/default.aspx?cite=46.70.180" },
+  // Checked 2026-11-14: Minn. Stat. 168.27 subd. 31(b): from July 1, 2025 "the maximum fee is the lesser of $350 or an amount equal to ten percent of the value of the sale or lease".
+  mnDocFee: { name: "Minn. Stat. 168.27, subd. 31: Minnesota's documentary fee, at most $350 or 10% of the sale", href: "https://www.revisor.mn.gov/statutes/cite/168.27" },
+  // Checked 2026-11-14: Md. Transportation § 15-311.1(b)(1)(ii): "$800 on and after July 1, 2024".
+  mdDocFee: { name: "Md. Transportation § 15-311.1: Maryland's dealer processing charge, at most $800", href: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtr&section=15-311.1&enactments=false" },
   cfpbAddOns: { name: "CFPB: an extended warranty, GAP or credit insurance generally can't be required", href: "https://www.consumerfinance.gov/ask-cfpb/am-i-required-to-purchase-an-extended-warranty-or-guaranteed-asset-protection-gap-insurance-from-a-lender-or-dealer-to-get-an-auto-loan-en-807/" },
 } satisfies Record<string, SourceRef>;
 

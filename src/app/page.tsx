@@ -58,6 +58,10 @@ function Points() {
         ))}
       </ul>
       <p className="mt-6 text-sm">
+        Already at the dealer? <Link href="/deal" className="link font-semibold">Check their numbers before you sign</Link>: add-ons to refuse, fees, tax
+        and the loan payment, line by line.
+      </p>
+      <p className="mt-2 text-sm">
         <Link href="/why" className="link">How this compares with Google and AI chatbots</Link>
       </p>
     </section>

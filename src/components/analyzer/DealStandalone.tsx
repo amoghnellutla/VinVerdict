@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EXAMPLE_AD } from "@/lib/dealsheet/example";
 import { DealSheet } from "./DealSheet";
 
 const money = (v: string) => v.replace(/[^\d]/g, "").slice(0, 7);
@@ -23,7 +24,7 @@ export function DealStandalone({ guest }: { guest: boolean }) {
           <input className="field mt-1 w-40" inputMode="numeric" value={fee} onChange={(e) => setFee(money(e.target.value))} placeholder="$" />
         </label>
       </div>
-      <DealSheet ad={p ? { price: p, docFee: f, sellerType: "dealer" } : null} standalone guest={guest} ai={process.env.NEXT_PUBLIC_AI_MODE === "1"} />
+      <DealSheet ad={p ? { price: p, docFee: f, sellerType: "dealer" } : null} standalone guest={guest} ai={process.env.NEXT_PUBLIC_AI_MODE === "1"} onExample={() => { setPrice(String(EXAMPLE_AD.price)); setFee(String(EXAMPLE_AD.docFee)); }} />
     </div>
   );
 }
