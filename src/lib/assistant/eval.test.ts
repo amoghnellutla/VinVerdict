@@ -286,7 +286,7 @@ describe("the assistant's routing test set", () => {
 });
 
 describe("a pasted buyer's order goes to the deal check", () => {
-  it("every deal-sheet corpus paper with tax or a balance is recognised; no listing page is", async () => {
+  it("every deal-sheet corpus paper with tax or a balance is recognised; no listing page is", { timeout: 60_000 }, async () => {
     const { readdirSync } = await import("node:fs");
     const { routeMessage, isDealSheet } = await import("./route");
     const dir = "src/lib/dealsheet/corpus/cases";

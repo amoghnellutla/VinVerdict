@@ -426,6 +426,14 @@ describe("what each line is", () => {
     expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["Grabado del VIN", "addOn", 399], ["GAP Policy", "loanProduct", 895]]);
   });
 
+  it("a trade-in's ACV and over-allowance are how the allowance is made up, not more credit", () => {
+    const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $25,000.00\nTrade Allowance $10,000.00\nTrade ACV $8,500.00\nOver-Allowance $1,500.00\nDoc Fee $499.00\nTotal $15,499.00"), ad: { price: 25000, docFee: 499, sellerType: "dealer" }, state: null, modelYear: 2021 });
+    expect(c.rows.map((r) => r.line.kind)).toEqual(["price", "tradeIn", "reference", "reference", "docFee", "total"]);
+    expect(c.confirmed).toBe(true);
+    expect(c.rows.some((r) => r.verdict === "check")).toBe(false);
+    expect(parseDealSheet("Trade-In Actual Cash Value $8,500.00\nTrade Allowance $8,500.00").lines.map((l) => l.kind)).toEqual(["reference", "tradeIn"]);
+  });
+
   it("a tick box decides whether a product was taken, not the words beside it", () => {
     const declined = (t: string) => parseDealSheet(t).lines[0].declined;
     expect(declined("GAP Protection  [X] Accept  [ ] Decline  $895.00")).toBe(false);

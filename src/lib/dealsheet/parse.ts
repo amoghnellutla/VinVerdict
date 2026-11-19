@@ -124,6 +124,8 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b|\bprior (?:credit|lease) (?:or lease )?balance\b/, l)) return { kind: "payoff" };
   // "Trade Difference" (Texas) is the price less the trade-in: a subtotal, not a credit.
   if (has(/\b(?:trade|cash) difference\b/, l)) return { kind: "subtotal" };
+  // The trade-in's actual cash value and the over-allowance are how the allowance is made up, not more credit.
+  if (has(/\bacv\b|\bactual cash value\b|\b(?:over|under)[- ]?allowance\b/, l)) return { kind: "reference" };
   if (has(/\btrade[- ]?in\b|\btrade (?:allowance|value|credit|equity)\b|\ballowance\b|^(?:net )?equity$/, l)) return { kind: "tradeIn" };
   for (const [name, re] of LOAN_PRODUCTS) if (has(re, l)) return { kind: "loanProduct", name };
   // A package of several ("Pro Pack (wheel locks, tint, door guards)") keeps its own name.

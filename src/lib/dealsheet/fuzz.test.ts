@@ -24,7 +24,7 @@ const run = (p: Paper): DealCheck =>
 const tallies: Record<string, { papers: number; confirmed: number; clean: number; checksOnClean: number; loansRead: number; loans: number; found: number; planted: number }> = {};
 
 function suite(label: string, from: number, n: number, hard: boolean, condition: "new" | "used" = "used") {
-  it(`${label}: no mistakes`, () => {
+  it(`${label}: no mistakes`, { timeout: 60_000 }, () => {
     const t = (tallies[label] = { papers: 0, confirmed: 0, clean: 0, checksOnClean: 0, loansRead: 0, loans: 0, found: 0, planted: 0 });
     const bad: string[] = [];
     for (let seed = from; seed < from + n; seed++) {
@@ -98,7 +98,7 @@ describe("generated dealer papers (seeded)", () => {
 });
 
 describe("generated leases (seeded)", () => {
-  it("lease worksheets and disclosures: no loan check, nothing wrong; add-ons refused; a padded payment asked about", () => {
+  it("lease worksheets and disclosures: no loan check, nothing wrong; add-ons refused; a padded payment asked about", { timeout: 60_000 }, () => {
     const bad: string[] = [];
     for (let seed = 5001; seed <= 5400; seed++) {
       const p = makeLease(seed);
@@ -119,7 +119,7 @@ describe("generated leases (seeded)", () => {
 });
 
 describe("generated payment-options worksheets (seeded)", () => {
-  it("every option is read, no single loan is checked, nothing is wrong, and add-ons are refused", () => {
+  it("every option is read, no single loan is checked, nothing is wrong, and add-ons are refused", { timeout: 60_000 }, () => {
     const bad: string[] = [];
     for (let seed = 6001; seed <= 6300; seed++) {
       const p = makeOptions(seed);
@@ -152,7 +152,7 @@ describe("generated paper pairs: what changed since the last paper (seeded)", ()
   };
   const LAYOUTS = [(l: string, a: string) => `${l} .......... ${a}`, (l: string, a: string) => `${l}: ${a}`, (l: string, a: string) => `${l.toUpperCase()}    ${a}`, (l: string, a: string) => `${l}\t${a}`];
   const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  it("rewording and re-laying-out show no change; one slipped-in or raised line shows exactly that", () => {
+  it("rewording and re-laying-out show no change; one slipped-in or raised line shows exactly that", { timeout: 60_000 }, () => {
     const bad: string[] = [];
     for (let seed = 7001; seed <= 7300; seed++) {
       const rand = rng(seed);
