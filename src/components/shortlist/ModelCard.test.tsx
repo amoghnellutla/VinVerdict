@@ -68,7 +68,9 @@ describe("NHTSA crash stars and defect investigations for the car's year", () =>
     const y = { ...crv.years[0], investigations: list, stars: { low: 4, high: 5 } };
     const t = text(renderToStaticMarkup(<CarYearCard car={car(y.year)} model={{ ...crv, years: [y] }} />));
     expect(t).toContain("4 to 5 stars overall, depending on the version");
-    expect(t).toContain("c: 2023 to 2025, led to recall 24V744.");
+    expect(t).toContain("c: 2023 to 2025, linked to recall 24V744.");
+    const same = { ...y, investigations: [{ id: "RQ1", subject: "d", opened: 2023, closed: 2023, recall: "22V063000" }] };
+    expect(text(renderToStaticMarkup(<CarYearCard car={car(y.year)} model={{ ...crv, years: [same] }} />))).toContain("d: 2023, linked to recall 22V063000.");
     expect(t).not.toContain("a: 2022");
   });
 });

@@ -15,7 +15,7 @@
 - The per-model API (the old way) left out whole years: 2014 Camry 14 vs 456 in the files, 2023–24 Accord and Civic 0, 2024 Outback 2 vs 107. Use the files.
 - NHTSA files one car under several names ("GLE350" and "GLE 350"; "ES" and "ES350"; "F-250" and "F-250 SD"). `canonical()` merges only clear spellings and renames; different cars stay apart ("Prius v", "Santa Fe Sport", "Camry Hybrid").
 - The recall files have no don't-drive / park-outside flag; it's read from the recall text and checked with `--check-api`.
-- Investigations: only open ones and ones that led to a recall are shown (closed without one means no defect was found, or it moved into a newer investigation).
+- Investigations: only open ones and ones with a recall number are shown, as "linked to recall" (the number can be a recall it led to or one whose repair it checked) (closed without one means no defect was found, or it moved into a newer investigation).
 
 **Earlier (API version, kept for history)**
 

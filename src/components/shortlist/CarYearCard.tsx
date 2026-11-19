@@ -20,7 +20,8 @@ export function latestRun(years: number[]): { from: number; to: number } | null 
   return { from, to: s[0] };
 }
 
-/** The investigations worth a buyer's attention: open ones, and closed ones that led to a recall (closed without one
+/** The investigations worth a buyer's attention: open ones, and closed ones with a recall number (NHTSA's "related
+ * recall": one it led to, or one it checked the repair of, so "linked to", never "led to"). Closed without one
  * means NHTSA found no defect to recall, or moved it into a newer investigation, which is listed itself). */
 export function shownInvestigations(list: ShortlistYear["investigations"]): ShortlistYear["investigations"] {
   return list.filter((v) => v.closed == null || v.recall).slice(0, 3);
@@ -86,7 +87,7 @@ export function CarYearCard({ car, model }: { car: ShortlistCar; model: Shortlis
           {y && shownInvestigations(y.investigations).map((v) => (
             <li key={v.id}>
               <span className="tag bg-warn-soft text-warn">NHTSA investigation</span> {v.subject}:{" "}
-              {v.closed == null ? `open since ${v.opened}.` : `${v.opened} to ${v.closed}, led to recall ${v.recall}.`}
+              {v.closed == null ? `open since ${v.opened}.` : `${v.opened === v.closed ? v.opened : `${v.opened} to ${v.closed}`}, linked to recall ${v.recall}.`}
             </li>
           ))}
           {y?.knownIssues.map((k) => (
