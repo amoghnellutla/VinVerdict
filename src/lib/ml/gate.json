@@ -1,0 +1,20 @@
+{
+  "dealerLines": {
+    "passed": false,
+    "dataHash": "1a617875e61c11fd",
+    "crossValidation": {
+      "lines": 288,
+      "coverage": 0.191,
+      "accuracy": 0.9818,
+      "safetyMistakes": 0
+    },
+    "realPapers": {
+      "lines": 182,
+      "coverage": 0.522,
+      "accuracy": 1,
+      "safetyMistakes": 0
+    },
+    "confidence": 0.95,
+    "trainedOn": 362
+  }
+}

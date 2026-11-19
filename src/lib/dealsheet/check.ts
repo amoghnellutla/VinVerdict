@@ -6,6 +6,7 @@
  * are "remove": the buyer can say no to them (FTC, CFPB).
  */
 
+import { secondOpinion } from "@/lib/ml/dealer-lines";
 import { STATE_TAX, vehicleTax } from "@/lib/costs/stateTax";
 import { STATES, type StateCode } from "@/lib/geo/zip";
 import { REF, type SourceRef } from "@/lib/sources";
@@ -179,6 +180,14 @@ const VALUE_TAX: Partial<Record<StateCode, string>> = {
   GA: "Georgia's title tax (TAVT) is 7% of the state's own value for the car, not the price you pay.",
   KY: "Kentucky's usage tax may use the car's book (NADA) value instead of the price.",
   DE: "Delaware's document fee is on the price or the book value, whichever is higher.",
+};
+
+// How the line model's guesses read in a note.
+const KIND_WORDS: Record<string, string> = {
+  price: "part of the car's price", discount: "a discount", rebate: "a rebate", tradeIn: "a trade-in credit", payoff: "a trade-in payoff",
+  docFee: "the dealer's doc fee", dealerFee: "a dealer fee", addOn: "an optional add-on", loanProduct: "an optional loan product (warranty, GAP or similar)",
+  stateFee: "a government fee", tax: "a tax", downPayment: "a down payment", total: "a total", subtotal: "a subtotal", balanceDue: "the balance due",
+  amountFinanced: "the amount financed", reference: "a reference figure", leaseTerm: "a lease term", leaseFee: "a leasing company fee",
 };
 
 export function checkDealSheet(input: CheckInput): DealCheck {
@@ -396,7 +405,19 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         return { line, verdict: "check", note: `${msg} A line may not have been read: compare with the paper, or ask what the difference is for.` };
       }
       default:
-        return { line, verdict: "check", note: "VinVerdict doesn't recognise this line. Ask what it is and whether it's optional." };
+      {
+        // The trained line model's second opinion (only once it has passed its gate in lib/ml/gate.json): what the line
+        // probably is. The line stays "check this"; the model never decides a verdict.
+        const guess = secondOpinion(line.label);
+        const words = guess ? KIND_WORDS[guess.kind] : null;
+        return {
+          line,
+          verdict: "check",
+          note: words
+            ? `VinVerdict's rules don't recognise this line; its trained model reads it as ${words} (${Math.round(guess!.p * 100)}% sure). Check it on the paper and ask what it is.`
+            : "VinVerdict doesn't recognise this line. Ask what it is and whether it's optional.",
+        };
+      }
     }
   });
 

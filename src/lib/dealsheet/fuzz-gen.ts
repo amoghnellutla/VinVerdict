@@ -361,3 +361,18 @@ export function makeOptions(seed: number): OptionsPaper {
   const printed = new Set([price, doc, down, ...(addOn ? [addOn[1]] : [])].map((n) => n.toFixed(2)));
   return { text: lines.join("\n"), problem, printed, options: terms.length, ad: { price, docFee: doc, sellerType: "dealer" } };
 }
+
+/** Every line name the generator writes, with what it is (training data for the line model in lib/ml). */
+export function generatorLabels(): [string, string][] {
+  const kind: Record<keyof typeof WORDS, string> = {
+    price: "price", doc: "docFee", gov: "stateFee", tax: "tax", total: "total", down: "downPayment", trade: "tradeIn", payoff: "payoff",
+    balance: "balanceDue", financed: "amountFinanced", discount: "discount", rebate: "rebate", addOn: "addOn", product: "loanProduct", padding: "dealerFee",
+  };
+  const out: [string, string][] = [];
+  for (const w of [WORDS, WORDS_ES, WORDS_DMS]) {
+    for (const k of Object.keys(kind) as (keyof typeof WORDS)[]) {
+      for (const e of w[k] as (string | [string, number])[]) out.push([typeof e === "string" ? e : e[0], kind[k]]);
+    }
+  }
+  return out;
+}
