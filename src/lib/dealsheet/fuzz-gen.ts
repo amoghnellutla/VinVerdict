@@ -175,10 +175,18 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
     const t = rows.findIndex((r) => r[1] === trade && trade > 0);
     if (t >= 0 && payoff) body[t] = body[t].replace(/(\$[\d,.]+)\s*$/, (amt) => `(payoff ${m(payoff)}) ${amt}`);
   }
-  // A declined add-on printed on the paper (not charged).
+  // A planted add-on or product on a contract with tick boxes, ticked as taken (before any line is inserted, so body still lines up with rows).
+  if (hard && perLine && (problem === "addOn" || problem === "product") && chance(0.3)) {
+    const at = rows.findIndex((r) => r[0] === extra[0][0]);
+    if (at >= 0 && body[at]) body[at] = `${extra[0][0]}  ${pick(["[X] Accept  [ ] Decline", "(X) Yes  ( ) No", "☒ Accept  ☐ Decline"])}  ${m(extra[0][1])}`;
+  }
+  // A declined add-on printed on the paper (not charged): "DECLINED", "$0.00", or a tick box with its price.
+  const tickedOff: number[] = [];
   if (chance(0.3) && layout !== "columns" && !prose) {
-    const [l] = pick(W.addOn);
-    body.splice(2, 0, rand() < 0.5 ? `${l} .......... DECLINED` : `${l} $0.00`);
+    const [l, a] = pick(W.addOn);
+    const how = rand();
+    if (how >= 0.66) tickedOff.push(a);
+    body.splice(2, 0, how < 0.33 ? `${l} .......... DECLINED` : how < 0.66 ? `${l} $0.00` : `${l}  ${pick(["[ ] Accept  [X] Decline", "( ) Yes  (X) No", "☐ Accept  ☒ Decline"])}  ${m(a)}`);
   }
   // A page break with the form's header repeated.
   if (chance(0.2) && layout !== "columns" && !prose && body.length > 4) body.splice(4, 0, "Page 1 of 2", "BUYER'S ORDER (continued)");
@@ -233,7 +241,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // …or "$" read as "S", or the gap before "$" lost (PDF text).
   else if (chance(0.15)) text = text.replace(/\$(\d{1,3}(?:,\d{3})*\.\d{2})/g, "S$1");
   else if (chance(0.15)) text = text.replace(/(?<! ) \$/g, "$$");
-  const printed = new Set([...rows.map((r) => r[1]), payment, r2(payment * months), apr, 0, ...(tilaStyle ? [r2(totalOfPayments - balance), r2(totalOfPayments + down + trade), down + trade] : [])].map((n) => n.toFixed(2)));
+  const printed = new Set([...rows.map((r) => r[1]), ...tickedOff, payment, r2(payment * months), apr, 0, ...(tilaStyle ? [r2(totalOfPayments - balance), r2(totalOfPayments + down + trade), down + trade] : [])].map((n) => n.toFixed(2)));
   // A used car's ad shows its price and the dealer's fee; a new car's sticker shows the price with destination, no dealer fee.
   const ad = rand() < 0.8 ? (condition === "new" ? { price: price + destination, docFee: null, sellerType: "dealer" as const } : { price, docFee: doc, sellerType: "dealer" as const }) : null;
   // A packed payment needs a loan: with none (the trade-in and down payment cover it all) the paper is a clean one.
