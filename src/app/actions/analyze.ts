@@ -5,7 +5,8 @@ import { looksLikeCar, NOT_A_CAR } from "@/lib/listing/looks-like-car";
 import { dealerFee, makeName } from "@/lib/format";
 import { analyzeListing, type Analysis } from "@/lib/analyze";
 import { currentUser } from "@/lib/auth/session";
-import { findPhoneMatches, saveCar, type PhoneMatch } from "@/lib/cars/store";
+import { draftFields, type PendingSave } from "@/lib/cars/draft";
+import { findCarByVin, findPhoneMatches, type PhoneMatch } from "@/lib/cars/store";
 import { clientIp } from "@/lib/client-ip";
 import { allowanceMessage, takeGuestAllowance } from "@/lib/guest/allowance";
 import { checkListingRead, LISTING_READ_LIMIT } from "@/lib/ai/listing-read";
@@ -22,8 +23,10 @@ export type AnalyzeState =
       status: "done";
       id: number;
       analysis: Analysis;
-      /** Row in "My cars", or null if it wasn't saved. */
+      /** Row in "My cars" this car already is (same VIN), or null. A check never saves by itself. */
       carId: number | null;
+      /** What "Save to My cars" would store, for the owner to review and correct first (null for visitors and bare links). */
+      pending: PendingSave | null;
       /** Why it wasn't saved, when that's worth telling the user. */
       saveNote: string | null;
       /** Other saved cars whose listing had the same phone number. */
@@ -90,12 +93,13 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   }
 
   if (!owner) {
-    return { status: "done", id: Date.now(), analysis, carId: null, saveNote: "Demo mode: nothing you paste is saved.", phoneMatches: [], guest: true };
+    return { status: "done", id: Date.now(), analysis, carId: null, pending: null, saveNote: "Demo mode: nothing you paste is saved.", phoneMatches: [], guest: true };
   }
 
-  // Save it to "My cars" (a link alone has nothing worth saving).
+  // Draft what "Save to My cars" would store (a link alone has nothing worth saving). The owner reviews it first.
   let carId: number | null = null;
-  let saveNote: string | null = null;
+  let pending: PendingSave | null = null;
+  const saveNote: string | null = null;
   const l = analysis.listing;
   const d = analysis.decoded;
   const title = [d?.year ?? l.year, makeName(d?.make) ?? l.make, d?.model ?? l.model, d?.trim].filter(Boolean).join(" ") || (l.vin ? `VIN ${l.vin}` : "Car");
@@ -104,25 +108,28 @@ export async function analyzeAction(_prev: AnalyzeState, formData: FormData): Pr
   if (l.kind !== "url") {
     const v = buildVerdict(analysis, {});
     const order = { hide: 0, flag: 1, info: 2 } as const;
-    const saved = await saveCar({
-      vin: l.vin && analysis.vinCheck?.ok ? l.vin : null,
-      title,
-      sourceUrl: l.url,
-      sourceHost: l.sourceHost,
-      price: l.price,
-      miles: l.miles,
-      verdict: v.verdict,
-      risk: v.risk,
-      facts: {
-        year: d?.year ?? l.year, make: makeName(d?.make) ?? l.make, model: d?.model ?? l.model, trim: d?.trim ?? null,
-        seller: l.sellerType, accident: l.accident, title: l.titleStatus, owners: l.ownerCount, usage: l.usage, zip: l.zip, docFee: dealerFee(l) || null,
-        phones: l.phones,
-        findings: [...v.hits].sort((x, y) => order[x.action] - order[y.action]).filter((h) => h.action !== "info").slice(0, 5).map((h) => h.title),
+    const vin = l.vin && analysis.vinCheck?.ok ? l.vin : null;
+    // Already in My cars: the price check and proof attach to it at once; saving updates it.
+    carId = vin ? await findCarByVin(vin) : null;
+    const draft = draftFields(analysis);
+    pending = {
+      base: {
+        vin,
+        title,
+        sourceHost: l.sourceHost,
+        verdict: v.verdict,
+        risk: v.risk,
+        facts: {
+          year: d?.year ?? l.year, make: makeName(d?.make) ?? l.make, model: d?.model ?? l.model, trim: d?.trim ?? null,
+          seller: l.sellerType, owners: l.ownerCount, usage: l.usage, zip: l.zip, docFee: dealerFee(l) || null,
+          phones: l.phones,
+          findings: [...v.hits].sort((x, y) => order[x.action] - order[y.action]).filter((h) => h.action !== "info").slice(0, 5).map((h) => h.title),
+        },
+        listingText: l.kind === "vin" ? null : text,
       },
-      listingText: l.kind === "vin" ? null : text,
-    });
-    if (saved.ok) carId = saved.value;
-    else if (saved.error === "not-set-up") saveNote = "Saving to My cars needs a one-time database setup (docs/SETUP.md, step 8).";
+      ...draft,
+      existingId: carId,
+    };
   }
-  return { status: "done", id: Date.now(), analysis, carId, saveNote, phoneMatches, guest: false };
+  return { status: "done", id: Date.now(), analysis, carId, pending, saveNote, phoneMatches, guest: false };
 }

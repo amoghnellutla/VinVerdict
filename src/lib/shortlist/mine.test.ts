@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { isActiveRoute, NAV_ROUTES } from "@/lib/routes";
-import { guideModelFor, myShortlist, type MyCar } from "./mine";
+import { guideModelFor } from "./mine";
 import { shortlist } from "./shortlist";
 
 const models = shortlist(new Date("2026-11-19"));
-const car = (id: number, make: string | null, model: string | null, year = 2021): MyCar => ({ id, title: `${year} ${make} ${model}`, price: 20000, year, make, model });
 const name = (m: ReturnType<typeof guideModelFor>) => (m ? `${m.make} ${m.model}` : null);
 
 describe("the owner's Shortlist: only the models of the cars they've checked", () => {
@@ -28,13 +27,6 @@ describe("the owner's Shortlist: only the models of the cars they've checked", (
     expect(guideModelFor(models, { make: "Ford", model: "Escape" })).toBeNull();
     expect(guideModelFor(models, { make: "Lexus", model: "ESX" })).toBeNull();
     expect(guideModelFor(models, { make: "Toyota", model: null })).toBeNull();
-  });
-
-  it("groups the cars by model, newest first, and lists cars not in the guide apart", () => {
-    const r = myShortlist(models, [car(3, "Honda", "Civic", 2019), car(2, "Toyota", "RAV4"), car(1, "Honda", "Civic EX", 2018), car(4, "Kia", "Soul")]);
-    expect(r.mine.map((x) => [`${x.model.make} ${x.model.model}`, x.cars.map((c) => c.id)])).toEqual([["Honda Civic", [3, 1]], ["Toyota RAV4", [2]]]);
-    expect(r.notInGuide.map((c) => c.id)).toEqual([4]);
-    expect(myShortlist(models, [])).toEqual({ mine: [], notInGuide: [] });
   });
 });
 

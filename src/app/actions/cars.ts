@@ -3,7 +3,9 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth/session";
-import { deleteCar, getCars, recordPrice, saveProof } from "@/lib/cars/store";
+import { parseBase, parseFields, toSaveInput } from "@/lib/cars/draft";
+import { deleteCar, getCars, recordPrice, saveCar, saveProof, saveValue } from "@/lib/cars/store";
+import type { DealLabel } from "@/lib/value/estimate";
 import { parseSavedProof } from "@/lib/evidence/validate";
 import { clientIp } from "@/lib/client-ip";
 import { lookupLiveListing } from "@/lib/live/client";
@@ -57,6 +59,40 @@ export async function recheckPriceAction(_prev: CarActionState, form: FormData):
   if (before && l.price < before) return { status: "done", message: `Price dropped by $${(before - l.price).toLocaleString("en-US")} to $${l.price.toLocaleString("en-US")}.` };
   if (before && l.price > before) return { status: "done", message: `Price went up to $${l.price.toLocaleString("en-US")}.` };
   return { status: "done", message: `Same price: $${l.price.toLocaleString("en-US")}.` };
+}
+
+const LABELS: readonly DealLabel[] = ["great", "good", "fair", "high", "over"];
+
+/**
+ * "Save to My cars", after the owner reviewed what will be stored. Everything is checked again here (the browser
+ * can send anything): the check's part (`parseBase`), the reviewed fields (`parseFields`), and a price check that
+ * already ran on the page, which is kept with the car.
+ */
+export async function saveCheckedCarAction(payload: string): Promise<{ ok: true; id: number } | { ok: false; message: string }> {
+  if (!(await currentUser())) return { ok: false, message: "Your login has expired. Reload and log in again." };
+  const ip = await clientIp();
+  if (!rateLimit(`save:${ip}`, 20, 60_000)) return { ok: false, message: "Too many saves at once. Try again in a minute." };
+  if (typeof payload !== "string" || payload.length > 60_000) return { ok: false, message: "That couldn't be saved." };
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(payload) as Record<string, unknown>;
+  } catch {
+    return { ok: false, message: "That couldn't be saved." };
+  }
+  const base = parseBase(raw.base);
+  const fields = parseFields(raw.fields);
+  if (!base) return { ok: false, message: "That couldn't be saved." };
+  if (!fields) return { ok: false, message: "A field is out of range: check the link (https://…), price, miles and MPG." };
+  const saved = await saveCar(toSaveInput(base, fields));
+  if (!saved.ok) return { ok: false, message: saved.error === "not-set-up" ? "Saving to My cars needs a one-time database setup (docs/SETUP.md, step 8)." : "Couldn't save just now. Try again." };
+  // A price check that already ran on the page: keep its fair range with the car.
+  const v = (raw.value ?? null) as Record<string, unknown> | null;
+  const n = (x: unknown) => (typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= 1_000_000 ? Math.round(x) : null);
+  if (v && n(v.fairLow) != null && n(v.fairHigh) != null && n(v.fair) != null) {
+    const label = LABELS.includes(v.dealLabel as DealLabel) ? (v.dealLabel as DealLabel) : null;
+    await saveValue(saved.value, { fairLow: n(v.fairLow)!, fairHigh: n(v.fairHigh)!, dealLabel: label, fair: n(v.fair)! }, null);
+  }
+  return { ok: true, id: saved.value };
 }
 
 /** Keep the findings from proof the owner attached with a saved car (labels only). */

@@ -1,5 +1,7 @@
 "use client";
 
+import { SaveCard } from "@/components/cars/SaveCard";
+import type { PendingSave } from "@/lib/cars/draft";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { saveProofAction } from "@/app/actions/cars";
 import { adSays, dealerFee, makeName, notSure } from "@/lib/format";
@@ -133,9 +135,11 @@ function ReportSummary({ summary, onSummary }: { summary: Summary; onSummary: (s
   return null;
 }
 
-export function Result({ analysis: original, carId = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null, onFix = null, onSummary = null }: {
+export function Result({ analysis: original, carId = null, pending = null, saveNote = null, phoneMatches = [], guest = false, recorded = null, shots = [], onCheckVin = null, onRecheck = null, onFix = null, onSummary = null }: {
   analysis: Analysis;
   carId?: number | null;
+  /** What "Save to My cars" would store, for the owner to review first (a check never saves by itself). */
+  pending?: PendingSave | null;
   saveNote?: string | null;
   phoneMatches?: { title: string }[];
   /** Demo visitor: nothing is saved; the live price check is rationed (bot check + daily limit). */
@@ -236,17 +240,19 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
   // Your answers plus the proof: bad news wins (lib/history-report.ts).
   const answers = useMemo(() => mergeAnswers(report, proofSum.report), [report, proofSum]);
 
+  // The car's row in My cars: already there (same VIN), or once the owner reviews and saves it.
+  const [savedId, setSavedId] = useState<number | null>(carId);
   // Owner: keep the findings with the saved car (labels only), a moment after the last change.
   const [proofSaved, setProofSaved] = useState(false);
   const proofTouched = useRef(false);
   useEffect(() => {
-    if (!carId || (!proofs.length && !proofTouched.current)) return;
+    if (!savedId || (!proofs.length && !proofTouched.current)) return;
     proofTouched.current = true;
     const t = setTimeout(() => {
-      void saveProofAction(carId, JSON.stringify(savedProof(proofs, goodVin))).then((r) => setProofSaved(r.ok));
+      void saveProofAction(savedId, JSON.stringify(savedProof(proofs, goodVin))).then((r) => setProofSaved(r.ok));
     }, 800);
     return () => clearTimeout(t);
-  }, [carId, proofs, goodVin]);
+  }, [savedId, proofs, goodVin]);
 
   // At the car (AtTheCar): the VINs on the car and its title, and the dashboard photo.
   // Kept on the device per car (a phone can unload the page while the camera is open).
@@ -477,7 +483,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
     <PriceCheck
       key={zipTick}
       a={m}
-      carId={carId}
+      carId={savedId}
       state={priceState}
       action={priceAction}
       pending={pricePending}
@@ -504,7 +510,7 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
       proofs={proofs}
       onProofs={setProofs}
       summary={proofSum}
-      savedNote={carId ? (proofSaved ? "The findings (not the images) are saved with this car in My cars." : "The findings (not the images) are saved with this car in My cars as you add them.") : null}
+      savedNote={savedId ? (proofSaved ? "The findings (not the images) are saved with this car in My cars." : "The findings (not the images) are saved with this car in My cars as you add them.") : null}
       ai={AI_MODE ? { guest } : null}
     />
   );
@@ -601,6 +607,11 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         ) : (
           <>
           <VerdictCard d={decision} />
+          {pending && !savedId && (
+            <p className="text-sm text-muted print:hidden">
+              Not in My cars yet. <a href="#save" className="link">Review the details and save it</a>.
+            </p>
+          )}
           <KnowsPanel
             items={knowsList({
               car: carName(m), vin: goodVin, price: m.listing.price, dealerFee: dealerFee(m.listing),
@@ -751,13 +762,17 @@ export function Result({ analysis: original, carId = null, saveNote = null, phon
         </>
       )}
 
-      <p className="border-t border-border pt-6 text-sm text-muted">
-        {carId ? (
-          <>Saved to <a href="/checked" className="link">My cars</a>, so you can compare it and see price drops later.</>
-        ) : (
-          saveNote
-        )}
-      </p>
+      {pending ? (
+        <SaveCard
+          pending={pending}
+          report={answers}
+          value={valuation && !valuation.unpriced ? { fairLow: valuation.low, fairHigh: valuation.high, dealLabel: valuation.label ?? null, fair: valuation.fair } : null}
+          savedId={savedId}
+          onSaved={setSavedId}
+        />
+      ) : (
+        saveNote && <p className="border-t border-border pt-6 text-sm text-muted">{saveNote}</p>
+      )}
 
       {a.notices.length > 0 && (
         <ul className="space-y-1 text-sm text-muted">

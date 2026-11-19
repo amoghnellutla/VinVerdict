@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
+import { mpgText, powertrainText } from "@/lib/cars/display";
 import { getCars, priceChange, type SavedCar } from "@/lib/cars/store";
 import { mi, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
@@ -51,6 +52,8 @@ async function CompareTable({ ids: raw }: { ids: string[] }) {
     { label: "Under fair price by", cell: (c) => { const u = under(c); return u === null ? "—" : u >= 0 ? usd(u) : `over by ${usd(-u)}`; }, num: under, bestOf: best(cars.map(under), false) },
     { label: "Miles", cell: (c) => mi(c.miles), num: (c) => c.miles, bestOf: best(cars.map((c) => c.miles)) },
     { label: "Year", cell: (c) => c.facts.year ?? "—", num: (c) => c.facts.year, bestOf: best(cars.map((c) => c.facts.year), false) },
+    { label: "MPG", cell: (c) => mpgText(c.facts) ?? "—", num: (c) => c.facts.mpg?.comb, bestOf: best(cars.map((c) => c.facts.mpg?.comb), false) },
+    { label: "Hybrid or not", cell: (c) => powertrainText(c.facts) ?? "—" },
     { label: "Accidents", cell: (c) => ({ none: "None reported", reported: "Reported", unknown: "Unknown" })[c.facts.accident as "none"] ?? "Unknown" },
     { label: "Title", cell: (c) => (c.facts.title && c.facts.title !== "unknown" ? c.facts.title : "Unknown") },
     { label: "Owners", cell: (c) => c.facts.owners ?? "—" },

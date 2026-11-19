@@ -11,8 +11,6 @@ import type { ShortlistModel } from "./shortlist";
 
 export type MyCar = { id: number; title: string; price: number | null; year: number | null; make: string | null; model: string | null };
 
-export type MyModel = { model: ShortlistModel; cars: MyCar[] };
-
 const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 // A word after the model name that makes it a different car ("Corolla Cross", "Prius c", "RAV4 Prime"): its years
 // aren't the guide model's, so it isn't matched.
@@ -34,21 +32,4 @@ export function guideModelFor(models: ShortlistModel[], car: Pick<MyCar, "make" 
     if (hit && (!best || key(m.model).length > key(best.model).length)) best = m;
   }
   return best;
-}
-
-/** The owner's models (in the order they first checked one, newest first) and the cars that aren't in the guide. */
-export function myShortlist(models: ShortlistModel[], cars: MyCar[]): { mine: MyModel[]; notInGuide: MyCar[] } {
-  const mine: MyModel[] = [];
-  const notInGuide: MyCar[] = [];
-  for (const car of cars) {
-    const m = guideModelFor(models, car);
-    if (!m) {
-      notInGuide.push(car);
-      continue;
-    }
-    const entry = mine.find((x) => x.model === m);
-    if (entry) entry.cars.push(car);
-    else mine.push({ model: m, cars: [car] });
-  }
-  return { mine, notInGuide };
 }

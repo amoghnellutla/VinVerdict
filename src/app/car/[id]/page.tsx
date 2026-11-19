@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { CarActions } from "@/components/cars/CarActions";
 import { SetupNote } from "@/components/cars/SetupNote";
+import { mpgText, powertrainText } from "@/lib/cars/display";
 import { getCars, priceChange } from "@/lib/cars/store";
 import { mi, shortDate, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
@@ -34,6 +35,8 @@ async function Car({ id }: { id: number }) {
     ["Price", usdWithFee(c.price, f.docFee)],
     ["Miles", mi(c.miles)],
     ["Year", f.year],
+    ["MPG", mpgText(f)],
+    ["Hybrid or not", powertrainText(f)],
     ["Seller", f.seller !== "unknown" ? f.seller : null],
     ["Accidents", f.accident === "none" ? "None reported" : f.accident === "reported" ? "Reported" : "Unknown"],
     ["Title", f.title !== "unknown" ? f.title : "Unknown"],

@@ -417,7 +417,7 @@ export function Analyzer({ guest = false, intro = null, outro = null, play = nul
         )}
         {/* key resets the checklist answers for each new analysis */}
         {!example && done && (
-          <Result key={done.id} analysis={done.analysis} carId={done.carId} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} onFix={(f, ai) => check(done.analysis.text, shots, f, ai)} onSummary={(x) => setLot((l) => {
+          <Result key={done.id} analysis={done.analysis} carId={done.carId} pending={done.pending} saveNote={done.saveNote} phoneMatches={done.phoneMatches} guest={done.guest} shots={shots} onCheckVin={(vin) => check(vin)} onRecheck={(t) => check(t, shots)} onFix={(f, ai) => check(done.analysis.text, shots, f, ai)} onSummary={(x) => setLot((l) => {
             if (!l.some((c) => c.vin === x.vin)) return l;
             const next = upsertLot(l, { ...x, at: Date.now() });
             saveLot(next);

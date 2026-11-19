@@ -38,6 +38,10 @@ export type CarFacts = {
   history?: SavedHistory;
   /** Findings from proof the owner attached (labels only: no images or report text). */
   proof?: { savedAt: string; items: SavedProof };
+  /** EPA fuel economy (FuelEconomy.gov's best match, confirmed or corrected by the owner before saving). */
+  mpg?: { comb: number | null; city: number | null; hwy: number | null } | null;
+  /** Hybrid or not, from the VIN or FuelEconomy.gov, confirmed by the owner. */
+  powertrain?: "gas" | "diesel" | "hybrid" | "plug-in hybrid" | "electric" | null;
 };
 
 export type PhoneMatch = { id: number; title: string; price: number | null };
@@ -114,6 +118,17 @@ async function addPrice(carId: number, price: number, source: string): Promise<v
   await db.from("price_history").insert({ car_id: carId, price, source });
 }
 
+/** The saved car with this VIN, if any (so a check can say "already in My cars" and attach to it). */
+export async function findCarByVin(vin: string): Promise<number | null> {
+  const db = await createSupabase();
+  try {
+    const { data, error } = await db.from("checked_cars").select("id").eq("vin", vin).limit(1).maybeSingle();
+    return error ? null : ((data?.id as number | undefined) ?? null);
+  } catch {
+    return null;
+  }
+}
+
 /** Save a checked car. The same VIN updates the existing row instead of adding a duplicate. */
 export async function saveCar(input: SaveInput): Promise<Result<number>> {
   // Read the login cookie outside try/catch: during prerendering Next.js signals
@@ -132,7 +147,9 @@ export async function saveCar(input: SaveInput): Promise<Result<number>> {
       id = found.data?.id ?? null;
     }
     if (id !== null) {
-      const { error } = await db.from("checked_cars").update(row).eq("id", id);
+      const old = await db.from("checked_cars").select("facts").eq("id", id).maybeSingle();
+      const kept = (old.data?.facts as CarFacts | null) ?? {};
+      const { error } = await db.from("checked_cars").update({ ...row, facts: { ...kept, ...input.facts } }).eq("id", id);
       if (error) return fail(error);
     } else {
       const { data, error } = await db.from("checked_cars").insert(row).select("id").single();

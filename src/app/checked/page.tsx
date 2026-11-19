@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
+import { ExternalLink } from "@/components/ExternalLink";
+import { accidentText, cleanRecord, mpgText, powertrainText, titleText } from "@/lib/cars/display";
 import { listCars, priceChange } from "@/lib/cars/store";
 import { mi, shortDate, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
 import { DEAL_TEXT } from "@/lib/value/estimate";
@@ -48,7 +50,12 @@ async function CarList() {
                   <span className={`tag ${VERDICT_TAG[c.verdict]}`}>{VERDICT_TEXT[c.verdict]}</span>
                   {c.dealLabel && <span className="font-semibold text-foreground">{DEAL_TEXT[c.dealLabel]}</span>}
                   <span>{mi(c.miles)}</span>
-                  {c.sourceHost && <span>{c.sourceHost}</span>}
+                  {mpgText(c.facts) && <span>{mpgText(c.facts)}</span>}
+                  {powertrainText(c.facts) && <span>{powertrainText(c.facts)}</span>}
+                  {c.sourceUrl ? <ExternalLink href={c.sourceUrl} className="link">{c.sourceHost ?? "Listing"}</ExternalLink> : c.sourceHost && <span>{c.sourceHost}</span>}
+                  <span className={cleanRecord(c.facts) ? "font-semibold text-good" : (c.facts.title && !["clean", "unknown"].includes(c.facts.title)) || c.facts.accident === "reported" ? "font-semibold text-bad" : ""}>
+                    {cleanRecord(c.facts) ? "Clean title, no accidents reported" : `${titleText(c.facts)}, ${accidentText(c.facts).toLowerCase()}`}
+                  </span>
                   <span>Checked {shortDate(c.updatedAt)}</span>
                   {change && (
                     <span className={change.diff < 0 ? "font-semibold text-good" : "font-semibold text-bad"}>

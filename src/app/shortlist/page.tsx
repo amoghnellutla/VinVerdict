@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ExternalLink } from "@/components/ExternalLink";
 import { PageHeader } from "@/components/PageHeader";
 import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
+import { CarYearCard } from "@/components/shortlist/CarYearCard";
 import { ModelCard } from "@/components/shortlist/ModelCard";
 import { currentUser } from "@/lib/auth/session";
 import { listCars } from "@/lib/cars/store";
-import { usd } from "@/lib/format";
-import { OUTSIDE_SITES } from "@/lib/search-links";
-import { myShortlist } from "@/lib/shortlist/mine";
+import { guideModelFor } from "@/lib/shortlist/mine";
 import { shortlist, SHORTLIST_DATE } from "@/lib/shortlist/shortlist";
 
 export const metadata: Metadata = { title: "Shortlist" };
@@ -61,67 +59,40 @@ async function ForViewer({ sp }: { sp: Params }) {
     <>
       <OwnerHub
         active="/shortlist"
-        description="The models of the cars you've checked, with the model years owners reported the most problems with to NHTSA. Your cars' years are ringed."
+        description="Your saved cars: whether each one's model year is a good one, what to confirm, and the better years to look at instead."
       />
       <Mine />
     </>
   );
 }
 
-/** The owner's models only: one card per model they've checked, their cars and years marked on it. */
+/** The owner's Shortlist: one card per saved car, newest first, with only what helps decide on it. */
 async function Mine() {
   const r = await listCars();
   if (!r.ok) return r.error === "not-set-up" ? <SetupNote /> : <p className="text-bad">Couldn&apos;t load your cars just now. Reload to try again.</p>;
-  const cars = r.value.map((c) => ({ id: c.id, title: c.title, price: c.price, year: c.facts.year ?? null, make: c.facts.make ?? null, model: c.facts.model ?? null }));
-  const { mine, notInGuide } = myShortlist(shortlist(), cars);
+  if (r.value.length === 0) {
+    return (
+      <p className="text-lg">
+        No cars saved yet. <Link href="/" className="link">Check a car</Link> and save it, and it shows up here with how its model year rates.
+      </p>
+    );
+  }
+  const models = shortlist();
   return (
     <>
-      {cars.length === 0 ? (
-        <p className="text-lg">
-          No cars checked yet. <Link href="/" className="link">Check a car</Link> and its model&apos;s problem years show up here.
-        </p>
-      ) : (
-        <>
-          {mine.length > 0 && (
-            <>
-              <Legend />
-              <ul className="mt-6 space-y-10">
-                {mine.map(({ model, cars: own }) => (
-                  <ModelCard key={`${model.make}-${model.model}`} m={model} mine={own} />
-                ))}
-              </ul>
-            </>
-          )}
-          {notInGuide.length > 0 && (
-            <section className="mt-10 border-t border-border pt-6">
-              <h2 className="text-xl">Not in the guide yet</h2>
-              <p className="mt-2 text-muted">The guide covers everyday Toyota, Honda, Mazda, Lexus and Subaru models; these have no owner-report trend here.</p>
-              <ul className="mt-3 space-y-1">
-                {notInGuide.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/car/${c.id}`} className="link">{c.title}</Link>
-                    {c.price != null && <span className="nums text-muted"> · {usd(c.price)}</span>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
-      )}
-      <p className="mt-10">
-        <Link href="/shortlist?all=1" className="link font-semibold">See every model in the guide</Link>
+      <ul className="space-y-5">
+        {r.value.map((c) => (
+          <CarYearCard
+            key={c.id}
+            car={{ id: c.id, title: c.title, price: c.price, miles: c.miles, vin: c.vin, facts: c.facts }}
+            model={guideModelFor(models, { make: c.facts.make ?? null, model: c.facts.model ?? null })}
+          />
+        ))}
+      </ul>
+      <p className="mt-8 text-sm text-muted">
+        Year ratings compare each model year&apos;s owner complaints to NHTSA (per year on the road) with the same model&apos;s other years, from{" "}
+        {SHORTLIST_DATE}. <Link href="/shortlist?all=1" className="link">Every model&apos;s years</Link>
       </p>
-      <section className="mt-10">
-        <h2 className="section-title">Find more cars on other sites</h2>
-        <ul className="divide-y divide-border border-y border-border">
-          {OUTSIDE_SITES.map((s) => (
-            <li key={s.name} className="flex flex-wrap items-baseline justify-between gap-x-4 py-3">
-              <ExternalLink href={s.href} className="link font-semibold">{s.name}</ExternalLink>
-              <span className="text-muted">{s.note}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
     </>
   );
 }
