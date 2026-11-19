@@ -43,8 +43,8 @@ const LABEL = new RegExp(
 );
 // A heading with nothing after it ("BUYER", "Sold To:", "Co-Buyer Information").
 const HEADING = new RegExp(String.raw`^(?:${WHO}(?:\s+(?:name|information|info|name\s+(?:and|&)\s+address))?|sold\s+to|bill\s+to|name\s+(?:and|&)\s+address|vendido\s+a|nombre\s+y\s+direccion)\s*:?$`, "i");
-const STREET = /\b\d{1,6}\s+(?:[NSEW]\.?\s+)?[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}\s+(?:st|street|rd|road|ave|avenue|blvd|boulevard|dr|drive|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|ter|terrace|trl|trail)\b\.?(?:,?\s+(?:apt|unit|suite|ste|#)\.?\s*[\w-]+)?/gi;
-const CITY_STATE_ZIP = /\b[A-Za-z][A-Za-z .'-]{1,30},\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/g;
+const STREET = /\b\d{1,6}[ \t]+(?:[NSEW]\.?[ \t]+)?[A-Za-z0-9.'-]+(?:[ \t]+[A-Za-z0-9.'-]+){0,4}[ \t]+(?:st|street|rd|road|ave|avenue|blvd|boulevard|dr|drive|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|ter|terrace|trl|trail)\b\.?(?:,?[ \t]+(?:apt|unit|suite|ste|#)\.?[ \t]*[\w-]+)?/gi;
+const CITY_STATE_ZIP = /\b[A-Za-z][A-Za-z .'-]{1,30},[ \t]*[A-Z]{2}[ \t]+\d{5}(?:-\d{4})?\b/g;
 const SSN = /\b\d{3}-\d{2}-\d{4}\b/g;
 const isMoney = (s: string) => /\$\s?\d|\d,\d{3}\.\d{2}|\d\.\d{2}\b/.test(s);
 const REMOVED = "[personal details removed]";

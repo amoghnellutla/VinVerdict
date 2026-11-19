@@ -192,7 +192,7 @@ function classifyWords(rawLabel: string): { kind: LineKind; name?: string } {
 
 // "$1,234.56", "1,234.56", "$1,234", "($500.00)", "-$500", "$500-". A plain "1234" needs a "$" (years, months, stock numbers).
 // Not a monthly figure ("$512/mo", "$384 per month"), a percentage, a term or a mileage.
-const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<=[A-Za-z")\]],)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?!\d|,\d|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
+const AMOUNT = /(?:(?<=[^\d$\s])(?=\$)|(?<=\b[A-Za-z][A-Za-z0-9]*)(?=\$)|(?<=[A-Za-z")\]],)|(?<=\b[A-Za-z][A-Za-z0-9]*,)|(?<![\w.,$]))(\()?(-)?(\$)?\s?(-)?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?(?!\d|,\d|\.\d|\s?%|\s?(?:\/\s?mo|\/\s?month|per month|a month|mo\b|months?\b|payments?\b|mi\b|miles\b|yrs?\b|years?\b|days?\b|lbs?\b|kg\b|hp\b|cc\b|mpg\b|rpm\b))(\))?(-)?(?!\w)/gi;
 // Numbers that follow these words are the car's details, not money ("MILES 41,233", "Stock #24689", "VIN …").
 // Words that are always a reference ("Lot 3,456"); words that are one only with "No."/"#" after them ("Contract No.
 // 12,345", but "Service Contract 2,895.00" is money).
@@ -238,12 +238,13 @@ function tickedChoice(line: string): "yes" | "no" | null {
 }
 const NOT_CHARGED = /\b(?:declined?|waived|not (?:purchased|included|selected|charged)|n\/a|none|no charge|refused|opted out|declinado|rechazado|no incluido|ninguno|no aplica)\b/i;
 const cleanLabel = (s: string) =>
-  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.,;\-–—|/>=+]+|[\s:.\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
+  s.replace(/[.:_·\-–—=*]{2,}/g, " ").replace(/^[\s:.,;\-–—|/>=+]+|[\s:.,;\-–—−|$=/>+]+$/g, "").replace(/\s+/g, " ").trim()
     .replace(/^(?:\d{1,2}[.)]|[A-Za-z][.)]|\([a-z0-9]\))\s+(?=[A-Za-z(])/, "").replace(/\s+usd$/i, "").trim();
 // A label that ends with a base ("Sales Tax 6.625% of", "Tax (6.625% x"): the amount after it is what the line is
 // worked out on, and the line's own amount is the next one.
 const BASE_END = /\s*(?:\bof|\bon|\bx|\btimes|[@×*])\s*[($]*$/i;
-const isLabel = (s: string) => /[a-z]{2}/i.test(s) && s.length <= 70;
+// Words, or a short code the reader knows ("N2" for nitrogen on a dealer-system printout).
+const isLabel = (s: string) => s.length <= 70 && (/[a-z]{2}/i.test(s) || (/[a-z]/i.test(s) && classify(s).kind !== "other"));
 
 /** Reads the paper's lines, pairing each amount with its label. */
 export function parseDealSheet(input: string): DealSheet {
@@ -620,7 +621,7 @@ function readLoan(text: string, lines: DealLine[]): LoanTerms {
     aprPct: apr ? Number(apr[1]) : null,
     months: m && m >= 6 && m <= 96 ? m : null,
     // A plain "Payment" (never a down, first, final or deferred one), or "$468.51 per month" as a last resort.
-    payment: near("monthly payment|payment amount|amount of (?:each )?payments?|payments? of|est(?:imated)?\\.? payment|your payment")
+    payment: near("monthly payment|payment amount|amount of (?:each )?payments?|payments? of|est(?:imated)?\\.? payment|your payment|\\bmo\\.? pmt\\b|\\bmonthly pmt\\b|\\bpmt amt\\b")
       ?? near("(?<!down |first |final |last |balloon |deferred |pickup |cash |total of |number of |no\\. of |# of )\\bpayment\\b(?! schedule| due| date| to| option)")
       ?? num(rows.map((r) => /\$\s?(\d{1,3}(?:,\d{3})*\.\d{2})\s?(?:\/\s?mo(?:nth)?\b|per month|a month)/.exec(r)?.[1]).find(Boolean)),
     finalPayment,

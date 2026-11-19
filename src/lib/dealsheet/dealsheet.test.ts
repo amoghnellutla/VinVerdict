@@ -449,6 +449,23 @@ describe("what each line is", () => {
     expect(parseDealSheet("Trade-In Actual Cash Value $8,500.00\nTrade Allowance $8,500.00").lines.map((l) => l.kind)).toEqual(["reference", "tradeIn"]);
   });
 
+  it("redaction never reaches across a line: 'REG $273.81' then 'ST TAX' isn't an address", () => {
+    const text = "REG\t\t$273.81\nST TAX\t\t$2,102.84\nBuyer: Pat Example\nAddress: 12 Main St, Anytown, NJ 07001";
+    const out = redactDealSheet(text).text;
+    expect(out).toContain("REG\t\t$273.81\nST TAX\t\t$2,102.84");
+    expect(out).not.toContain("12 Main St");
+    expect(parseDealSheet(out).lines.map((l) => [l.kind, l.amount])).toEqual([["stateFee", 273.81], ["tax", 2102.84]]);
+    expect(parseDealSheet("N2,199.00\nETCH,399.00").lines.map((l) => l.amount)).toEqual([199, 399]);
+    expect(parseDealSheet("ETCH$399.00    N2$199.00").lines.map((l) => [l.label, l.amount])).toEqual([["ETCH", 399], ["N2", 199]]);
+  });
+
+  it("a dealer-system printout: 'N2' is a line, and 'MO PMT' is the payment", () => {
+    const s = parseDealSheet("BUYER'S ORDER (CONTINUED)\n$199.00    N2\nN2 - $199.00\nAMT FIN $20,000.00\nAPR 7.9%  TERM 60  MO PMT $404.58");
+    expect(s.lines.filter((l) => l.kind === "addOn").map((l) => [l.label, l.amount])).toEqual([["N2", 199], ["N2", 199]]);
+    expect(s.loan.payment).toBe(404.58);
+    expect(s.loan.months).toBe(60);
+  });
+
   it("a tick box decides whether a product was taken, not the words beside it", () => {
     const declined = (t: string) => parseDealSheet(t).lines[0].declined;
     expect(declined("GAP Protection  [X] Accept  [ ] Decline  $895.00")).toBe(false);

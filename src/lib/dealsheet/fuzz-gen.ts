@@ -59,6 +59,25 @@ const WORDS_ES: typeof WORDS = {
   padding: [["Preparación del concesionario", 499], ["Preparación", 349]],
 };
 
+// A dealer-system printout: the same lines, abbreviated.
+const WORDS_DMS: typeof WORDS = {
+  price: ["SLS PRC", "VEH PRICE", "CASH PRC", "SELL PRICE"],
+  doc: ["DOC FEE", "DOCS", "PROC FEE"],
+  gov: ["TTL/LIC", "REG", "TITLE/REG", "TAG/TITLE", "DMV"],
+  tax: ["SLS TAX", "ST TAX", "SALES TX"],
+  total: ["TOTAL", "TOTAL DUE", "TOT"],
+  down: ["DWN PMT", "CASH DN", "DEP"],
+  trade: ["TRD ALLOW", "TRADE ALLOW"],
+  payoff: ["TRD PAYOFF", "TRADE P/O"],
+  balance: ["BAL DUE"],
+  financed: ["AMT FIN", "AMT FINANCED"],
+  discount: ["DLR DISC", "DISC"],
+  rebate: ["MFR RBT", "RBT"],
+  addOn: [["ETCH", 399], ["N2", 199], ["PNT PROT", 1295], ["TINT", 499], ["MKT ADJ", 2000]],
+  product: [["SVC CONT", 2895], ["GAP INS", 895], ["T&W", 1195], ["MBI", 1795]],
+  padding: [["DLR PREP", 499], ["RECON", 895]],
+};
+
 const RATE: Partial<Record<StateCode, number>> = { NJ: 0.06625, PA: 0.06, TX: 0.0625, VA: 0.0415, IN: 0.07, CA: 0.0725, MD: 0.065, MN: 0.06875 };
 // The doc-fee caps confirmed in check.ts, for the states above that have one.
 const CAP: Partial<Record<StateCode, number>> = { CA: 85, MD: 800, MN: 350 };
@@ -73,7 +92,9 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const state = pick(Object.keys(RATE) as StateCode[]);
   // Some hard papers are in Spanish.
   const es = chance(0.15);
-  const W = es ? WORDS_ES : WORDS;
+  const dms = !es && chance(0.15);
+  // (A dealer-system printout is line by line, never an email.)
+  const W = es ? WORDS_ES : dms ? WORDS_DMS : WORDS;
   const drawn: Problem = pick(["none", "none", "none", "addOn", "product", "overAd", "packed", "docOverCap", "padding", "combo"]);
   // A doc fee over the legal cap needs a state with one.
   const problem: Problem = drawn === "docOverCap" && !CAP[state] ? "none" : drawn;
@@ -97,7 +118,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   const listed = netPrice + credit;
   // A new car's destination charge (on its window sticker): part of the price, taxed, in the total.
   const destination = condition === "new" ? pick([995, 1095, 1295, 1395, 1595, 1695]) : 0;
-  const destRow: [string, number][] = destination ? [[pick(es ? ["Cargo de destino", "Flete"] : ["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
+  const destRow: [string, number][] = destination ? [[pick(es ? ["Cargo de destino", "Flete"] : dms ? ["DEST", "FRT", "DEST/FRT"] : ["Destination Charge", "Freight", "Destination & Handling", "Destination"]), destination]] : [];
   const hasTrade = rand() < 0.3;
   const trade = hasTrade ? Math.round(2000 + rand() * 8000) : 0;
   // How the state works out the tax: most take off the trade-in; some tax the price before a maker's rebate.
@@ -145,7 +166,7 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
   // Whole-dollar amounts print without cents on some papers.
   const noCents = chance(0.2);
   const m = (a: number) => money(a, !(noCents && Number.isInteger(a)));
-  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash", "email", "sentences", "amountFirst", "csv", "sheet"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
+  const layout = hard ? pick(["dots", "colon", "tabs", "spaces", "pairs", "columns", "dash", ...(dms ? [] : ["email", "sentences"]), "amountFirst", "csv", "sheet"]) : pick(["dots", "colon", "tabs", "spaces", "pairs"]);
   const fmt = ([l, a]: [string, number]) => (layout === "amountFirst" ? `${m(a)}    ${l}` : layout === "csv" ? `${l.includes(",") ? `"${l}"` : l},${plain(a)}` : layout === "sheet" ? `${l}\t${plain(a)}` : layout === "dots" ? `${l} .......... ${m(a)}` : layout === "colon" ? `${l}: ${m(a)}` : layout === "tabs" ? `${l}\t\t${m(a)}` : layout === "dash" ? `${l} - ${m(a)}` : `${l}    ${m(a)}`);
   // Layouts with one line per item (the decorations below edit those lines).
   const prose = layout === "email" || layout === "sentences";
@@ -210,7 +231,9 @@ export function makePaper(seed: number, hard = false, condition: "new" | "used" 
       ? tila
       : finalStyle
       ? [`Annual Percentage Rate ${apr}%`, `Your payment schedule: ${months - 1} payments of ${money(payment)} monthly and 1 final payment of ${money(finalPay)}`]
-      : es
+      : dms
+        ? [`APR ${apr}%  TERM ${months}  MO PMT ${money(payment)}`]
+        : es
         ? [`Tasa de porcentaje anual ${apr}%`, `Plazo ${months} meses`, `Pago mensual ${money(payment)}`, ...(rand() < 0.7 ? [`Total de pagos ${money(r2(payment * months))}`] : [])]
         : [`Annual Percentage Rate ${apr}%`, `Term ${months} months`, `Monthly Payment ${money(payment)}`, ...(rand() < 0.7 ? [`Total of Payments ${money(r2(payment * months))}`] : [])];
   // The buyer's details, as different forms print them.
