@@ -105,6 +105,7 @@ export const LOAN_PRODUCTS: [string, RegExp][] = [
   ["Tire and wheel protection", /\btire (?:and|&|\/) (?:wheel|rim)\b|\btire protection\b|\bwheel protection\b|\broad hazard\b/],
   // Insurance on the car itself: a lender can require it, but you choose the insurer (asked about, not refused).
   ["Car insurance", /\b(?:vehicle|auto|car|physical damage|collision|comprehensive) insurance\b/],
+  ["Excess wear and tear protection", /\bexcess wear\b|\bwear (?:and|&) (?:tear|use)\b/],
   ["Credit life or disability insurance", /\bcredit (?:life|disability|insurance)\b|\blife insurance\b|\bdisability insurance\b|\baccident (?:and|&) health\b|\ba ?& ?h insurance\b/],
 ];
 
@@ -112,6 +113,16 @@ const has = (re: RegExp, s: string) => re.test(s);
 
 /** What a line is, from its label (lowercased, with spaces collapsed). */
 export function classify(rawLabel: string): { kind: LineKind; name?: string } {
+  // "Cash Price (including any accessories, services and taxes)" is the cash price, not an accessory.
+  const outside = rawLabel.replace(/\([^()]*\)/g, " ").trim();
+  if (outside !== rawLabel.trim() && /[a-z]{2}/i.test(outside)) {
+    const k = classifyWords(outside);
+    if (k.kind !== "other") return k;
+  }
+  return classifyWords(rawLabel);
+}
+
+function classifyWords(rawLabel: string): { kind: LineKind; name?: string } {
   const l = toEnglish(rawLabel).toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
   // Lease terms are information, not charges: the cap cost, residual, money factor, the amount due at signing.
   if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b|\bdepreciation\b|\brent charge\b|\bbase monthly payments?\b/, l)) return { kind: "leaseTerm" };
@@ -137,11 +148,11 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:pro|protection|appearance|premium|value|security|dealer|accessory|accessories) ?pa(?:ck|ckage|kage)\b/, l)) return { kind: "addOn" };
   if (has(/\b(?:price|msrp)\b.*\b(?:incl\.?|including|includes|with|w\/)\s.*\b(?:doc|documentary|documentation|processing|dealer|admin|conveyance)\b/, l)) return { kind: "price" };
   if (has(/\b(?:sales|use|state|county|city|local|excise|vehicle|privilege|highway use)? ?tax(?:es)?\b|\bhut\b/, l) && !has(/\btax(?:es)?,? (?:title|tag|license|registration)|title,? (?:tax|tag)|\bdoc(?:umentary)? stamps?\b/, l)) return { kind: "tax" };
-  if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fees?|plates?|and|&)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bbmv\b|\bmva\b|\bstate (?:fees?|inspection)\b|(?<!delivery |dealer |pdi )\b(?:state |safety )?inspection fee\b|\bpublic officials?\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b|\b(?:reg|lic|regis)\.? ?(?:fees?|&|and|\/)|\b(?:reg|lic)\.?$|\btt ?& ?l\b|\bttl\b|\bt ?& ?l\b|\bdoc(?:umentary)? stamps?\b|\blemon law\b|\bcounty fees?\b/, l)) return { kind: "stateFee" };
+  if (has(/\btitle\b|\bregistration\b|\bregist\b|\blicen[cs]e (?:fees?|plates?|and|&)\b|\bplates?\b|\btags?\b|\bdmv\b|\bmvc\b|\bbmv\b|\bmva\b|\bstate (?:fees?|inspection)\b|(?<!delivery |dealer |pdi )\b(?:state |safety )?inspection fee\b|\bpublic officials?\b|\btire (?:fee|tax|disposal)\b|\bgovernment fees?\b|\bgov'?t fees?\b|\bwheel tax\b|\b(?:reg|lic|regis)\.? ?(?:fees?|&|and|\/)|\b(?:reg|lic)\.?$|\btt ?& ?l\b|\bttl\b|\bt ?& ?l\b|\bdoc(?:umentary)? stamps?\b|\blemon law\b|\bcounty fees?\b|\blien (?:recording |filing |notation )?fee\b/, l)) return { kind: "stateFee" };
   if (has(/\bdelivery,? processing,? (?:and |& )?handling\b|\bdelivery (?:and|&) handling\b|\bdph\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
   if (has(/\bsmog\b|\bemissions?\b/, l)) return { kind: "dealerFee", name: "Smog or emissions" };
   if (has(/\bdeputy\b/, l)) return { kind: "dealerFee", name: "Other fee" };
-  if (has(/\bdoc(?:ument(?:ary|ation)?)?s? ?(?:&|and) handling\b|\bdoc(?:ument(?:ary|ation|s)?)?\.? ?(?:fee|charge|prep)\b|^docs?\.?$|\b(?:dealer )?(?:processing|admin(?:istrative|istration)?|service|conveyance|handling) (?:fee|charge)\b|\bdealer fees?\b|\bdealer handling\b/, l)) return { kind: "docFee" };
+  if (has(/\bdoc(?:ument)?s? prep(?:aration)?\b|\bdoc(?:ument(?:ary|ation)?)?s? ?(?:&|and) handling\b|\bdoc(?:ument(?:ary|ation|s)?)?\.? ?(?:fee|charge|prep)\b|^docs?\.?$|\b(?:dealer )?(?:processing|admin(?:istrative|istration)?|service|conveyance|handling) (?:fee|charge)\b|\bdealer fees?\b|\bdealer handling\b/, l)) return { kind: "docFee" };
   // The maker's shipping charge: real on a new car (it's on the window sticker), padding on a used one.
   if (has(/\bdestination\b|\bfreight\b|\bdest\.? (?:&|and) (?:handling|delivery)\b|\bd ?& ?h\b/, l)) return { kind: "dealerFee", name: "Destination charge" };
   // Certified pre-owned charges: usually part of a CPO car's price.
@@ -151,7 +162,7 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\bpdi\b|\bpre-?delivery (?:inspection|service)\b|\bdealer inspection\b/, l)) return { kind: "dealerFee" };
   // Some other fee: it could be a government one, so it's asked about rather than refused.
   if (has(/\bfee\b/, l)) return { kind: "dealerFee", name: "Other fee" };
-  if (has(/\brebates?\b|\bincentives?\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
+  if (has(/\brebates?\b|\bincentives?\b|\bfinance cash\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
   if (has(/\bdiscounts?\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b|\byou save\b/, l)) return { kind: "discount" };
   if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
   if (has(/\bbalance due\b|\bdue (?:at|on) (?:signing|delivery)\b|\bamount due\b|\bbalance owing\b|\bnet (?:due|payoff)\b/, l)) return { kind: "balanceDue" };

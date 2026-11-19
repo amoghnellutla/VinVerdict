@@ -113,6 +113,9 @@ describe("what each line is", () => {
     ["Undercoating", "addOn"], ["Rustproofing", "addOn"], ["Clear Bra", "addOn"], ["Nitro-Fill", "addOn"], ["Dealer Addendum", "addOn"],
     ["Service Agreement", "loanProduct"], ["Platinum Warranty", "loanProduct"], ["Prepaid Maintenance", "loanProduct"], ["Tire Protection", "loanProduct"], ["Accident & Health", "loanProduct"],
     ["Dealer Handling", "docFee"], ["Doc & Handling", "docFee"],
+    // A note in brackets doesn't override the words outside it (California's contract line).
+    ["Cash Price (including any accessories, services and taxes)", "price"], ["Finance Cash", "rebate"], ["Document Preparation Fee", "docFee"],
+    ["Lien Recording Fee", "stateFee"], ["Lien Fee", "stateFee"], ["Excess Wear and Use", "loanProduct"], ["Excess Wear & Tear Protection", "loanProduct"],
     // Real contract and addendum wording.
     ["Prior Credit or Lease Balance paid by Seller", "payoff"], ["Paid to Public Officials", "stateFee"], ["Trade Difference", "subtotal"],
     ["Pre-Delivery Inspection Fee", "dealerFee"], ["Dealer Inspection Fee", "dealerFee"], ["PDI", "dealerFee"], ["State Inspection Fee", "stateFee"],
