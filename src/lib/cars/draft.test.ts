@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Analysis } from "@/lib/analyze";
 import { accidentText, cleanRecord, mpgText, powertrainText, titleText } from "./display";
-import { cleanUrl, draftFields, parseBase, parseFields, powertrainOf, toSaveInput, withReport, type SaveFields } from "./draft";
+import { cleanUrl, draftFields, parseBase, parseFields, powertrainOf, toSaveInput, withBadNews, withReport, type SaveFields } from "./draft";
 
 type A = Pick<Analysis, "decoded" | "fuel" | "listing">;
 const listing = (over: Partial<A["listing"]> = {}) =>
@@ -50,6 +50,18 @@ describe("what Save to My cars drafts from a check", () => {
     expect(withReport(unknown, { title: "clean", damage: "none" }).fields).toMatchObject({ titleStatus: "clean", accident: "none" });
     // A clean report never overrides a salvage title in the ad.
     expect(withReport({ fields: { ...d.fields, titleStatus: "salvage" }, from: {} }, { title: "clean", damage: "unknown" }).fields.titleStatus).toBe("salvage");
+  });
+});
+
+describe("bad news found elsewhere on the page", () => {
+  it("an accident in the VIN's history data or a washed title is drafted, never left Not sure or Clean", () => {
+    const d = { fields: { ...draftFields(a()).fields, accident: "unknown" as const, titleStatus: "clean" as const }, from: {} };
+    const r = withBadNews(d, { accident: "the VIN's history data", branded: "the title's history" });
+    expect(r.fields).toMatchObject({ accident: "reported", titleStatus: "branded" });
+    expect(r.from).toMatchObject({ accident: "the VIN's history data", titleStatus: "the title's history" });
+    // A salvage title in the ad stays salvage; nothing found leaves the draft as it was.
+    expect(withBadNews({ fields: { ...d.fields, titleStatus: "salvage" }, from: {} }, { accident: null, branded: "x" }).fields.titleStatus).toBe("salvage");
+    expect(withBadNews(d, { accident: null, branded: null }).fields).toEqual(d.fields);
   });
 });
 

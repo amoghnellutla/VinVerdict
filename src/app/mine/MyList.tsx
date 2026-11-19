@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore, type ChangeEvent } from "react";
+import { ExternalLink } from "@/components/ExternalLink";
+import { accidentText, cleanRecord, mpgText, powertrainText, titleText } from "@/lib/cars/display";
+import type { CarFacts } from "@/lib/cars/store";
 import { AREA_LABEL, type AreaStatus, type Level } from "@/lib/decision";
 import { usdWithFee } from "@/lib/format";
 import { importFile, load, maybeSameCar, merge, parseWorkspace, remove, save, setNote, WORKSPACE_KEY, type SavedCar } from "@/lib/workspace/local";
@@ -39,6 +42,21 @@ function snapshot(): string {
 const usd = (n: number | null) => (n == null ? "–" : `$${n.toLocaleString("en-US")}`);
 const mi = (n: number | null) => (n == null ? "–" : `${n.toLocaleString("en-US")} mi`);
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/** The confirmed details in the shape My cars uses, so both read the same. */
+const factsOf = (c: SavedCar): CarFacts => ({ mpg: c.details?.mpg ?? null, powertrain: c.details?.powertrain ?? null, title: c.details?.titleStatus, accident: c.details?.accident });
+const recordOf = (c: SavedCar) => {
+  if (!c.details) return null;
+  const f = factsOf(c);
+  return { text: cleanRecord(f) ? "Clean title, no accidents reported" : `${titleText(f)}, ${accidentText(f).toLowerCase()}`, tone: cleanRecord(f) ? "text-good" : (f.title && !["clean", "unknown"].includes(f.title)) || f.accident === "reported" ? "text-bad" : "text-muted" };
+};
+const host = (u: string) => {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return "Listing";
+  }
+};
 
 export function MyList() {
   const raw = useSyncExternalStore(subscribe, snapshot, () => null);
@@ -135,8 +153,15 @@ export function MyList() {
                 <span className="text-sm text-muted">Saved {day(c.savedAt)}</span>
               </div>
               <p className="nums mt-0.5">
-                {usdWithFee(c.price, c.dealerFee)} · {mi(c.miles)} <span className={`tag ml-2 ${LEVEL_TAG[c.level]}`}>{c.verdict}</span>
+                {[c.price != null ? usdWithFee(c.price, c.dealerFee) : null, c.miles != null ? mi(c.miles) : null, mpgText(factsOf(c)), powertrainText(factsOf(c))].filter(Boolean).join(" · ")}{" "}
+                <span className={`tag ml-2 ${LEVEL_TAG[c.level]}`}>{c.verdict}</span>
               </p>
+              {(recordOf(c) || c.details?.sourceUrl) && (
+                <p className="mt-1 flex flex-wrap gap-x-4 text-sm">
+                  {recordOf(c) && <span className={`font-semibold ${recordOf(c)!.tone}`}>{recordOf(c)!.text}</span>}
+                  {c.details?.sourceUrl && <ExternalLink href={c.details.sourceUrl} className="link">{host(c.details.sourceUrl)}</ExternalLink>}
+                </p>
+              )}
               {c.warnings.length > 0 && <p className="mt-1 text-sm text-muted">{c.warnings.slice(0, 3).join(" · ")}</p>}
               <label className="mt-3 block text-sm">
                 <span className="font-semibold">Your notes</span>
@@ -187,6 +212,9 @@ function Compare({ cars }: { cars: SavedCar[] }) {
   const rows: { label: string; cell: (c: SavedCar) => React.ReactNode }[] = [
     { label: "Asking price", cell: (c) => usdWithFee(c.price, c.dealerFee) },
     { label: "Miles", cell: (c) => mi(c.miles) },
+    { label: "MPG", cell: (c) => mpgText(factsOf(c)) ?? "–" },
+    { label: "Hybrid or not", cell: (c) => powertrainText(factsOf(c)) ?? "–" },
+    { label: "Title and accidents", cell: (c) => recordOf(c)?.text ?? "–" },
     { label: "Next step", cell: (c) => <span className={`tag ${LEVEL_TAG[c.level]}`}>{c.verdict}</span> },
     ...(["listing", "car", "price", "deal"] as const).map((area) => ({
       label: AREA_LABEL[area],

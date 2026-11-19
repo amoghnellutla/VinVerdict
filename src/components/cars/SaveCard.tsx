@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveCheckedCarAction } from "@/app/actions/cars";
-import { POWERTRAIN_TEXT, withReport, type PendingSave, type Powertrain, type SaveFields } from "@/lib/cars/draft";
+import { POWERTRAIN_TEXT, withBadNews, withReport, type FieldSource, type PendingSave, type Powertrain, type SaveFields } from "@/lib/cars/draft";
 import type { ReportAnswers } from "@/lib/history-report";
 import type { AccidentStatus, TitleStatus } from "@/lib/listing/parse";
 
@@ -22,34 +21,39 @@ const ACCIDENT_OPTIONS: [AccidentStatus, string][] = [
 ];
 
 /**
- * "Save to My cars", reviewed first: what the check read (the listing link, price, miles, MPG, hybrid or not, title
- * and accidents), each with where it came from, to correct before anything is stored.
+ * Save a checked car, reviewed first: what the check read (the listing link, price, miles, MPG, hybrid or not, title
+ * and accidents), each with where it came from, to correct before anything is stored. The owner saves to "My cars"
+ * (their account); a visitor saves to "My list" (this device only). Same card, same checks.
  */
-export function SaveCard({ pending, report, value, savedId, onSaved }: {
-  pending: PendingSave;
-  /** What the owner's history report said on this page (bad news wins over the listing). */
+export function SaveCard({ draft, report, badNews = { accident: null, branded: null }, where, openHref, existing, onSave }: {
+  draft: { fields: SaveFields; from: FieldSource; mpgRange: PendingSave["mpgRange"] };
+  /** What the history report said on this page (bad news wins over the listing). */
   report: ReportAnswers;
-  /** A price check that already ran here, kept with the car when it's saved. */
-  value: { fairLow: number; fairHigh: number; dealLabel: string | null; fair: number } | null;
-  savedId: number | null;
-  onSaved: (id: number) => void;
+  /** An accident or branded title found elsewhere on the page (the VIN's history data), with where it came from. */
+  badNews?: { accident: string | null; branded: string | null };
+  where: "My cars" | "My list";
+  openHref: string;
+  /** Already saved there (same VIN, or saved once on this page): saving updates it. */
+  existing: boolean;
+  onSave: (fields: SaveFields) => Promise<{ ok: true } | { ok: false; message: string }>;
 }) {
-  const start = withReport({ fields: pending.fields, from: pending.from }, report);
+  const start = withBadNews(withReport({ fields: draft.fields, from: draft.from }, report), badNews);
   const [f, setF] = useState<SaveFields>(start.fields);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [saving, startSaving] = useTransition();
   const set = <K extends keyof SaveFields>(k: K, v: SaveFields[K]) => setF((x) => ({ ...x, [k]: v }));
   const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(/[$,\s]/g, "")));
   const from = start.from;
-  const update = pending.existingId != null || savedId != null;
+  const [saved, setSaved] = useState(false);
+  const update = existing || saved;
 
   const save = () =>
     startSaving(async () => {
       setMessage(null);
-      const r = await saveCheckedCarAction(JSON.stringify({ base: pending.base, fields: f, value }));
+      const r = await onSave(f);
       if (r.ok) {
-        onSaved(r.id);
-        setMessage({ ok: true, text: update ? "Updated in My cars." : "Saved to My cars." });
+        setMessage({ ok: true, text: update ? `Updated in ${where}.` : `Saved to ${where}.` });
+        setSaved(true);
       } else setMessage({ ok: false, text: r.message });
     });
 
@@ -57,10 +61,11 @@ export function SaveCard({ pending, report, value, savedId, onSaved }: {
 
   return (
     <section id="save" className="card">
-      <h2 className="text-xl">{update ? "Update this car in My cars" : "Save to My cars"}</h2>
+      <h2 className="text-xl">{update ? `Update this car in ${where}` : `Save to ${where}`}</h2>
       <p className="mt-1 text-muted">
-        {pending.existingId != null && savedId == null ? "This car (same VIN) is already in My cars. " : ""}
+        {existing && !saved ? `This car is already in ${where}. ` : ""}
         Check what will be stored and correct anything that&apos;s wrong. Nothing is saved until you press {update ? "Update" : "Save"}.
+        {where === "My list" ? " My list is kept in this browser only: nothing is uploaded." : ""}
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -79,9 +84,9 @@ export function SaveCard({ pending, report, value, savedId, onSaved }: {
         <fieldset className="sm:col-span-2">
           <legend className="font-semibold">
             MPG{src("mpg")}
-            {pending.mpgRange && (
+            {draft.mpgRange && (
               <span className="block text-sm font-normal text-muted">
-                This model&apos;s versions run {pending.mpgRange.low}–{pending.mpgRange.high} mpg combined; the closest match is filled in. Check the window sticker or the listing.
+                This model&apos;s versions run {draft.mpgRange.low}–{draft.mpgRange.high} mpg combined; the closest match is filled in. Check the window sticker or the listing.
               </span>
             )}
           </legend>
@@ -122,12 +127,12 @@ export function SaveCard({ pending, report, value, savedId, onSaved }: {
 
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <button type="button" onClick={save} disabled={saving} className="btn btn-primary">
-          {saving ? "Saving…" : update ? "Update in My cars" : "Save to My cars"}
+          {saving ? "Saving…" : update ? `Update in ${where}` : `Save to ${where}`}
         </button>
         {message && (
           <p role="status" className={message.ok ? "font-semibold text-good" : "text-bad"}>
             {message.text}
-            {message.ok && <> <a href="/checked" className="link">Open My cars</a></>}
+            {message.ok && <> <a href={openHref} className="link">Open {where}</a></>}
           </p>
         )}
       </div>

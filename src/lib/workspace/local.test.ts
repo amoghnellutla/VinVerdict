@@ -70,3 +70,15 @@ describe("workspace", () => {
     expect(carId(null, "same text")).not.toBe(carId(null, "other text"));
   });
 });
+
+describe("My list keeps the details the visitor confirmed", () => {
+  const details = { sourceUrl: "https://www.cars.com/vehicledetail/abc/", mpg: { comb: 33, city: 30, hwy: 38 }, powertrain: "hybrid" as const, titleStatus: "clean" as const, accident: "none" as const, year: 2017, make: "Honda", model: "Accord" };
+  it("round-trips them, and a car saved before them has none", () => {
+    expect(parseCar(car({ details }))?.details).toEqual(details);
+    expect(parseCar(car())?.details).toBeUndefined();
+  });
+  it("an edited file can't slip in a bad link or odd values: each is dropped, never guessed", () => {
+    const d = parseCar({ ...car(), details: { ...details, sourceUrl: "javascript:alert(1)", mpg: { comb: 900, city: "x", hwy: null }, powertrain: "rocket", titleStatus: "great", accident: 7, year: 1800 } })!.details!;
+    expect(d).toMatchObject({ sourceUrl: null, mpg: null, powertrain: null, titleStatus: "unknown", accident: "unknown", year: null, make: "Honda" });
+  });
+});

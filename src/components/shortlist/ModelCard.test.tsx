@@ -11,7 +11,7 @@ const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&#x27;|&apo
 
 describe("the owner's Shortlist: one card per saved car", () => {
   const year = rav4.years.find((y) => !y.sparse)!;
-  const car = { id: 7, title: `${year.year} Toyota RAV4 XLE`, price: 21298, miles: 31450, vin: "2T3P1RFV3MW000000", facts: { year: year.year, make: "Toyota", model: "RAV4", title: "clean", accident: "none", mpg: { comb: 30, city: 27, hwy: 35 }, powertrain: "gas" as const } };
+  const car = { id: 7, href: "/car/7", title: `${year.year} Toyota RAV4 XLE`, price: 21298, miles: 31450, vin: "2T3P1RFV3MW000000", facts: { year: year.year, make: "Toyota", model: "RAV4", title: "clean", accident: "none", mpg: { comb: 30, city: 27, hwy: 35 }, powertrain: "gas" as const } };
 
   it("shows the car's facts, its record, and how its model year rates", () => {
     const t = text(renderToStaticMarkup(<CarYearCard car={car} model={rav4} />));

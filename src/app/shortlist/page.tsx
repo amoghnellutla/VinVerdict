@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { CarYearCard } from "@/components/shortlist/CarYearCard";
+import { DeviceShortlist } from "@/components/shortlist/DeviceShortlist";
 import { ModelCard } from "@/components/shortlist/ModelCard";
 import { currentUser } from "@/lib/auth/session";
 import { listCars } from "@/lib/cars/store";
@@ -38,8 +39,10 @@ async function ForViewer({ sp }: { sp: Params }) {
       <>
         <PageHeader
           title="Shortlist"
-          description="Everyday cars, and which model years owners reported the most problems with to NHTSA. Set a budget and ZIP to get ready-made searches."
+          description="Your saved cars: whether each one's model year is a good one, what to confirm, and the better years to look at. Below, every model in the guide."
         />
+        <DeviceShortlist models={shortlist()} />
+        <h2 className="section-title">Every model in the guide</h2>
         <Guide budget={budget} zip={zip} body={body} />
       </>
     );
@@ -84,7 +87,7 @@ async function Mine() {
         {r.value.map((c) => (
           <CarYearCard
             key={c.id}
-            car={{ id: c.id, title: c.title, price: c.price, miles: c.miles, vin: c.vin, facts: c.facts }}
+            car={{ id: c.id, href: `/car/${c.id}`, title: c.title, price: c.price, miles: c.miles, vin: c.vin, facts: c.facts }}
             model={guideModelFor(models, { make: c.facts.make ?? null, model: c.facts.model ?? null })}
           />
         ))}

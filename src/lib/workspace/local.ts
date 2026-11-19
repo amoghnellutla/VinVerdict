@@ -8,7 +8,9 @@
  * rendered as plain text.
  */
 
+import { ACCIDENTS, cleanUrl, POWERTRAINS, TITLES, type Powertrain } from "@/lib/cars/draft";
 import type { AreaStatus, Level } from "@/lib/decision";
+import type { AccidentStatus, TitleStatus } from "@/lib/listing/parse";
 
 export const WORKSPACE_KEY = "vv-workspace-v1";
 export const MAX_CARS = 20;
@@ -40,12 +42,45 @@ export type SavedCar = {
   warnings: string[];
   /** The buyer's own note. */
   note: string;
+  /** What the visitor reviewed and confirmed on the Save card (cars saved before it have none). */
+  details?: CarDetails;
+};
+
+/** The listing link, MPG, hybrid or not, title and accidents, and the car's year/make/model (for the Shortlist). */
+export type CarDetails = {
+  sourceUrl: string | null;
+  mpg: { comb: number | null; city: number | null; hwy: number | null } | null;
+  powertrain: Powertrain | null;
+  titleStatus: TitleStatus;
+  accident: AccidentStatus;
+  year: number | null;
+  make: string | null;
+  model: string | null;
 };
 
 export type Workspace = { version: 1; cars: SavedCar[] };
 
 const str = (v: unknown, max: number): string | null => (typeof v === "string" ? v.slice(0, max) : null);
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 10_000_000 ? Math.round(v) : null);
+const within = (v: unknown, lo: number, hi: number): number | null => (typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi ? v : null);
+
+/** The reviewed details from untrusted data: each field checked, anything odd dropped (never guessed). */
+export function parseDetails(raw: unknown): CarDetails | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const d = raw as Record<string, unknown>;
+  const m = (d.mpg ?? null) as Record<string, unknown> | null;
+  const mpg = m && typeof m === "object" ? { comb: within(m.comb, 1, 200), city: within(m.city, 1, 200), hwy: within(m.hwy, 1, 200) } : null;
+  return {
+    sourceUrl: cleanUrl(d.sourceUrl) ?? null,
+    mpg: mpg && (mpg.comb != null || mpg.city != null || mpg.hwy != null) ? mpg : null,
+    powertrain: POWERTRAINS.includes(d.powertrain as Powertrain) ? (d.powertrain as Powertrain) : null,
+    titleStatus: TITLES.includes(d.titleStatus as TitleStatus) ? (d.titleStatus as TitleStatus) : "unknown",
+    accident: ACCIDENTS.includes(d.accident as AccidentStatus) ? (d.accident as AccidentStatus) : "unknown",
+    year: within(d.year, 1950, 2100),
+    make: str(d.make, 60),
+    model: str(d.model, 80),
+  };
+}
 
 /** One saved car from untrusted data, or null if it isn't one. */
 export function parseCar(raw: unknown): SavedCar | null {
@@ -78,6 +113,7 @@ export function parseCar(raw: unknown): SavedCar | null {
     unknown: num(r.unknown) ?? 0,
     warnings: Array.isArray(r.warnings) ? r.warnings.flatMap((w) => (typeof w === "string" ? [w.slice(0, MAX_LINE)] : [])).slice(0, 5) : [],
     note: str(r.note, 2000) ?? "",
+    ...(parseDetails(r.details) ? { details: parseDetails(r.details) } : {}),
   };
 }
 

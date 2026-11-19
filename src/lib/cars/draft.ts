@@ -107,9 +107,9 @@ export function draftFields(a: Pick<Analysis, "decoded" | "fuel" | "listing">): 
 
 // ----- Checking what the browser sends back -----
 
-const TITLES: readonly TitleStatus[] = ["clean", "salvage", "rebuilt", "flood", "lemon", "branded", "unknown"];
-const ACCIDENTS: readonly AccidentStatus[] = ["none", "reported", "unknown"];
-const POWERTRAINS: readonly Powertrain[] = ["gas", "diesel", "hybrid", "plug-in hybrid", "electric"];
+export const TITLES: readonly TitleStatus[] = ["clean", "salvage", "rebuilt", "flood", "lemon", "branded", "unknown"];
+export const ACCIDENTS: readonly AccidentStatus[] = ["none", "reported", "unknown"];
+export const POWERTRAINS: readonly Powertrain[] = ["gas", "diesel", "hybrid", "plug-in hybrid", "electric"];
 const VERDICTS: readonly Verdict[] = ["hide", "verify", "caution", "clear"];
 
 const int = (v: unknown, lo: number, hi: number): number | null | undefined => {
@@ -222,6 +222,27 @@ export function withReport(
   } else if (report.damage === "none" && fields.accident === "unknown") {
     fields.accident = "none";
     from.accident = "your history report";
+  }
+  return { fields, from };
+}
+
+/**
+ * Bad news the check found elsewhere (the VIN's history data, the title's history) also goes into the draft: an
+ * accident or a branded title is never left as "Not sure" or "Clean" when something on the page reported it.
+ */
+export function withBadNews(
+  d: { fields: SaveFields; from: FieldSource },
+  bad: { accident: string | null; branded: string | null },
+): { fields: SaveFields; from: FieldSource } {
+  const fields = { ...d.fields };
+  const from = { ...d.from };
+  if (bad.accident && fields.accident !== "reported") {
+    fields.accident = "reported";
+    from.accident = bad.accident;
+  }
+  if (bad.branded && (fields.titleStatus === "clean" || fields.titleStatus === "unknown")) {
+    fields.titleStatus = "branded";
+    from.titleStatus = bad.branded;
   }
   return { fields, from };
 }

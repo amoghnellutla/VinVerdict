@@ -66,11 +66,12 @@ import { Safety } from "./Safety";
 import { SectionTabs } from "./SectionTabs";
 import { SellerMessage } from "./SellerMessage";
 import { SellerReplies } from "./SellerReplies";
-import { SaveToList } from "./SaveToList";
 import { CopyButton } from "@/components/CopyButton";
 import { shareSummary } from "@/lib/share-summary";
 import { PhotoCheck } from "./PhotoCheck";
-import { carId as listCarId } from "@/lib/workspace/local";
+import { carId as listCarId, load as loadList, save as saveList, upsert as upsertList, type SavedCar as ListCar } from "@/lib/workspace/local";
+import { saveCheckedCarAction } from "@/app/actions/cars";
+import { draftFields } from "@/lib/cars/draft";
 import { Assistant } from "./Assistant";
 import { ReadPanel } from "./ReadPanel";
 import { DealSheet } from "./DealSheet";
@@ -236,6 +237,8 @@ export function Result({ analysis: original, carId = null, pending = null, saveN
   );
 
   const goodVin = a.vinCheck?.ok ? a.listing.vin : null;
+  const deviceDraft = useMemo(() => draftFields(a), [a]);
+  const [inList] = useState(() => loadList().cars.some((c) => c.id === listCarId(goodVin, a.text)));
   const proofSum = useMemo(() => summarizeProof(proofs, goodVin, known.merged.miles), [proofs, goodVin, known]);
   // Your answers plus the proof: bad news wins (lib/history-report.ts).
   const answers = useMemo(() => mergeAnswers(report, proofSum.report), [report, proofSum]);
@@ -541,6 +544,30 @@ export function Result({ analysis: original, carId = null, pending = null, saveN
         { id: "sources", label: "Sources" },
       ];
 
+  // Bad news found on the page beyond the listing and the history report: drafted on the Save card, never dropped.
+  const findingIds = new Set(hits.map((h) => h.id.replace(/^msg-/, "")));
+  const badNews = {
+    accident: findingIds.has("live-accident") ? "the VIN's history data" : null,
+    branded: findingIds.has("title-washing") ? "the title's history" : null,
+  };
+  // A visitor's "My list" entry (this device only), filled in with what they confirm on the Save card.
+  const listCar = (): ListCar => ({
+      id: listCarId(goodVin, a.text),
+      savedAt: new Date().toISOString(),
+      title: carName(m),
+      text: a.text,
+      vin: goodVin,
+      price: m.listing.price,
+      dealerFee: dealerFee(m.listing) || null,
+      miles: m.listing.miles,
+      level: decision.level,
+      verdict: decision.title,
+      areas: decision.areas.map(({ area, status, line }) => ({ area, status, line })),
+      unknown: decision.areas.reduce((n, r) => n + r.unknown.length, 0),
+      warnings: decision.findings.filter((f) => f.severity !== "note").slice(0, 5).map((f) => f.title),
+      note: "",
+    });
+
   return (
     <ReportPartsContext.Provider value={setPart}>
     <div className="space-y-10">
@@ -554,25 +581,8 @@ export function Result({ analysis: original, carId = null, pending = null, saveN
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <CarLine a={m} />
           <span className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-sm print:hidden">
-            {!selling && (
-              <SaveToList
-                build={() => ({
-                  id: listCarId(goodVin, a.text),
-                  savedAt: new Date().toISOString(),
-                  title: carName(m),
-                  text: a.text,
-                  vin: goodVin,
-                  price: m.listing.price,
-                  dealerFee: dealerFee(m.listing) || null,
-                  miles: m.listing.miles,
-                  level: decision.level,
-                  verdict: decision.title,
-                  areas: decision.areas.map(({ area, status, line }) => ({ area, status, line })),
-                  unknown: decision.areas.reduce((n, r) => n + r.unknown.length, 0),
-                  warnings: decision.findings.filter((f) => f.severity !== "note").slice(0, 5).map((f) => f.title),
-                  note: "",
-                })}
-              />
+            {!selling && (pending || guest) && (
+              <a href="#save" className="link">{pending ? "Save to My cars" : "Save to My list"}</a>
             )}
             {!selling && (
               <CopyButton
@@ -607,9 +617,9 @@ export function Result({ analysis: original, carId = null, pending = null, saveN
         ) : (
           <>
           <VerdictCard d={decision} />
-          {pending && !savedId && (
+          {((pending && !savedId) || (guest && !selling && !inList)) && (
             <p className="text-sm text-muted print:hidden">
-              Not in My cars yet. <a href="#save" className="link">Review the details and save it</a>.
+              Not in {pending ? "My cars" : "My list"} yet. <a href="#save" className="link">Review the details and save it</a>.
             </p>
           )}
           <KnowsPanel
@@ -764,11 +774,46 @@ export function Result({ analysis: original, carId = null, pending = null, saveN
 
       {pending ? (
         <SaveCard
-          pending={pending}
+          draft={pending}
           report={answers}
-          value={valuation && !valuation.unpriced ? { fairLow: valuation.low, fairHigh: valuation.high, dealLabel: valuation.label ?? null, fair: valuation.fair } : null}
-          savedId={savedId}
-          onSaved={setSavedId}
+          badNews={badNews}
+          where="My cars"
+          openHref="/checked"
+          existing={savedId != null}
+          onSave={async (fields) => {
+            const value = valuation && !valuation.unpriced ? { fairLow: valuation.low, fairHigh: valuation.high, dealLabel: valuation.label ?? null, fair: valuation.fair } : null;
+            const r = await saveCheckedCarAction(JSON.stringify({ base: pending.base, fields, value }));
+            if (!r.ok) return r;
+            setSavedId(r.id);
+            return { ok: true };
+          }}
+        />
+      ) : guest && !selling ? (
+        <SaveCard
+          draft={deviceDraft}
+          report={answers}
+          badNews={badNews}
+          where="My list"
+          openHref="/mine"
+          existing={inList}
+          onSave={async (fields) => {
+            const car: ListCar = {
+              ...listCar(),
+              price: fields.price,
+              miles: fields.miles,
+              details: {
+                sourceUrl: fields.sourceUrl,
+                mpg: fields.mpgComb != null || fields.mpgCity != null || fields.mpgHwy != null ? { comb: fields.mpgComb, city: fields.mpgCity, hwy: fields.mpgHwy } : null,
+                powertrain: fields.powertrain,
+                titleStatus: fields.titleStatus,
+                accident: fields.accident,
+                year: m.decoded?.year ?? m.listing.year ?? null,
+                make: m.decoded?.make ? makeName(m.decoded.make) : m.listing.make ?? null,
+                model: m.decoded?.model ?? m.listing.model ?? null,
+              },
+            };
+            return saveList(upsertList(loadList(), car)) ? { ok: true } : { ok: false, message: "Couldn't save on this device (a private window, or the browser's storage is full)." };
+          }}
         />
       ) : (
         saveNote && <p className="border-t border-border pt-6 text-sm text-muted">{saveNote}</p>

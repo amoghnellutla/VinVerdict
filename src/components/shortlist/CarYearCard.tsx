@@ -7,7 +7,8 @@ import { searchLinks } from "@/lib/search-links";
 import type { ShortlistModel } from "@/lib/shortlist/shortlist";
 import { REF } from "@/lib/sources";
 
-export type ShortlistCar = { id: number; title: string; price: number | null; miles: number | null; vin: string | null; facts: CarFacts };
+/** A saved car: from My cars (the owner's account) or My list (a visitor's device); `href` opens it there. */
+export type ShortlistCar = { id: number | string; href: string; title: string; price: number | null; miles: number | null; vin: string | null; facts: CarFacts };
 
 /** The latest run of consecutive years in a list ("2017, 2020, 2021, 2022" → 2020–2022), for one search link. */
 export function latestRun(years: number[]): { from: number; to: number } | null {
@@ -45,7 +46,7 @@ export function CarYearCard({ car, model }: { car: ShortlistCar; model: Shortlis
   return (
     <li className="card">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <Link href={`/car/${car.id}`} className="font-serif text-lg font-semibold hover:underline">{car.title}</Link>
+        <Link href={car.href} className="font-serif text-lg font-semibold hover:underline">{car.title}</Link>
         <span className={`text-sm font-semibold ${cleanRecord(f) ? "text-good" : badRecord ? "text-bad" : "text-muted"}`}>{record}</span>
       </div>
       {facts.length > 0 && <p className="nums mt-1 text-muted">{facts.join(" · ")}</p>}
