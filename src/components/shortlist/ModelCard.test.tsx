@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { OwnerHub } from "@/components/cars/OwnerHub";
-import { shortlist } from "@/lib/shortlist/shortlist";
-import { CarYearCard, latestRun } from "./CarYearCard";
+import { allModels, shortlist } from "@/lib/shortlist/shortlist";
+import { CarYearCard, latestRun, shownInvestigations } from "./CarYearCard";
 import { ModelCard } from "./ModelCard";
 
 const models = shortlist(new Date("2026-11-19"));
@@ -38,9 +38,38 @@ describe("the owner's Shortlist: one card per saved car", () => {
 
   it("a model the guide doesn't cover says so, without inventing a trend", () => {
     const t = text(renderToStaticMarkup(<CarYearCard car={{ ...car, title: "2018 Kia Soul", facts: { year: 2018, make: "Kia", model: "Soul" } }} model={null} />));
-    expect(t).toContain("isn't in VinVerdict's guide");
+    expect(t).toContain("doesn't have enough NHTSA owner complaints on file for this model");
     expect(t).not.toContain("Better years");
     expect(t).toContain("Title not known, accidents not known");
+  });
+});
+
+describe("NHTSA crash stars and defect investigations for the car's year", () => {
+  const all = allModels(new Date("2026-11-19"), "Honda");
+  const crv = all.find((m) => m.model === "CR-V")!;
+  const car = (year: number) => ({ id: 1, href: "/mine", title: `${year} Honda CR-V`, price: null, miles: null, vin: null, facts: { year, make: "Honda", model: "CR-V" } });
+
+  it("a 2018 CR-V: its stars and the open emergency-braking investigation, from NHTSA's files", () => {
+    const y = crv.years.find((x) => x.year === 2018)!;
+    expect(y.stars).toEqual({ low: 5, high: 5 });
+    expect(y.investigations.map((v) => v.id)).toContain("EA24002");
+    const t = text(renderToStaticMarkup(<CarYearCard car={car(2018)} model={crv} />));
+    expect(t).toContain("NHTSA crash test: 5 stars overall");
+    expect(t).toMatch(/NHTSA investigation Inadvertent Automatic Emergency Braking: open since 2024\./);
+  });
+
+  it("shows open investigations and those that led to a recall, never ones closed without one", () => {
+    const list = [
+      { id: "PE1", subject: "a", opened: 2022, closed: 2024, recall: null },
+      { id: "EA2", subject: "b", opened: 2024, closed: null, recall: null },
+      { id: "EA3", subject: "c", opened: 2023, closed: 2025, recall: "24V744" },
+    ];
+    expect(shownInvestigations(list).map((v) => v.id)).toEqual(["EA2", "EA3"]);
+    const y = { ...crv.years[0], investigations: list, stars: { low: 4, high: 5 } };
+    const t = text(renderToStaticMarkup(<CarYearCard car={car(y.year)} model={{ ...crv, years: [y] }} />));
+    expect(t).toContain("4 to 5 stars overall, depending on the version");
+    expect(t).toContain("c: 2023 to 2025, led to recall 24V744.");
+    expect(t).not.toContain("a: 2022");
   });
 });
 
@@ -58,7 +87,7 @@ describe("the My cars hub header", () => {
       expect(html).toContain(`href="${href}"`);
       expect(html).toContain(label);
     }
-    expect(html).toMatch(/href="\/shortlist" aria-current="page"/);
+    expect(html).toMatch(/<a aria-current="page"[^>]*href="\/shortlist"/);
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).not.toContain("/search");
   });

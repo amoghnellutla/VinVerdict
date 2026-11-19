@@ -4,12 +4,20 @@
 
 **When:** every few months, or after adding a model.
 
-**Tool:** `.venv\Scripts\python -I tools/build_shortlist.py` (free NHTSA API, no key, no quota; about 400 requests (complaints + recalls), ~3–4 minutes). `--dry-run` prints the plan only.
+**Tool:** `.venv\Scripts\python -I tools/build_shortlist.py` (since 2026-11-19). It downloads NHTSA's bulk files once into `.tmp/datasets` (git-ignored; complaints about 380 MB zipped, recalls, investigations, 5-Star Ratings, and the EPA vehicles file), then builds in about 30 seconds. `--download` fetches them again (do this to refresh); `--check-api 40` compares 40 model years' recall flags with NHTSA's API.
 
 **Steps**
-1. Edit `MODELS` / `YEARS` in the script if needed. Use NHTSA's model names: Lexus is model + engine with **no space** ("ES350", "RX350"). "ES" and "ES 350" return nothing.
-2. Run the tool and check every model printed a total. A model with 0 complaints or 0 recalls means a wrong model name.
-3. Run `npm test` (the shortlist tests read the file) and look at /shortlist.
+1. Run `.venv\Scripts\python -I tools/build_shortlist.py --download --check-api 40`. It prints the number of models and the file size; every flag line should say `ok`.
+2. Edit `GUIDE` (the 15 models on the page), `RENAMED` / `AMBIGUOUS` (name merges) or `YEARS` in the script if needed. If you change `YEARS`, change `src/lib/shortlist/years.ts` too (a test checks they match).
+3. Run `npm test` and look at /shortlist.
+
+**Learned (2026-11-19)**
+- The per-model API (the old way) left out whole years: 2014 Camry 14 vs 456 in the files, 2023–24 Accord and Civic 0, 2024 Outback 2 vs 107. Use the files.
+- NHTSA files one car under several names ("GLE350" and "GLE 350"; "ES" and "ES350"; "F-250" and "F-250 SD"). `canonical()` merges only clear spellings and renames; different cars stay apart ("Prius v", "Santa Fe Sport", "Camry Hybrid").
+- The recall files have no don't-drive / park-outside flag; it's read from the recall text and checked with `--check-api`.
+- Investigations: only open ones and ones that led to a recall are shown (closed without one means no defect was found, or it moved into a newer investigation).
+
+**Earlier (API version, kept for history)**
 
 **Learned (2026-11-09)**
 - **Correction (2026-11-09, later):** the first build used "ES 350"/"RX 350", which NHTSA answers with nothing for most years (ES: 76 complaints in total). "ES350"/"RX350" give 258 and 501, plus 13 and 16 recalls. Check `api.nhtsa.gov/products/vehicle/models?modelYear=…&make=…&issueType=r` for the exact spelling.

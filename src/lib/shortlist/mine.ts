@@ -17,7 +17,7 @@ const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 const SUB_MODEL = new Set(["cross", "c", "v", "prime"]);
 
 /** The guide model a car is, or null. The longest matching model name wins ("Grand Highlander" over "Highlander"). */
-export function guideModelFor(models: ShortlistModel[], car: Pick<MyCar, "make" | "model">): ShortlistModel | null {
+export function guideModelFor(models: ShortlistModel[], car: Pick<MyCar, "make" | "model"> & { powertrain?: string | null }): ShortlistModel | null {
   if (!car.make || !car.model) return null;
   const make = key(car.make);
   const words = car.model.toLowerCase().split(/\s+/).filter(Boolean);
@@ -30,6 +30,13 @@ export function guideModelFor(models: ShortlistModel[], car: Pick<MyCar, "make" 
     const whole = key(car.model);
     const hit = words.some((_, i) => key(words.slice(0, i + 1).join(" ")) === mk && !SUB_MODEL.has(words[i + 1] ?? "")) || (whole.startsWith(mk) && /^\d{3}h?$/.test(whole.slice(mk.length))) || make + whole === mk;
     if (hit && (!best || key(m.model).length > key(best.model).length)) best = m;
+  }
+  // NHTSA files some hybrids as their own model ("Camry Hybrid"): a hybrid saved as "Camry" gets those years when
+  // they're on file, and a plug-in its own ("Pacifica Plug-in Hybrid"), never the regular hybrid's.
+  const own = car.powertrain === "hybrid" ? "hybrid" : car.powertrain === "plug-in hybrid" ? "pluginhybrid" : null;
+  if (best && own && !key(best.model).endsWith("hybrid")) {
+    const base = key(best.model);
+    best = candidates.find((m) => key(m.model) === base + own) ?? best;
   }
   return best;
 }

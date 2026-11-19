@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { searchLinks } from "@/lib/search-links";
-import { rateYears, shortlist } from "./shortlist";
+import data from "./data.json";
+import { allModels, rateYears, shortlist, unpack } from "./shortlist";
+import { SHORTLIST_YEARS } from "./years";
 
 const NOW = new Date("2026-11-09");
 
@@ -47,5 +49,29 @@ describe("shortlist data gaps", () => {
     const r = rateYears(rows, "Toyota", "Camry", new Date("2026-11-09"));
     expect(r.map((y) => y.year)).not.toContain(2014);
     expect(r.find((y) => y.year === 2015)!.sparse).toBe(true);
+  });
+});
+
+describe("the data from NHTSA's complete files", () => {
+  it("covers the years it says, about 300 models, and the guide's 15", () => {
+    const all = allModels(NOW);
+    expect(all.length).toBeGreaterThanOrEqual(250);
+    expect(shortlist(NOW).map((m) => `${m.make} ${m.model}`)).toHaveLength(15);
+    expect(data.firstYear).toBe(SHORTLIST_YEARS.from);
+    for (const m of data.models) expect(m.rows.length, m.model).toBe(SHORTLIST_YEARS.to - SHORTLIST_YEARS.from + 1);
+    expect(allModels(NOW, "Kia").every((m) => m.make === "Kia")).toBe(true);
+  });
+
+  it("has the years NHTSA's per-model API left out (2014 Camry, 2023 Accord, 2024 Outback)", () => {
+    const year = (make: string, model: string, y: number) => allModels(NOW, make).find((m) => m.model === model)!.years.find((x) => x.year === y)!;
+    expect(year("Toyota", "Camry", 2014).complaints).toBeGreaterThan(400);
+    expect(year("Honda", "Accord", 2023).complaints).toBeGreaterThan(50);
+    expect(year("Subaru", "Outback", 2024).complaints).toBeGreaterThan(50);
+  });
+
+  it("unpacks a year: counts, recalls and the top problem areas", () => {
+    const [y0, y1] = unpack([0, [12, 2, 3, 1, 0, 0, 7, 1, 5]], 2010, ["Air Bags", "Engine"]);
+    expect(y0).toEqual({ year: 2010, complaints: 0, crashes: 0, top: [], recalls: 0, parkIt: 0, parkOutside: 0, stars: null, investigations: [] });
+    expect(y1).toEqual({ year: 2011, complaints: 12, crashes: 2, top: [{ component: "Air Bags", count: 7 }, { component: "Engine", count: 5 }], recalls: 3, parkIt: 1, parkOutside: 0, stars: null, investigations: [] });
   });
 });

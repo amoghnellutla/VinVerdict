@@ -10,7 +10,7 @@ import { ModelCard } from "@/components/shortlist/ModelCard";
 import { currentUser } from "@/lib/auth/session";
 import { listCars } from "@/lib/cars/store";
 import { guideModelFor } from "@/lib/shortlist/mine";
-import { shortlist, SHORTLIST_DATE } from "@/lib/shortlist/shortlist";
+import { allModels, shortlist, SHORTLIST_DATE } from "@/lib/shortlist/shortlist";
 
 export const metadata: Metadata = { title: "Shortlist" };
 
@@ -41,7 +41,7 @@ async function ForViewer({ sp }: { sp: Params }) {
           title="Shortlist"
           description="Your saved cars: whether each one's model year is a good one, what to confirm, and the better years to look at. Below, every model in the guide."
         />
-        <DeviceShortlist models={shortlist()} />
+        <DeviceShortlist />
         <h2 className="section-title">Every model in the guide</h2>
         <Guide budget={budget} zip={zip} body={body} />
       </>
@@ -80,7 +80,7 @@ async function Mine() {
       </p>
     );
   }
-  const models = shortlist();
+  const models = allModels();
   return (
     <>
       <ul className="space-y-5">
@@ -88,7 +88,7 @@ async function Mine() {
           <CarYearCard
             key={c.id}
             car={{ id: c.id, href: `/car/${c.id}`, title: c.title, price: c.price, miles: c.miles, vin: c.vin, facts: c.facts }}
-            model={guideModelFor(models, { make: c.facts.make ?? null, model: c.facts.model ?? null })}
+            model={guideModelFor(models, { make: c.facts.make ?? null, model: c.facts.model ?? null, powertrain: c.facts.powertrain ?? null })}
           />
         ))}
       </ul>
