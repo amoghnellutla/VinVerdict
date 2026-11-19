@@ -55,8 +55,32 @@ const MORE: [string, string][] = [
   ["Total Out the Door", "total"], ["OTD Price", "total"], ["Grand Total", "total"], ["Balance Due", "balanceDue"], ["Total Due at Signing", "leaseTerm"],
   ["Net Sale Price", "price"], ["Selling Price After Discounts", "price"], ["Adjusted Selling Price", "price"],
 ];
+// Dealer-system abbreviations and Spanish papers.
+const ABBR: [string, string][] = [
+  ["SLS PRC", "price"], ["SALE PRC", "price"], ["VEH PRICE", "price"], ["CASH PRC", "price"], ["SELL PRICE", "price"],
+  ["DOC FEE", "docFee"], ["DOC", "docFee"], ["DOCS", "docFee"], ["ADMIN", "docFee"], ["PROC FEE", "docFee"],
+  ["TTL/LIC", "stateFee"], ["TTL", "stateFee"], ["LIC/TTL", "stateFee"], ["REG", "stateFee"], ["TITLE/REG", "stateFee"], ["DMV", "stateFee"], ["TAG/TITLE", "stateFee"],
+  ["SLS TAX", "tax"], ["ST TAX", "tax"], ["CTY TAX", "tax"], ["CO TAX", "tax"], ["SALES TX", "tax"],
+  ["SVC CONTRACT", "loanProduct"], ["SVC CONT", "loanProduct"], ["VSC", "loanProduct"], ["MBI", "loanProduct"], ["EXT WARR", "loanProduct"], ["GAP INS", "loanProduct"], ["T&W", "loanProduct"], ["CR LIFE", "loanProduct"], ["MAINT PLAN", "loanProduct"],
+  ["DLR PREP", "dealerFee"], ["FRT", "dealerFee"], ["DEST", "dealerFee"], ["DEST/FRT", "dealerFee"], ["RECON", "dealerFee"],
+  ["ETCH", "addOn"], ["N2", "addOn"], ["TINT", "addOn"], ["PNT PROT", "addOn"], ["APPEAR PKG", "addOn"], ["ADD MKUP", "addOn"], ["MKT ADJ", "addOn"],
+  ["RBT", "rebate"], ["MFR RBT", "rebate"], ["REBATE", "rebate"], ["DISC", "discount"], ["DLR DISC", "discount"],
+  ["TRD ALLOW", "tradeIn"], ["TRADE ALLOW", "tradeIn"], ["TRD PAYOFF", "payoff"], ["TRADE P/O", "payoff"], ["P/O", "payoff"],
+  ["DWN PMT", "downPayment"], ["CASH DN", "downPayment"], ["DEP", "downPayment"],
+  ["AMT FIN", "amountFinanced"], ["AMT FINANCED", "amountFinanced"], ["BAL DUE", "balanceDue"], ["TOT", "total"], ["TOTAL DUE", "total"], ["SUBTOT", "subtotal"],
+];
+const ES: [string, string][] = [
+  ["Precio sugerido por el fabricante", "price"], ["Precio de lista", "price"], ["Descuento del concesionario", "discount"], ["Reembolso", "rebate"],
+  ["Cargo por documentación", "docFee"], ["Cargo por procesamiento de documentos", "docFee"], ["Impuesto sobre las ventas", "tax"], ["Impuesto del condado", "tax"],
+  ["Título", "stateFee"], ["Registro", "stateFee"], ["Placas", "stateFee"], ["Tasas de licencia", "stateFee"],
+  ["Contrato de servicio", "loanProduct"], ["Garantía extendida", "loanProduct"], ["Protección GAP", "loanProduct"], ["Seguro de vida de crédito", "loanProduct"],
+  ["Grabado del VIN", "addOn"], ["Nitrógeno", "addOn"], ["Polarizado", "addOn"], ["Protección de pintura", "addOn"], ["Ajuste de mercado", "addOn"],
+  ["Cargo de destino", "dealerFee"], ["Flete", "dealerFee"], ["Preparación del concesionario", "dealerFee"],
+  ["Pago inicial", "downPayment"], ["Enganche", "downPayment"], ["Valor de intercambio", "tradeIn"], ["Saldo del intercambio", "payoff"],
+  ["Importe financiado", "amountFinanced"], ["Saldo no pagado", "amountFinanced"], ["Saldo adeudado", "balanceDue"], ["Total", "total"], ["Subtotal", "subtotal"],
+];
 describe("the words real dealer papers use", () => {
-  it.each([...WANT, ...MORE])("%s is %s", (label, kind) => {
+  it.each([...WANT, ...MORE, ...ABBR, ...ES])("%s is %s", (label, kind) => {
     expect(classify(label).kind).toBe(kind);
   });
 });

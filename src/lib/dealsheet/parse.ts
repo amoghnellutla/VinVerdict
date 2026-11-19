@@ -124,8 +124,21 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   return classifyWords(rawLabel);
 }
 
+// Dealer-system printouts abbreviate ("SVC CONT", "TRD P/O", "AMT FIN"): spelled out before the words are read.
+const ABBREVIATIONS: [RegExp, string][] = [
+  [/\badd(?:'?l)? mkup\b/g, "additional dealer markup"], [/\bmkt adj\b/g, "market adjustment"], [/\bt ?& ?w\b/g, "tire & wheel"], [/\bmbi\b/g, "mechanical breakdown insurance"],
+  [/\bp\/o\b/g, "payoff"], [/\bamt fin\b/g, "amount financed"], [/\bsubtot\b/g, "subtotal"], [/^admin$/g, "administrative fee"],
+  [/\bsls\b/g, "sale"], [/\bprc\b/g, "price"], [/\bveh\b/g, "vehicle"], [/\btx\b/g, "tax"], [/\bsvc\b/g, "service"], [/\bcont\b/g, "contract"],
+  [/\bwarr\b/g, "warranty"], [/\bext\b/g, "extended"], [/\bcr\b/g, "credit"], [/\bmaint\b/g, "maintenance"], [/\bfrt\b/g, "freight"], [/\bdest\b/g, "destination"],
+  [/\bn2\b/g, "nitrogen"], [/\bpnt\b/g, "paint"], [/\bprot\b/g, "protection"], [/\bappear\b/g, "appearance"], [/\bmkup\b/g, "markup"], [/\brbt\b/g, "rebate"],
+  [/\bmfr\b/g, "manufacturer"], [/\bdisc\b/g, "discount"], [/\bdlr\b/g, "dealer"], [/\btrd\b/g, "trade"], [/\ballow\b/g, "allowance"], [/\bdwn\b/g, "down"],
+  [/\bpmt\b/g, "payment"], [/\bdn\b/g, "down"], [/\bdep\b/g, "deposit"], [/\bamt\b/g, "amount"], [/\bbal\b/g, "balance"], [/^tot$/g, "total"], [/\bproc\b/g, "processing"],
+  [/\bins\b/g, "insurance"], [/\bcty\b/g, "city"], [/^co tax$/g, "county tax"], [/^st tax$/g, "state tax"],
+];
+const expand = (l: string) => ABBREVIATIONS.reduce((s, [re, word]) => s.replace(re, word), l);
+
 function classifyWords(rawLabel: string): { kind: LineKind; name?: string } {
-  const l = toEnglish(rawLabel).toLowerCase().replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
+  const l = expand(toEnglish(rawLabel).toLowerCase().replace(/\s+/g, " ").trim()).replace(/[^a-z0-9%&/$.,'#-]+/g, " ").replace(/\s+/g, " ").trim();
   // Lease terms are information, not charges: the cap cost, residual, money factor, the amount due at signing.
   if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b|\bdepreciation\b|\brent charge\b|\bbase monthly payments?\b/, l)) return { kind: "leaseTerm" };
   // The leasing company's own fees (often marked up by the dealer): asked about, not refused.
