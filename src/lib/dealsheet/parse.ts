@@ -82,31 +82,33 @@ export const ADD_ONS: [string, RegExp][] = [
   ["Paint and fabric protection", /\b(?:paint|fabric|interior|exterior|leather|upholstery|ceramic|clear ?coat|surface)(?: (?:and|&|\/) (?:paint|fabric|interior|exterior|leather))? (?:protection|protectant|sealant|coating|guard|package|pkg)\b|\bappearance (?:protection|package|pkg|plan)\b|\bceramic coat/],
   ["Window tint", /\bwindow tint(?:ing)?\b|\btint(?:ed)? windows?\b|\btint\b|\bwindow film\b/],
   ["Wheel locks", /\bwheel locks?\b|\blocking lug/],
-  ["Theft deterrent", /\btheft (?:deterrent|protection|prevention|system|package)\b|\banti[- ]theft\b|\blo-?jack\b|\bgps (?:tracker|tracking|locator)\b|\bstarter interrupt|\bimmobili[sz]er\b/],
+  ["Theft deterrent", /\btheft (?:deterrent|protection|prevention|system|package)\b|\banti[- ]theft\b|\blo-?jack\b|\bgps (?:tracker|tracking|locator)\b|\bstarter interrupt|\bimmobili[sz]er\b|\btheft recovery\b|\btracking device\b/],
   ["Door edge guards", /\bdoor edge guards?\b|\bdoor guards?\b/],
   ["Pinstripe", /\bpin ?strip(?:e|ing)\b/],
   ["Mud flaps or splash guards", /\bmud ?flaps?\b|\bsplash guards?\b/],
-  ["Key replacement", /\bkey (?:replacement|protection|fob (?:protection|replacement)|plan)\b/],
+  ["Key replacement", /\bkey (?:replacement|protection|fob (?:protection|replacement)|plan|plus)\b/],
   ["Dent and ding protection", /\b(?:dent|ding|paintless dent)(?: and| &)?(?: ding)? (?:protection|repair plan|plan|repair)\b/],
   ["Windshield protection", /\bwindshield (?:protection|repair plan|plan|repair|replacement)\b/],
   ["Roadside assistance", /\broadside\b/],
   // Accessories (mats, racks, hitches). On a new car they may be factory options already on the sticker.
   ["Accessories", /\baccessor(?:y|ies)\b|\bfloor (?:mats?|liners?)\b|\ball[- ]weather (?:mats?|liners?)\b|\bcargo (?:mat|liner|tray|net|cover)\b|\bremote (?:start|starter)\b|\broof rack\b|\bcross ?bars\b|\btonneau\b|\brunning boards?\b|\bstep bars?\b|\bbed ?liner\b|\b(?:tow(?:ing)? )?hitch\b/],
   ["Undercoating or rustproofing", /\bunder ?coat(?:ing)?\b|\brust ?proof(?:ing)?\b|\brust (?:protection|inhibitor|module|guard)\b|\bsound deaden(?:er|ing)\b/],
-  ["Clear bra (paint film)", /\bclear ?bra\b|\bppf\b|\bpaint protection film\b/],
-  ["Dealer accessories", /\bdealer (?:add(?:ed)?[- ]?ons?|accessories|installed (?:options|accessories|equipment)|options)\b|\b(?:protection|security|convenience|value) (?:package|pkg)\b|\b(?:dealer )?addendum\b/],
+  ["Clear bra (paint film)", /\bclear ?bra\b|\bppf\b|\bpaint protection film\b|\b3m (?:clear )?film\b|\bxpel\b/],
+  // Brand-name protection products sold as add-ons (appearance, sealants, windshield coatings).
+  ["Appearance protection product", /\bzurich shield\b|\bresistall\b|\btru-?coat\b|\bziebart\b|\bdiamond fusion\b|\bsealant\b/],
+  ["Dealer accessories", /\bdealer (?:add(?:ed)?[- ]?ons?|accessories|installed (?:options|accessories|equipment)|options)\b|\b(?:protection|security|convenience|value|platinum|gold|silver|diamond|premium) (?:package|pkg)\b|\b(?:dealer )?addendum\b/],
 ];
 
 // Optional products sold with the loan (CFPB: a lender can't require them; you can buy them elsewhere or not at all).
 export const LOAN_PRODUCTS: [string, RegExp][] = [
-  ["Service contract (extended warranty)", /\bservice (?:contract|agreement)\b|\bextended (?:warranty|service|protection)\b|\bmechanical breakdown\b|\bvsc\b|\bpowertrain (?:protection|plan|warranty)\b|\bwarranty\b|\blifetime (?:powertrain|engine)\b/],
+  ["Service contract (extended warranty)", /\bservice (?:contract|agreement)\b|\bextended (?:warranty|service|protection)\b|\bmechanical breakdown\b|\bvsc\b|\bpowertrain (?:protection|plan|warranty)\b|\bwarranty\b|\blifetime (?:powertrain|engine)\b|\b(?:vehicle|auto|car|total|complete) protection plan\b/],
   ["GAP", /\bgap\b|\bguaranteed (?:auto|asset) protection\b|\bdebt cancellation\b/],
-  ["Maintenance plan", /\b(?:pre-?paid )?maintenance (?:plan|contract|program|agreement|package)\b|\bpre-?paid maintenance\b|\bcare ?plan\b|\b(?:oil change|tire rotation|service) (?:package|pkg|plan)\b/],
+  ["Maintenance plan", /\b(?:pre-?paid )?maintenance (?:plan|contract|program|agreement|package)\b|\bpre-?paid maintenance\b|\bcare ?plan\b|\b(?:oil change|tire rotation|service) (?:package|pkg|plan)\b|\blifetime oil changes?\b|\btoyotacare\b|\bhonda ?care\b/],
   ["Tire and wheel protection", /\btire (?:and|&|\/) (?:wheel|rim)\b|\btire protection\b|\bwheel protection\b|\broad hazard\b/],
   // Insurance on the car itself: a lender can require it, but you choose the insurer (asked about, not refused).
   ["Car insurance", /\b(?:vehicle|auto|car|physical damage|collision|comprehensive) insurance\b/],
   ["Excess wear and tear protection", /\bexcess wear\b|\bwear (?:and|&) (?:tear|use)\b/],
-  ["Credit life or disability insurance", /\bcredit (?:life|disability|insurance)\b|\blife insurance\b|\bdisability insurance\b|\baccident (?:and|&) health\b|\ba ?& ?h insurance\b/],
+  ["Credit life or disability insurance", /\bcredit (?:life|disability|insurance)\b|\blife insurance\b|\bdisability insurance\b|\baccident (?:and|&) health\b|\ba ?& ?h insurance\b|\binvoluntary unemployment\b|\bunemployment insurance\b/],
 ];
 
 const has = (re: RegExp, s: string) => re.test(s);
@@ -135,7 +137,7 @@ function classifyWords(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:annual percentage rate|apr|interest rate|finance charge|total of payments|total sale price|monthly payment|payment amount|amount of (?:each )?payments?|number of payments|term|first payment|payments? (?:of|due))\b/, l)) return { kind: "loan" };
   if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financ(?:e|ed)\b|\bamount financing\b|\bto be financed\b|\bloan amount\b|\bbalance to finance\b|\btotal (?:amount )?financed\b/, l)) return { kind: "amountFinanced" };
   if (has(/\bnegative equity\b/, l)) return { kind: "negativeEquity" };
-  if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b|\bprior (?:credit|lease) (?:or lease )?balance\b/, l)) return { kind: "payoff" };
+  if (has(/\b(?:trade[- ]?in )?pay-?off\b|\blien (?:payoff|balance)\b|\bowed on (?:the )?trade\b|\bbalance owed\b|\bprior (?:credit|lease) (?:or lease )?balance\b|\bprior loan balance\b|\btrade lien\b/, l)) return { kind: "payoff" };
   // "Trade Difference" (Texas) is the price less the trade-in: a subtotal, not a credit.
   if (has(/\b(?:trade|cash) difference\b/, l)) return { kind: "subtotal" };
   // The trade-in's actual cash value and the over-allowance are how the allowance is made up, not more credit.
@@ -162,9 +164,10 @@ function classifyWords(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:dealer )?prep(?:aration)?\b|\brecon(?:ditioning)?\b|\bdelivery (?:fee|charge)\b|\bpdi\b|\bpre-?delivery (?:inspection|service)\b|\bdealer inspection\b/, l)) return { kind: "dealerFee" };
   // Some other fee: it could be a government one, so it's asked about rather than refused.
   if (has(/\bfee\b/, l)) return { kind: "dealerFee", name: "Other fee" };
+  if (has(/\bprice (?:after|less|net of|minus)\b|\b(?:net|adjusted|discounted) (?:sale|selling|sales) price\b/, l)) return { kind: "price" };
   if (has(/\brebates?\b|\bincentives?\b|\bfinance cash\b|\bcash back\b|\bbonus cash\b|\bloyalty\b|\bconquest\b|\bcustomer cash\b(?= rebate)/, l)) return { kind: "rebate" };
   if (has(/\bdiscounts?\b|\bsavings?\b|\bprice reduction\b|\bdealer cash\b|\bmarkdown\b|\bless\b|\byou save\b/, l)) return { kind: "discount" };
-  if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
+  if (has(/\bdown ?payment\b|\bcash down\b|\bcustomer cash\b|\bdeposit\b|\bearnest money\b|\bcash (?:due|paid)\b|\bcash on delivery\b/, l)) return { kind: "downPayment" };
   if (has(/\bbalance due\b|\bdue (?:at|on) (?:signing|delivery)\b|\bamount due\b|\bbalance owing\b|\bnet (?:due|payoff)\b/, l)) return { kind: "balanceDue" };
   if (has(/\bsub-?total\b|\btaxable (?:amount|total|price)\b|\btotal taxable\b/, l)) return { kind: "subtotal" };
   if (has(/\btotal\b|\bout[- ]the[- ]door\b|\botd\b|\bgrand total\b/, l)) return { kind: "total" };

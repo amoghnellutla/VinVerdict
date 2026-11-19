@@ -30,8 +30,33 @@ const WANT: [string, string][] = [
   ["Acquisition Fee", "leaseFee"], ["Disposition Fee", "leaseFee"], ["Capitalized Cost Reduction", "leaseTerm"], ["Residual Value", "leaseTerm"], ["Money Factor", "leaseTerm"],
   ["Kelley Blue Book Value", "reference"], ["NADA Retail", "reference"], ["Dealer Invoice", "reference"], ["MSRP", "price"],
 ];
+const MORE: [string, string][] = [
+  // Brand-name dealer add-ons and products.
+  ["Zurich Shield", "addOn"], ["Resistall", "addOn"], ["Ziebart Rustproofing", "addOn"], ["TruCoat", "addOn"], ["Tru-Coat Sealant", "addOn"], ["3M Clear Film", "addOn"],
+  ["XPEL Paint Protection Film", "addOn"], ["Diamond Fusion Windshield", "addOn"], ["LoJack Recovery System", "addOn"], ["Etch Guard", "addOn"], ["Interior Guard", "addOn"],
+  ["Platinum Package", "addOn"], ["Gold Protection Package", "addOn"], ["Value Package", "addOn"], ["Dealer Add-On Package", "addOn"], ["Security Package", "addOn"], ["Convenience Package", "addOn"],
+  ["Key Plus", "addOn"], ["Key Fob Protection", "addOn"], ["Tire & Wheel Plus", "loanProduct"], ["Theft Recovery", "addOn"], ["Tracking Device", "addOn"], ["Anti-Theft Device", "addOn"],
+  ["Lifetime Oil Changes", "loanProduct"], ["Maintenance Package", "loanProduct"], ["ToyotaCare Plus", "loanProduct"], ["Honda Care", "loanProduct"], ["Powertrain Warranty", "loanProduct"],
+  ["Bumper to Bumper Warranty", "loanProduct"], ["Limited Warranty", "loanProduct"], ["Vehicle Protection Plan", "loanProduct"], ["GAP Coverage", "loanProduct"], ["GAP Insurance", "loanProduct"],
+  ["Credit Life", "loanProduct"], ["Accident & Health Insurance", "loanProduct"], ["Involuntary Unemployment Insurance", "loanProduct"],
+  // Payoffs and negative equity.
+  ["Prior Loan Balance", "payoff"], ["Lease Payoff", "payoff"], ["Amount Owed on Trade", "payoff"], ["Trade Lien", "payoff"], ["Balance Owed to Lienholder", "payoff"], ["Payoff Amount", "payoff"],
+  ["Net Payoff", "payoff"], ["Negative Equity Rolled Into Loan", "negativeEquity"], ["Trade Equity", "tradeIn"], ["Trade Value", "tradeIn"], ["Trade-In Credit", "tradeIn"],
+  // Credits.
+  ["Owner Loyalty Rebate", "rebate"], ["Lease Loyalty Cash", "rebate"], ["Factory Incentive", "rebate"], ["Conquest Bonus", "rebate"], ["First Responder Rebate", "rebate"],
+  ["Internet Discount", "discount"], ["Price Reduction", "discount"], ["Employee Pricing Discount", "discount"], ["Manager Discount", "discount"], ["Cash Deposit", "downPayment"], ["Earnest Money", "downPayment"],
+  ["Customer Down Payment", "downPayment"], ["Cash Due at Delivery", "downPayment"],
+  // Fees.
+  ["DMV Registration", "stateFee"], ["State Registration Fee", "stateFee"], ["Title Transfer Fee", "stateFee"], ["Plate Fee", "stateFee"], ["License Fee", "stateFee"], ["Inspection Fee", "stateFee"],
+  ["Emissions Fee", "dealerFee"], ["Electronic Registration Fee", "stateFee"], ["Online Registration Fee", "stateFee"], ["Courtesy Delivery Fee", "dealerFee"], ["Vehicle Prep Fee", "dealerFee"],
+  ["Pre-Delivery Service", "dealerFee"], ["Reconditioning Fee", "dealerFee"], ["Shipping", "other"], ["Handling Fee", "docFee"], ["Documentation Charge", "docFee"], ["Doc Fee (Not a Government Fee)", "docFee"],
+  ["Dealer Fee", "docFee"], ["Processing Charge", "docFee"],
+  // Totals and others.
+  ["Total Out the Door", "total"], ["OTD Price", "total"], ["Grand Total", "total"], ["Balance Due", "balanceDue"], ["Total Due at Signing", "leaseTerm"],
+  ["Net Sale Price", "price"], ["Selling Price After Discounts", "price"], ["Adjusted Selling Price", "price"],
+];
 describe("the words real dealer papers use", () => {
-  it.each(WANT)("%s is %s", (label, kind) => {
+  it.each([...WANT, ...MORE])("%s is %s", (label, kind) => {
     expect(classify(label).kind).toBe(kind);
   });
 });
