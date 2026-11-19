@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/PageHeader";
+import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { listCars, priceChange } from "@/lib/cars/store";
 import { mi, shortDate, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "My cars" };
 export default function CheckedCarsPage() {
   return (
     <>
-      <PageHeader title="My cars" description="Every car you've checked, newest first. Tick two or three to compare them." />
+      <OwnerHub active="/checked" description="Every car you've checked, newest first. Tick two or three to compare them." />
       {/* The list reads your login cookie, so it renders at request time inside Suspense. */}
       <Suspense fallback={<p className="text-muted">Loading your cars…</p>}>
         <CarList />

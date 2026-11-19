@@ -43,3 +43,16 @@ export function searchLinks(q: SearchQuery): SearchLink[] {
     { site: "Facebook Marketplace", href: fb.toString(), note: "Private sellers: check every listing here" },
   ];
 }
+
+/** Sites to search by hand (PLAN.md §3 layer 2), with what each is best for. Shown under the owner's Shortlist. */
+export const OUTSIDE_SITES = [
+  { name: "AutoTempest", href: "https://www.autotempest.com", note: "Many sites at once" },
+  { name: "CarGurus", href: "https://www.cargurus.com", note: "Dealer deal labels" },
+  { name: "Cars.com", href: "https://www.cars.com", note: "Large inventory" },
+  { name: "Facebook Marketplace", href: "https://www.facebook.com/marketplace", note: "Private sellers: highest scam risk" },
+  { name: "Craigslist", href: "https://www.craigslist.org", note: "Private sellers: highest scam risk" },
+  { name: "CarMax", href: "https://www.carmax.com", note: "10-day money-back return" },
+  { name: "Carvana", href: "https://www.carvana.com", note: "7-day / 400-mile return" },
+  { name: "Enterprise Car Sales", href: "https://www.enterprisecarsales.com", note: "7-day buyback" },
+  { name: "Hertz Car Sales", href: "https://www.hertzcarsales.com", note: "Ex-rental cars" },
+] as const;

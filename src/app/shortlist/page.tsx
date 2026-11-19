@@ -1,43 +1,153 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { ExternalLink } from "@/components/ExternalLink";
 import { PageHeader } from "@/components/PageHeader";
-import { searchLinks } from "@/lib/search-links";
-import { shortlist, SHORTLIST_DATE, type ShortlistYear } from "@/lib/shortlist/shortlist";
+import { OwnerHub } from "@/components/cars/OwnerHub";
+import { SetupNote } from "@/components/cars/SetupNote";
+import { ModelCard } from "@/components/shortlist/ModelCard";
+import { currentUser } from "@/lib/auth/session";
+import { listCars } from "@/lib/cars/store";
+import { usd } from "@/lib/format";
+import { OUTSIDE_SITES } from "@/lib/search-links";
+import { myShortlist } from "@/lib/shortlist/mine";
+import { shortlist, SHORTLIST_DATE } from "@/lib/shortlist/shortlist";
 
 export const metadata: Metadata = { title: "Shortlist" };
 
-const YEAR_STYLE: Record<ShortlistYear["rating"], string> = {
-  fewer: "border-good/40 bg-good-soft text-good",
-  typical: "border-border bg-surface text-foreground",
-  many: "border-bad/40 bg-bad-soft text-bad",
-};
+type Params = Record<string, string | string[] | undefined>;
 
+/**
+ * Visitors get the whole guide. The owner gets it inside the "My cars" hub, narrowed to the models of the cars
+ * they've checked, with the full guide one link away (?all=1).
+ */
 export default function ShortlistPage({ searchParams }: PageProps<"/shortlist">) {
   return (
+    <Suspense fallback={<p className="text-muted">Loading…</p>}>
+      {searchParams.then((sp) => <ForViewer sp={sp} />)}
+    </Suspense>
+  );
+}
+
+async function ForViewer({ sp }: { sp: Params }) {
+  const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const budget = Number(one("budget").replace(/\D/g, "")) || null;
+  const zip = /^\d{5}$/.test(one("zip")) ? one("zip") : null;
+  const body = ["Sedan", "SUV"].includes(one("body")) ? one("body") : "";
+  const owner = await currentUser();
+  if (!owner) {
+    return (
+      <>
+        <PageHeader
+          title="Shortlist"
+          description="Everyday cars, and which model years owners reported the most problems with to NHTSA. Set a budget and ZIP to get ready-made searches."
+        />
+        <Guide budget={budget} zip={zip} body={body} />
+      </>
+    );
+  }
+  if (one("all") === "1") {
+    return (
+      <>
+        <OwnerHub active="/shortlist" description="Every model in the guide, and which model years owners reported the most problems with to NHTSA." />
+        <p className="mb-6">
+          <Link href="/shortlist" className="link font-semibold">Back to your models</Link>
+        </p>
+        <Guide budget={budget} zip={zip} body={body} all />
+      </>
+    );
+  }
+  return (
     <>
-      <PageHeader
-        title="Shortlist"
-        description="Everyday cars, and which model years owners reported the most problems with to NHTSA. Set a budget and ZIP to get ready-made searches."
+      <OwnerHub
+        active="/shortlist"
+        description="The models of the cars you've checked, with the model years owners reported the most problems with to NHTSA. Your cars' years are ringed."
       />
-      <Suspense fallback={<p className="text-muted">Loading…</p>}>
-        {searchParams.then((sp) => {
-          const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
-          const budget = Number(one("budget").replace(/\D/g, "")) || null;
-          const zip = /^\d{5}$/.test(one("zip")) ? one("zip") : null;
-          const body = ["Sedan", "SUV"].includes(one("body")) ? one("body") : "";
-          return <List budget={budget} zip={zip} body={body} />;
-        })}
-      </Suspense>
+      <Mine />
     </>
   );
 }
 
-function List({ budget, zip, body }: { budget: number | null; zip: string | null; body: string }) {
+/** The owner's models only: one card per model they've checked, their cars and years marked on it. */
+async function Mine() {
+  const r = await listCars();
+  if (!r.ok) return r.error === "not-set-up" ? <SetupNote /> : <p className="text-bad">Couldn&apos;t load your cars just now. Reload to try again.</p>;
+  const cars = r.value.map((c) => ({ id: c.id, title: c.title, price: c.price, year: c.facts.year ?? null, make: c.facts.make ?? null, model: c.facts.model ?? null }));
+  const { mine, notInGuide } = myShortlist(shortlist(), cars);
+  return (
+    <>
+      {cars.length === 0 ? (
+        <p className="text-lg">
+          No cars checked yet. <Link href="/" className="link">Check a car</Link> and its model&apos;s problem years show up here.
+        </p>
+      ) : (
+        <>
+          {mine.length > 0 && (
+            <>
+              <Legend />
+              <ul className="mt-6 space-y-10">
+                {mine.map(({ model, cars: own }) => (
+                  <ModelCard key={`${model.make}-${model.model}`} m={model} mine={own} />
+                ))}
+              </ul>
+            </>
+          )}
+          {notInGuide.length > 0 && (
+            <section className="mt-10 border-t border-border pt-6">
+              <h2 className="text-xl">Not in the guide yet</h2>
+              <p className="mt-2 text-muted">The guide covers everyday Toyota, Honda, Mazda, Lexus and Subaru models; these have no owner-report trend here.</p>
+              <ul className="mt-3 space-y-1">
+                {notInGuide.map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/car/${c.id}`} className="link">{c.title}</Link>
+                    {c.price != null && <span className="nums text-muted"> · {usd(c.price)}</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+      <p className="mt-10">
+        <Link href="/shortlist?all=1" className="link font-semibold">See every model in the guide</Link>
+      </p>
+      <section className="mt-10">
+        <h2 className="section-title">Find more cars on other sites</h2>
+        <ul className="divide-y divide-border border-y border-border">
+          {OUTSIDE_SITES.map((s) => (
+            <li key={s.name} className="flex flex-wrap items-baseline justify-between gap-x-4 py-3">
+              <ExternalLink href={s.href} className="link font-semibold">{s.name}</ExternalLink>
+              <span className="text-muted">{s.note}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
+function Legend() {
+  return (
+    <p className="mt-2 text-muted">
+      <span className="tag bg-good-soft text-good">Fewer owner reports</span>{" "}
+      <span className="tag bg-bad-soft text-bad">Many owner reports</span>{" "}
+      <span className="tag bg-warn-soft text-warn">! Known issue</span>{" "}
+      <span className="tag border border-dashed border-border-strong text-muted">Not enough data</span>{" "}
+      Owner complaints filed with NHTSA per year on the road, compared with other years of the same model (data from {SHORTLIST_DATE}).
+      This is a trend, not a reliability rating: counts also depend on how many were sold, and newer years have had less time for
+      problems to show. Hover a year for its complaint and recall counts. Safety recalls are repaired free at the brand&apos;s authorized
+      dealers; check the car&apos;s VIN on NHTSA to see whether its recalls were done.
+    </p>
+  );
+}
+
+/** The whole guide, with a budget, ZIP and body type for the searches. */
+function Guide({ budget, zip, body, all = false }: { budget: number | null; zip: string | null; body: string; all?: boolean }) {
   const models = shortlist().filter((m) => !body || m.body === body || (body === "Sedan" && m.body === "Hatchback"));
   return (
     <>
       <form method="get" className="card flex flex-wrap items-end gap-4">
+        {all && <input type="hidden" name="all" value="1" />}
         <label>
           <span className="text-sm font-semibold">Budget (max $)</span>
           <input name="budget" defaultValue={budget ?? ""} inputMode="numeric" placeholder="15000" className="field mt-1 w-36" />
@@ -58,86 +168,12 @@ function List({ budget, zip, body }: { budget: number | null; zip: string | null
       </form>
 
       <h2 className="mt-8 text-xl">Reported owner-problem trends</h2>
-      <p className="mt-2 text-muted">
-        <span className="tag bg-good-soft text-good">Fewer owner reports</span>{" "}
-        <span className="tag bg-bad-soft text-bad">Many owner reports</span>{" "}
-        <span className="tag bg-warn-soft text-warn">! Known issue</span>{" "}
-        <span className="tag border border-dashed border-border-strong text-muted">Not enough data</span>{" "}
-        Owner complaints filed with NHTSA per year on the road, compared with other years of the same model (data from {SHORTLIST_DATE}).
-        This is a trend, not a reliability rating: counts also depend on how many were sold, and newer years have had less time for
-        problems to show. Hover a year for its complaint and recall counts. Safety recalls are repaired free at the brand&apos;s authorized
-        dealers; check the car&apos;s VIN on NHTSA to see whether its recalls were done.
-      </p>
+      <Legend />
 
       <ul className="mt-6 space-y-10">
-        {models.map((m) => {
-          const recentGood = m.best.filter((y) => y >= 2015);
-          const links = searchLinks({
-            make: m.make,
-            model: m.model,
-            zip,
-            maxPrice: budget,
-            minYear: recentGood.length ? Math.min(...recentGood) : null,
-            maxYear: recentGood.length ? Math.max(...recentGood) : null,
-          });
-          const careful = m.years.filter((y) => m.careful.includes(y.year));
-          return (
-            <li key={`${m.make}-${m.model}`} className="border-t border-border pt-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-2xl">{m.make} {m.model}</h2>
-                <span className="text-muted">{m.body}</span>
-              </div>
-              <ol className="nums mt-3 flex flex-wrap gap-1.5" aria-label={`${m.make} ${m.model} model years`}>
-                {m.years.map((y) => (
-                  <li
-                    key={y.year}
-                    title={`${y.year}: ${y.sparse ? "too few complaints on record to judge; " : ""}${y.complaints} owner reports (${y.perYearOnRoad}/year on the road), ${y.recalls} recall${y.recalls === 1 ? "" : "s"}${y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}${y.knownIssues.length ? `. Known issue: ${y.knownIssues.map((k) => k.title).join("; ")}` : ""}`}
-                    className={`rounded border px-2 py-0.5 text-sm ${y.sparse ? "border-dashed border-border-strong text-muted" : YEAR_STYLE[y.rating]} ${y.knownIssues.length && y.rating !== "many" ? "border-warn/50 bg-warn-soft text-warn" : ""}`}
-                  >
-                    {y.year}
-                    {y.knownIssues.length ? " !" : ""}
-                  </li>
-                ))}
-              </ol>
-              {careful.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {careful.map((y) => (
-                    <li key={y.year}>
-                      <strong>{y.year}:</strong>{" "}
-                      {y.rating === "many" && <>{y.complaints.toLocaleString("en-US")} owner reports{y.topArea ? `, mostly ${y.topArea.toLowerCase()}` : ""}. </>}
-                      {y.parkIt > 0 && (
-                        <>
-                          <span className="tag bg-bad-soft text-bad">Don&apos;t drive</span> {y.parkIt} recall{y.parkIt > 1 ? "s say" : " says"} not to
-                          drive the car until it&apos;s repaired.{" "}
-                        </>
-                      )}
-                      {y.parkOutside > 0 && (
-                        <>
-                          <span className="tag bg-warn-soft text-warn">Park outside</span> {y.parkOutside} recall{y.parkOutside > 1 ? "s say" : " says"} to
-                          park it outside, away from buildings, until repaired (fire risk).{" "}
-                        </>
-                      )}
-                      {(y.parkIt > 0 || y.parkOutside > 0) && <>Not every car of this year is affected: check the VIN on NHTSA or ask for proof of the repair. </>}
-                      {y.knownIssues.map((k) => (
-                        <span key={k.title}>
-                          {k.title} (<ExternalLink href={k.url} className="link">{k.label}</ExternalLink>).{" "}
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
-                {links.map((l) => (
-                  <ExternalLink key={l.site} href={l.href} className="link font-semibold" title={l.note}>
-                    Search {l.site}
-                  </ExternalLink>
-                ))}
-                {recentGood.length > 0 && <span className="text-sm text-muted">Searches {Math.min(...recentGood)}–{Math.max(...recentGood)}{budget ? ` under $${budget.toLocaleString("en-US")}` : ""}</span>}
-              </p>
-            </li>
-          );
-        })}
+        {models.map((m) => (
+          <ModelCard key={`${m.make}-${m.model}`} m={m} zip={zip} budget={budget} />
+        ))}
       </ul>
     </>
   );

@@ -155,10 +155,10 @@ describe("deal sheets with misreads the reader repairs", () => {
   for (const [how, mutate] of Object.entries(REPAIRED)) {
     it(`${how}: every amount reads the same`, () => {
       const bad: string[] = [];
-      const amounts = (t: string, s: Spec) => parseDealSheet(redactDealSheet(t).text).lines.map((l) => `${l.kind}:${l.amount}`).join(" | ");
+      const amounts = (t: string) => parseDealSheet(redactDealSheet(t).text).lines.map((l) => `${l.kind}:${l.amount}`).join(" | ");
       for (const c of cases) {
-        const want = amounts(c.text, c.spec);
-        const got = amounts(mutate(c.text), c.spec);
+        const want = amounts(c.text);
+        const got = amounts(mutate(c.text));
         if (got !== want) bad.push(`${c.name}\n    was: ${want}\n    now: ${got}`);
       }
       expect(bad, `${how}\n  ${bad.join("\n  ")}`).toEqual([]);

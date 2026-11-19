@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/PageHeader";
+import { OwnerHub } from "@/components/cars/OwnerHub";
 import { ZipSetting } from "@/components/settings/ZipSetting";
 import { listCars } from "@/lib/cars/store";
 import { getUsage, MONTHLY_LIMIT } from "@/lib/usage";
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Settings" };
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Settings" description="Your home ZIP and the status of VinVerdict's data sources." />
+      <OwnerHub active="/settings" description="Your home ZIP and the status of VinVerdict's data sources." />
       <section>
         <h2 className="section-title">Location</h2>
         <ZipSetting />
@@ -31,7 +31,7 @@ async function Status() {
   const rows: [string, boolean, string][] = [
     ["Saved cars (My cars, Compare, price drops)", cars.ok, cars.ok ? `${cars.value.length} saved` : "Run supabase/migrations/20261109_checked_cars.sql (docs/SETUP.md step 8)"],
     ["Usage meter", usage !== null, usage ? `${usage.marketcheck}/${MONTHLY_LIMIT.marketcheck} MarketCheck, ${usage.autodev}/${MONTHLY_LIMIT.autodev} Auto.dev this month` : "Run supabase/migrations/20261109_api_usage.sql"],
-    ["MarketCheck key (price model, ended listings, search)", keys.marketcheck, keys.marketcheck ? "Set" : "Add MARKETCHECK_API_KEY"],
+    ["MarketCheck key (price model, ended listings)", keys.marketcheck, keys.marketcheck ? "Set" : "Add MARKETCHECK_API_KEY"],
     ["Auto.dev key (live listing, cars for sale)", keys.autodev, keys.autodev ? "Set" : "Add AUTODEV_API_KEY"],
   ];
   return (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { PageHeader } from "@/components/PageHeader";
+import { OwnerHub } from "@/components/cars/OwnerHub";
 import { SetupNote } from "@/components/cars/SetupNote";
 import { getCars, priceChange, type SavedCar } from "@/lib/cars/store";
 import { mi, usd, usdWithFee, VERDICT_TAG, VERDICT_TEXT } from "@/lib/format";
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Compare" };
 export default function ComparePage({ searchParams }: PageProps<"/compare">) {
   return (
     <>
-      <PageHeader title="Compare" description="Two or three saved cars side by side." />
+      <OwnerHub active="/compare" description="Two or three of your cars side by side." />
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
         {searchParams.then((sp) => (
           <CompareTable ids={[sp.ids].flat().filter((x): x is string => typeof x === "string")} />
@@ -27,7 +27,7 @@ async function CompareTable({ ids: raw }: { ids: string[] }) {
   if (ids.length < 2) {
     return (
       <p className="text-lg">
-        Pick at least two cars on <Link href="/checked" className="link">My cars</Link>, then press Compare.
+        Tick at least two cars on the <Link href="/checked" className="link">Cars</Link> tab, then press Compare selected.
       </p>
     );
   }
