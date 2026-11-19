@@ -426,6 +426,18 @@ describe("what each line is", () => {
     expect(parseDealSheet(head).lines.map((l) => [l.label, l.kind, l.amount])).toEqual([["Dealer Invoice", "reference", 20100], ["Vehicle Price", "price", 21998], ["Title & Tag", "stateFee", 95], ["Service Contract", "loanProduct", 2895], ["Grabado del VIN", "addOn", 399], ["GAP Policy", "loanProduct", 895]]);
   });
 
+  it("a prepaid finance charge or loan origination fee is a line of the amount financed, asked about", () => {
+    const paper = "Cash Price $20,000.00\nDoc Fee $499.00\nTotal Cash Price $20,499.00\nDown Payment $2,000.00\nUnpaid Balance $18,499.00\nPrepaid Finance Charge $395.00\nAmount Financed $18,894.00\nAPR 7.9%\nTerm 60 months\nMonthly Payment $382.20";
+    const s = parseDealSheet(paper);
+    expect(s.lines.find((l) => /prepaid/i.test(l.label))).toMatchObject({ kind: "dealerFee", name: "Loan fee", amount: 395 });
+    expect(s.loan.financeCharge).toBeNull();
+    const c = checkDealSheet({ sheet: s, ad: null, state: null, modelYear: 2021 });
+    expect(c.rows.find((r) => r.line.label === "Amount Financed")?.verdict).toBe("right");
+    expect(c.rows.find((r) => /prepaid/i.test(r.line.label))?.verdict).toBe("check");
+    expect(c.loan?.verdict).toBe("right");
+    expect(classify("Loan Origination Fee")).toEqual({ kind: "dealerFee", name: "Loan fee" });
+  });
+
   it("a trade-in's ACV and over-allowance are how the allowance is made up, not more credit", () => {
     const c = checkDealSheet({ sheet: parseDealSheet("Vehicle Price $25,000.00\nTrade Allowance $10,000.00\nTrade ACV $8,500.00\nOver-Allowance $1,500.00\nDoc Fee $499.00\nTotal $15,499.00"), ad: { price: 25000, docFee: 499, sellerType: "dealer" }, state: null, modelYear: 2021 });
     expect(c.rows.map((r) => r.line.kind)).toEqual(["price", "tradeIn", "reference", "reference", "docFee", "total"]);

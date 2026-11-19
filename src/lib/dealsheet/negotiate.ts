@@ -63,7 +63,7 @@ export function negotiationPlan(input: { sheet: DealSheet; check: DealCheck; ad:
   const gov = sum(["stateFee"]);
   // Fees that may be the state's (smog, e-filing, a fee it can't place) stay in the target until the dealer says
   // what they are: leaving out a real state fee would set a walk-away number no dealer can meet.
-  const askFees = live.filter((l) => l.kind === "dealerFee" && (l.name === "Smog or emissions" || l.name === "Electronic filing fee" || l.name === "Other fee"));
+  const askFees = live.filter((l) => l.kind === "dealerFee" && (l.name === "Smog or emissions" || l.name === "Electronic filing fee" || l.name === "Other fee" || l.name === "Loan fee"));
   const asked = r2(askFees.reduce((s, l) => s + l.amount, 0));
 
   // Tax: recomputed only when the paper's tax matched the state's rule (the tax row says "right").

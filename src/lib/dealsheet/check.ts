@@ -297,6 +297,9 @@ export function checkDealSheet(input: CheckInput): DealCheck {
         if (line.name === "Electronic filing fee") {
           return { line, verdict: "check", note: "A fee for filing the title and registration electronically. Some states allow and limit it: ask whether it's set by the state, and for the amount in writing." };
         }
+        if (line.name === "Loan fee") {
+          return { line, verdict: "check", note: "A fee for the loan itself, paid through the amount financed (it's part of the APR). Ask whether the lender requires it and whether it's negotiable; another lender may not charge one." };
+        }
         if (line.name === "Other fee") {
           return { line, verdict: "check", note: "A fee VinVerdict can't place. Ask what it's for: if it's a government fee it should be on your DMV's fee list; if it's the dealer's own, ask for it to be removed." };
         }

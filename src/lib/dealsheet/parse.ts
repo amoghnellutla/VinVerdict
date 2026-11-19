@@ -117,6 +117,9 @@ export function classify(rawLabel: string): { kind: LineKind; name?: string } {
   if (has(/\b(?:gross |adjusted |net )?capitali[sz]ed cost\b|\bcap(?:italized)? cost(?: reduction)?\b|\bresidual\b|\bmoney factor\b|\bdue at (?:signing|lease signing|inception)\b|\bdrive[- ]?off\b|\bfirst month'?s? payment\b|\blease (?:payment|term|rate)\b|\bdepreciation\b|\brent charge\b|\bbase monthly payments?\b/, l)) return { kind: "leaseTerm" };
   // The leasing company's own fees (often marked up by the dealer): asked about, not refused.
   if (has(/\b(?:acquisition|disposition|bank|lease (?:origination|initiation)|lessor) fee\b/, l)) return { kind: "leaseFee" };
+  // A fee for the loan itself, charged up front and financed ("Prepaid Finance Charge", "Loan Origination Fee"): a line
+  // of the amount financed, before the loan words take "finance charge".
+  if (has(/\bprepaid finance charges?\b|\b(?:loan )?origination fee\b|\bloan (?:processing|documentation|doc) fee\b/, l)) return { kind: "dealerFee", name: "Loan fee" };
   // Loan disclosure words first: "Total of payments" is not the total price.
   if (has(/\b(?:annual percentage rate|apr|interest rate|finance charge|total of payments|total sale price|monthly payment|payment amount|amount of (?:each )?payments?|number of payments|term|first payment|payments? (?:of|due))\b/, l)) return { kind: "loan" };
   if (has(/\bamount financed\b|\bunpaid balance\b|\bamount to (?:be )?financ(?:e|ed)\b|\bamount financing\b|\bto be financed\b|\bloan amount\b|\bbalance to finance\b|\btotal (?:amount )?financed\b/, l)) return { kind: "amountFinanced" };
@@ -596,6 +599,6 @@ function readLoan(text: string, lines: DealLine[]): LoanTerms {
     finalPayment,
     amountFinanced,
     totalOfPayments: near("total of payments"),
-    financeCharge: near("finance charge"),
+    financeCharge: near("(?<!prepaid )finance charge"),
   };
 }
